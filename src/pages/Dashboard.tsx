@@ -44,7 +44,7 @@ export default function DashboardPage() {
   useTheme();
   const { user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [completedToday] = useState(2);
+  const [completedToday] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
