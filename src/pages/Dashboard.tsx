@@ -109,7 +109,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Available Tasks */}
+        {/* Available Tasks - Temporarily removed until right content is implemented */}
+        {/*
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-2xl">Available Tasks</h2>
@@ -160,6 +161,7 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+        */}
       </main>
     </div>
   );
