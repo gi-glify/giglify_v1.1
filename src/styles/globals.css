@@ -97,7 +97,6 @@ a {
 
 button {
   font-family: "IBM Plex Sans", sans-serif;
-  border: none;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -255,6 +254,10 @@ html.dark .btn-primary {
   padding: 0.5rem;
   color: var(--text);
   transition: background-color 0.2s ease;
+}
+
+.btn-icon.text-white {
+  color: #fff;
 }
 
 .btn-icon:hover {
