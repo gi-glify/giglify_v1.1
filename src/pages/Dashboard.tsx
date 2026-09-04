@@ -2,59 +2,28 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { ArrowRight } from 'lucide-react';
-import { Task } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { StatCardSkeleton, TaskListSkeleton } from '../components/ui/Skeleton';
-
-const MOCK_TASKS: Task[] = [
-  {
-    id: '1',
-    title: 'Research Paper Proofreading',
-    description: 'Review academic paper for grammar and structure',
-    category: 'academic',
-    reward: 5,
-    estimatedTime: 45,
-    difficulty: 'easy',
-    status: 'available',
-  },
-  {
-    id: '2',
-    title: 'RLHF Model Ranking',
-    description: 'Rank AI responses for quality and helpfulness',
-    category: 'rlhf',
-    reward: 8,
-    estimatedTime: 30,
-    difficulty: 'medium',
-    status: 'available',
-  },
-  {
-    id: '3',
-    title: 'Statistical Data Audit',
-    description: 'Verify statistical calculations in research',
-    category: 'academic',
-    reward: 10,
-    estimatedTime: 60,
-    difficulty: 'hard',
-    requiresDesktop: true,
-    status: 'available',
-  },
-];
+import { fetchTasks } from '../lib/taskQuestionsApi';
+import type { TaskCatalogItem } from '../lib/taskCatalog';
 
 export default function DashboardPage() {
   useTheme();
   const { user } = useAuthStore();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<TaskCatalogItem[]>([]);
   const [completedToday] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulated fetch — replace with a Supabase query against `tasks`
-    // (see supabase/schema.sql) once the DB is wired up.
-    const t = setTimeout(() => {
-      setTasks(MOCK_TASKS);
+    let cancelled = false;
+    fetchTasks().then(({ tasks: fetchedTasks, error: fetchError }) => {
+      if (cancelled) return;
+      setTasks(fetchedTasks.slice(0, 3));
+      setError(fetchError?.message ?? null);
       setLoading(false);
-    }, 500);
-    return () => clearTimeout(t);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -109,8 +78,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Available Tasks - Temporarily removed until right content is implemented */}
-        {/*
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-2xl">Available Tasks</h2>
@@ -120,12 +87,16 @@ export default function DashboardPage() {
           </div>
           {loading ? (
             <TaskListSkeleton count={3} />
+          ) : error ? (
+            <div className="alert alert-error text-sm">Unable to load tasks: {error}</div>
+          ) : tasks.length === 0 ? (
+            <div className="card text-sm" style={{ color: 'var(--text-muted)' }}>No tasks are available right now.</div>
           ) : (
             <div className="grid gap-4">
               {tasks.map((task, index) => (
                 <div
                   key={task.id}
-                  className="card hover:shadow-md cursor-pointer transition-all transform hover:scale-[1.01] animate-in"
+                  className="card hover:shadow-md transition-all transform hover:scale-[1.01] animate-in"
                   data-aos="fade-up"
                   data-aos-delay={index * 80}
                 >
@@ -151,9 +122,11 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-right ml-4">
                       <p className="font-display text-2xl font-bold text-green-600 dark:text-green-400">+${task.reward}</p>
-                      <button className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto">
+                    {task.taskCode ? (
+                      <Link to={`/tasks/${encodeURIComponent(task.taskCode)}`} className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto">
                         Start <ArrowRight size={14} />
-                      </button>
+                      </Link>
+                    ) : null}
                     </div>
                   </div>
                 </div>
@@ -161,7 +134,6 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-        */}
       </main>
     </div>
   );
