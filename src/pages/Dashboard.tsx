@@ -1,0 +1,166 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import { ArrowRight } from 'lucide-react';
+import { Task } from '../types';
+import { useTheme } from '../context/ThemeContext';
+import { StatCardSkeleton, TaskListSkeleton } from '../components/ui/Skeleton';
+
+const MOCK_TASKS: Task[] = [
+  {
+    id: '1',
+    title: 'Research Paper Proofreading',
+    description: 'Review academic paper for grammar and structure',
+    category: 'academic',
+    reward: 5,
+    estimatedTime: 45,
+    difficulty: 'easy',
+    status: 'available',
+  },
+  {
+    id: '2',
+    title: 'RLHF Model Ranking',
+    description: 'Rank AI responses for quality and helpfulness',
+    category: 'rlhf',
+    reward: 8,
+    estimatedTime: 30,
+    difficulty: 'medium',
+    status: 'available',
+  },
+  {
+    id: '3',
+    title: 'Statistical Data Audit',
+    description: 'Verify statistical calculations in research',
+    category: 'academic',
+    reward: 10,
+    estimatedTime: 60,
+    difficulty: 'hard',
+    requiresDesktop: true,
+    status: 'available',
+  },
+];
+
+export default function DashboardPage() {
+  useTheme();
+  const { user } = useAuthStore();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [completedToday] = useState(2);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulated fetch — replace with a Supabase query against `tasks`
+    // (see supabase/schema.sql) once the DB is wired up.
+    const t = setTimeout(() => {
+      setTasks(MOCK_TASKS);
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="min-h-screen transition-colors" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
+      <main className="container py-8">
+        {/* Welcome Section */}
+        <div className="card mb-8 animate-in" data-aos="fade-up">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="font-display text-2xl mb-2">Welcome, {user?.firstName}! 👋</h2>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                You're on track. Keep completing tasks to earn more rewards.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {loading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              <div className="card animate-in" data-aos="fade-up">
+                <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Total Earnings
+                </h3>
+                <p className="font-display text-3xl font-bold">${user?.balance || 0}.00</p>
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>USD</p>
+              </div>
+
+              <div className="card animate-in" data-aos="fade-up" data-aos-delay="80">
+                <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Completed Today
+                </h3>
+                <p className="font-display text-3xl font-bold">{completedToday}</p>
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>tasks</p>
+              </div>
+
+              <div className="card animate-in" data-aos="fade-up" data-aos-delay="160">
+                <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Tier Status
+                </h3>
+                <p className="font-display text-3xl font-bold capitalize">{user?.subscription}</p>
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Membership</p>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Available Tasks */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-2xl">Available Tasks</h2>
+            <Link to="/tasks" className="text-sm font-semibold text-brand-600 dark:text-brand-300 flex items-center gap-1">
+              See all <ArrowRight size={14} />
+            </Link>
+          </div>
+          {loading ? (
+            <TaskListSkeleton count={3} />
+          ) : (
+            <div className="grid gap-4">
+              {tasks.map((task, index) => (
+                <div
+                  key={task.id}
+                  className="card hover:shadow-md cursor-pointer transition-all transform hover:scale-[1.01] animate-in"
+                  data-aos="fade-up"
+                  data-aos-delay={index * 80}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 className="font-semibold">{task.title}</h3>
+                        <span className={`badge ${task.category === 'academic' ? 'badge-blue' : 'badge-purple'}`}>
+                          {task.category}
+                        </span>
+                        <span className={`badge ${
+                          task.difficulty === 'easy' ? 'badge-green' : task.difficulty === 'medium' ? 'badge-yellow' : 'badge-red'
+                        }`}>
+                          {task.difficulty}
+                        </span>
+                      </div>
+                      <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
+                        {task.description}
+                      </p>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        ⏱️ {task.estimatedTime} min
+                      </div>
+                    </div>
+                    <div className="text-right ml-4">
+                      <p className="font-display text-2xl font-bold text-green-600 dark:text-green-400">+${task.reward}</p>
+                      <button className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto">
+                        Start <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}

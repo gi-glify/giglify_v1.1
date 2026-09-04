@@ -1,0 +1,29 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rounded square (dark navy) -->
+  <rect width="256" height="256" rx="64" fill="#0F172A"/>
+  
+  <!-- 4x4 grid of rounded squares -->
+  <!-- Row 1 -->
+  <rect x="32" y="32" width="36" height="36" rx="8" fill="#1E293B"/>
+  <rect x="80" y="32" width="36" height="36" rx="8" fill="#1E293B"/>
+  <rect x="128" y="32" width="36" height="36" rx="8" fill="#1E293B"/>
+  <rect x="176" y="32" width="36" height="36" rx="8" fill="#1E293B"/>
+  
+  <!-- Row 2 -->
+  <rect x="32" y="80" width="36" height="36" rx="8" fill="#1E293B"/>
+  <rect x="80" y="80" width="36" height="36" rx="8" fill="#F5A623"/>
+  <rect x="128" y="80" width="36" height="36" rx="8" fill="#F5A623"/>
+  <rect x="176" y="80" width="36" height="36" rx="8" fill="#1E293B"/>
+  
+  <!-- Row 3 -->
+  <rect x="32" y="128" width="36" height="36" rx="8" fill="#1E293B"/>
+  <rect x="80" y="128" width="36" height="36" rx="8" fill="#F5A623"/>
+  <rect x="128" y="128" width="36" height="36" rx="8" fill="#1E293B"/>
+  <rect x="176" y="128" width="36" height="36" rx="8" fill="#F5A623"/>
+  
+  <!-- Row 4 -->
+  <rect x="32" y="176" width="36" height="36" rx="8" fill="#1E293B"/>
+  <rect x="80" y="176" width="36" height="36" rx="8" fill="#F5A623"/>
+  <rect x="128" y="176" width="36" height="36" rx="8" fill="#1E293B"/>
+  <rect x="176" y="176" width="36" height="36" rx="8" fill="#1E293B"/>
+</svg>

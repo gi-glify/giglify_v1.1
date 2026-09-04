@@ -1,0 +1,276 @@
+@import url('https://fonts.googleapis.com/css2?family=Antic+Slab:wght@400;700&display=swap');
+@import 'aos/dist/aos.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Theme tokens ----------
+   Everything below is driven off `html.dark`. Components should prefer
+   these variables (or Tailwind `dark:` variants) over hand-rolled
+   `theme === 'dark' ? a : b` ternaries, so nothing is ever missed. */
+:root {
+  --bg: #F8FAFC;
+  --bg-elevated: #FFFFFF;
+  --text: #0F172A;
+  --text-muted: #64748B;
+  --border: #E2E8F0;
+  --accent: #F5A623;
+  --accent-hover: #F59E0B;
+  --scrollbar-track: #E2E8F0;
+  --scrollbar-thumb: #CBD5E1;
+  --scrollbar-thumb-hover: #94A3B8;
+}
+
+html.dark {
+  --bg: #020617;
+  --bg-elevated: #0F172A;
+  --text: #F8FAFC;
+  --text-muted: #94A3B8;
+  --border: #1E293B;
+  --accent: #F5A623;
+  --accent-hover: #F59E0B;
+  --scrollbar-track: #0F172A;
+  --scrollbar-thumb: #1E293B;
+  --scrollbar-thumb-hover: #334155;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Antic Slab', cursive;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Antic Slab', cursive;
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Antic Slab', cursive;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+h1 { font-size: 3rem; line-height: 1.2; }
+h2 { font-size: 2rem; line-height: 1.3; }
+h3 { font-size: 1.5rem; line-height: 1.4; }
+
+p, span, label, li {
+  color: inherit;
+}
+
+a {
+  transition: color 0.3s ease;
+}
+
+button {
+  font-family: 'Antic Slab', cursive;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+input, textarea, select {
+  font-family: 'Antic Slab', cursive;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* Animation utilities */
+.animate-in { animation: slideUp 0.6s ease-out both; }
+.fade-in { animation: fadeIn 0.6s ease-in both; }
+.pulse-slow { animation: pulseSoft 3s ease-in-out infinite; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulseSoft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shimmer { 0% { background-position: -450px 0; } 100% { background-position: 450px 0; } }
+
+/* Card styles — theme-aware via CSS variables, no per-element ternary needed */
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(26, 26, 26, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  color: var(--text);
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.08);
+  border-color: var(--accent);
+}
+
+/* Button variants */
+.btn-primary {
+  background: var(--accent);
+  color: #1A1A1A;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+html.dark .btn-primary { color: #14140F; }
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(209, 190, 176, 0.3);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--accent);
+  padding: 0.65rem 1.4rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+  border-color: var(--accent-hover);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.5rem;
+  color: var(--text);
+  transition: background-color 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: var(--border);
+}
+
+/* Form elements */
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(209, 190, 176, 0.15);
+}
+
+/* Loading spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Alert boxes */
+.alert {
+  padding: 1rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.alert-success {
+  background: #E8F5E9;
+  border-left: 4px solid #4CAF50;
+  color: #2E7D32;
+}
+html.dark .alert-success { background: rgba(76, 175, 80, 0.12); color: #81C784; }
+
+.alert-error {
+  background: #FFEBEE;
+  border-left: 4px solid #F44336;
+  color: #C62828;
+}
+html.dark .alert-error { background: rgba(244, 67, 54, 0.12); color: #EF9A9A; }
+
+.alert-info {
+  background: #E3F2FD;
+  border-left: 4px solid #2196F3;
+  color: #1565C0;
+}
+html.dark .alert-info { background: rgba(33, 150, 243, 0.12); color: #90CAF9; }
+
+/* Tag / badge helper — use instead of hardcoded bg-x-100 text-x-800 pairs,
+   which is what was making text vanish in dark mode. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.badge-blue { background: #DBEAFE; color: #1E40AF; }
+html.dark .badge-blue { background: rgba(59, 130, 246, 0.18); color: #93C5FD; }
+.badge-purple { background: #EDE9FE; color: #5B21B6; }
+html.dark .badge-purple { background: rgba(139, 92, 246, 0.18); color: #C4B5FD; }
+.badge-green { background: #DCFCE7; color: #166534; }
+html.dark .badge-green { background: rgba(34, 197, 94, 0.18); color: #86EFAC; }
+.badge-yellow { background: #FEF9C3; color: #854D0E; }
+html.dark .badge-yellow { background: rgba(234, 179, 8, 0.18); color: #FDE68A; }
+.badge-red { background: #FEE2E2; color: #991B1B; }
+html.dark .badge-red { background: rgba(239, 68, 68, 0.18); color: #FCA5A5; }
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg) 37%, var(--border) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Leave room at the bottom of scrollable pages on mobile so content
+   isn't hidden behind the bottom tab bar. */
+.mobile-nav-spacer {
+  height: 5.5rem;
+}
+
+@media (max-width: 768px) {
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+}

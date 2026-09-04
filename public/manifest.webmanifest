@@ -1,0 +1,15 @@
+{
+  "name": "Giglify - Microtasking, Done Right",
+  "short_name": "Giglify",
+  "description": "Academic & AI Task Platform — complete tasks, get paid.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#EFEFEF",
+  "theme_color": "#2E5045",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/giglify.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/giglify.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
