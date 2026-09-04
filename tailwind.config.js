@@ -37,8 +37,9 @@ export default {
         },
       },
       fontFamily: {
-        'sans': ['Inter', 'SF Pro Display', 'system-ui', '-apple-system', 'sans-serif'],
-        'display': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        'body': ['IBM Plex Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        'sans': ['IBM Plex Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        'display': ['Space Grotesk', 'system-ui', '-apple-system', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-in',

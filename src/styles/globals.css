@@ -10,6 +10,8 @@
    these variables (or Tailwind `dark:` variants) over hand-rolled
    `theme === 'dark' ? a : b` ternaries, so nothing is ever missed. */
 :root {
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-heading: "Space Grotesk", system-ui, -apple-system, sans-serif;
   --bg: #f8fafc;
   --bg-elevated: #ffffff;
   --text: #0f172a;
@@ -41,7 +43,7 @@ html.dark {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--font-body);
 }
 
 html {
@@ -49,7 +51,7 @@ html {
 }
 
 body {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--font-body);
   background-color: var(--bg);
   color: var(--text);
   transition:
@@ -63,7 +65,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: var(--font-heading);
   font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text);
@@ -103,7 +105,16 @@ button {
 input,
 textarea,
 select {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--font-body);
+}
+
+/* Keep explicit font utilities aligned with the global typography rules. */
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-display {
+  font-family: var(--font-heading);
 }
 
 /* Custom scrollbar */

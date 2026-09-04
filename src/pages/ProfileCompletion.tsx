@@ -1,11 +1,15 @@
-import { useState } from "react";
-import { CheckCircle2, User as UserIcon, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, Clock3, LockKeyhole, User as UserIcon, Upload } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { supabase } from "../utils/supabase";
 import {
   getProfileCompletion,
   PROFILE_TASK_LIMIT_THRESHOLD,
 } from "../utils/profileCompletion";
+import { toProfilePayload, type ProfileForm } from "../utils/profilePayload";
+
+const PROFILE_PENDING_MS = 15 * 60 * 1000;
+const pendingProfileKey = (userId: string) => `giglify:pending-profile:${userId}`;
 
 const SKILL_OPTIONS = [
   "Writing",
@@ -19,7 +23,7 @@ const ID_TYPES = ["National ID", "Passport", "Driving License", "Resident ID"];
 
 export default function ProfileCompletionPage() {
   const { user, setUser } = useAuthStore();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProfileForm>({
     phone: user?.phone || "",
     country: user?.country || "",
     bio: user?.bio || "",
@@ -36,12 +40,75 @@ export default function ProfileCompletionPage() {
     proofOfPayment: user?.proofOfPayment || "",
   });
   const [saved, setSaved] = useState(false);
+  const [pendingUntil, setPendingUntil] = useState<number | null>(null);
+  const [remainingMs, setRemainingMs] = useState(0);
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(user?.profilePicture || null);
 
   const preview = { ...user, ...form };
   const completion = getProfileCompletion(preview);
+
+  const saveProfile = async (profileForm: ProfileForm) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        ...toProfilePayload(profileForm),
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error) throw error;
+    localStorage.removeItem(pendingProfileKey(user.id));
+    setPendingUntil(null);
+    setRemainingMs(0);
+    setUser({ ...user, ...profileForm });
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2500);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    const stored = localStorage.getItem(pendingProfileKey(user.id));
+    if (!stored) return;
+
+    try {
+      const pending = JSON.parse(stored) as { form: ProfileForm; expiresAt: number };
+      if (pending.expiresAt <= Date.now()) {
+        void saveProfile(pending.form).catch((error) => {
+          console.error("Error applying pending profile:", error);
+        });
+        return;
+      }
+      setForm(pending.form);
+      setProfilePicturePreview(pending.form.profilePicture || null);
+      setPendingUntil(pending.expiresAt);
+      setRemainingMs(pending.expiresAt - Date.now());
+    } catch {
+      localStorage.removeItem(pendingProfileKey(user.id));
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!pendingUntil || !user) return;
+    const tick = () => {
+      const remaining = pendingUntil - Date.now();
+      setRemainingMs(Math.max(0, remaining));
+      if (remaining <= 0) {
+        const stored = localStorage.getItem(pendingProfileKey(user.id));
+        if (!stored) return;
+        const pending = JSON.parse(stored) as { form: ProfileForm };
+        void saveProfile(pending.form).catch((error) => {
+          console.error("Error applying pending profile:", error);
+        });
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [pendingUntil, user?.id]);
 
   const toggleSkill = (skill: string) => {
     setForm((f) => ({
@@ -71,25 +138,14 @@ export default function ProfileCompletionPage() {
     e.preventDefault();
     if (!user) return;
 
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          ...form,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) throw error;
-
-      setUser({ ...user, ...form });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    } catch (err) {
-      console.error("Error saving profile:", err);
-      alert("Failed to save profile. Please try again.");
-    }
+    const expiresAt = Date.now() + PROFILE_PENDING_MS;
+    localStorage.setItem(pendingProfileKey(user.id), JSON.stringify({ form, expiresAt }));
+    setPendingUntil(expiresAt);
+    setRemainingMs(PROFILE_PENDING_MS);
   };
+
+  const minutes = Math.floor(remainingMs / 60000).toString().padStart(2, "0");
+  const seconds = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, "0");
 
   return (
     <div
@@ -142,10 +198,24 @@ export default function ProfileCompletionPage() {
 
         <form
           onSubmit={handleSave}
-          className="space-y-6 card"
+          className="space-y-6 card relative"
           data-aos="fade-up"
           data-aos-delay="80"
         >
+          {pendingUntil && (
+            <div className="absolute inset-0 z-10 rounded-lg backdrop-blur-md bg-[var(--bg)]/80 flex items-center justify-center p-6 text-center">
+              <div className="max-w-sm">
+                <LockKeyhole size={72} strokeWidth={1.5} className="mx-auto mb-5 text-brand-600 dark:text-brand-300" />
+                <h2 className="font-display text-2xl mb-2">Pending admin approval</h2>
+                <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>
+                  Your edits are locked while they are reviewed. They will save automatically when the approval window ends.
+                </p>
+                <div className="inline-flex items-center gap-2 text-lg font-semibold" aria-live="polite">
+                  <Clock3 size={20} /> {minutes}:{seconds}
+                </div>
+              </div>
+            </div>
+          )}
           {saved && (
             <div className="alert alert-success text-sm">Profile updated.</div>
           )}
