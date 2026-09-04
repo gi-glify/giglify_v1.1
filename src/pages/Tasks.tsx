@@ -13,7 +13,7 @@ interface DemoTask extends Task {
 }
 
 // Demo data removed. Real tasks should be fetched from Supabase.
-const DEMO_TASKS: DemoTask[] = [];
+const tasks: DemoTask[] = [];
 
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
@@ -51,7 +51,7 @@ export default function TasksPage() {
   };
 
   const filtered = useMemo(() => {
-    return DEMO_TASKS.filter((task) => {
+    return tasks.filter((task) => {
       const q = search.trim().toLowerCase();
       if (q && !task.title.toLowerCase().includes(q) && !task.description.toLowerCase().includes(q)) return false;
       if (difficulty.size && !difficulty.has(task.difficulty)) return false;
@@ -69,7 +69,7 @@ export default function TasksPage() {
       <main className="container py-8">
         <h1 className="font-display text-2xl mb-1" data-aos="fade-down">Available Tasks</h1>
         <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-          {DEMO_TASKS.length} demo tasks — real tasks appear here once your task list is imported.
+          {tasks.length} tasks available — real tasks appear here once your task list is imported.
         </p>
 
         {gated && (

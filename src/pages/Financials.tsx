@@ -1,59 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { formatCurrency } from '../utils/currency';
 import { Transaction } from '../types';
 import { Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    type: 'task-reward',
-    amount: 5,
-    currency: 'USD',
-    status: 'completed',
-    timestamp: new Date(Date.now() - 86400000).toISOString(),
-    description: 'Completed: Research Paper Proofreading',
-  },
-  {
-    id: '2',
-    userId: 'user1',
-    type: 'task-reward',
-    amount: 8,
-    currency: 'USD',
-    status: 'completed',
-    timestamp: new Date(Date.now() - 172800000).toISOString(),
-    description: 'Completed: RLHF Model Ranking',
-  },
-  {
-    id: '3',
-    userId: 'user1',
-    type: 'deposit',
-    amount: 50,
-    currency: 'USD',
-    status: 'completed',
-    timestamp: new Date(Date.now() - 259200000).toISOString(),
-    description: 'Deposit via Stripe',
-  },
-  {
-    id: '4',
-    userId: 'user1',
-    type: 'withdrawal',
-    amount: 30,
-    currency: 'USD',
-    status: 'completed',
-    timestamp: new Date(Date.now() - 345600000).toISOString(),
-    description: 'Withdrawal to Bank Account',
-  },
-];
-
 export default function FinancialsPage() {
   const { theme } = useTheme();
   const user = useAuthStore((state) => state.user);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawalSubmitted, setWithdrawalSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    async function fetchTransactions() {
+      try {
+        // Implementation will fetch from Supabase `transactions` table
+        // const { data } = await supabase.from('transactions').select('*').eq('userId', user?.id);
+        // setTransactions(data || []);
+      } catch (e) {
+        console.error("Failed to fetch transactions", e);
+      }
+    }
+    fetchTransactions();
+  }, [user]);
 
   const handleWithdrawal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,7 +112,7 @@ export default function FinancialsPage() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_TRANSACTIONS.map((tx) => (
+                {transactions.map((tx) => (
                   <tr
                     key={tx.id}
                     className={`border-b animate-in ${theme === 'dark' ? 'border-stone-700 hover:bg-stone-700' : 'border-sand-100 hover:bg-sand-100'}`}

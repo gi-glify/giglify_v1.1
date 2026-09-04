@@ -18,10 +18,6 @@ function detectMode(): PlatformMode {
  */
 export function usePlatform() {
   const [auto, setAuto] = useState<PlatformMode>(detectMode);
-  const [override, setOverrideState] = useState<PlatformMode | null>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved === 'desktop' || saved === 'mobile' ? saved : null;
-  });
 
   useEffect(() => {
     const onResize = () => setAuto(detectMode());
@@ -29,15 +25,8 @@ export function usePlatform() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const setOverride = (mode: PlatformMode | null) => {
-    if (mode) localStorage.setItem(STORAGE_KEY, mode);
-    else localStorage.removeItem(STORAGE_KEY);
-    setOverrideState(mode);
-  };
-
   return {
-    mode: override ?? auto,
-    isAutoDetected: override === null,
-    setOverride,
+    mode: auto,
+    isAutoDetected: true,
   };
 }

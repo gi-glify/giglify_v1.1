@@ -52,25 +52,26 @@ export default function Landing() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[var(--bg)]">
         {/* Navigation Skeleton */}
-        <nav className="sticky top-0 z-50 bg-white border-b border-slate-200">
+        <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-10 w-10 bg-slate-200 rounded-lg animate-pulse"></div>
-              <div className="h-6 w-24 bg-slate-200 rounded animate-pulse"></div>
+              <div className="h-10 w-10 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse"></div>
+              <div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
             </div>
             <div className="hidden md:flex items-center gap-8">
-              <div className="h-4 w-20 bg-slate-200 rounded animate-pulse"></div>
-              <div className="h-4 w-20 bg-slate-200 rounded animate-pulse"></div>
-              <div className="h-4 w-20 bg-slate-200 rounded animate-pulse"></div>
+              <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+              <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+              <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="hidden md:block h-10 w-20 bg-slate-200 rounded-lg animate-pulse"></div>
-              <div className="h-10 w-28 bg-slate-200 rounded-lg animate-pulse"></div>
+              <div className="hidden md:block h-10 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse"></div>
+              <div className="h-10 w-28 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse"></div>
             </div>
           </div>
         </nav>
+
 
         {/* Hero Section Skeleton */}
         <section className="max-w-6xl mx-auto px-6 py-20 md:py-32 grid md:grid-cols-2 gap-12 items-center">
@@ -97,9 +98,9 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[var(--bg)]">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-slate-200">
+      <nav className="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img
@@ -107,26 +108,27 @@ export default function Landing() {
               alt="Giglify"
               className="h-10 w-10 rounded-lg"
             />
-            <span className="text-xl font-bold text-navy-900">giglify</span>
+            <span className="text-xl font-bold text-navy-900 dark:text-white">giglify</span>
           </div>
+
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
             <a
               href="#how-it-works"
-              className="text-sm font-medium text-slate-text hover:text-navy-900 transition"
+              className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
             >
               How it Works
             </a>
             <a
               href="#stats"
-              className="text-sm font-medium text-slate-text hover:text-navy-900 transition"
+              className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
             >
               Stats
             </a>
             <a
-              href="#"
-              className="text-sm font-medium text-slate-text hover:text-navy-900 transition"
+              href="/pricing"
+              className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
             >
               Pricing
             </a>
@@ -135,7 +137,7 @@ export default function Landing() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/auth")}
-              className="hidden md:block px-4 py-2 text-sm font-semibold text-navy-900 border border-slate-border rounded-lg hover:bg-slate-50 transition"
+              className="hidden md:block px-4 py-2 text-sm font-semibold text-navy-900 dark:text-white border border-slate-border dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               Log in
             </button>
@@ -159,42 +161,43 @@ export default function Landing() {
 
         {/* Mobile Menu Drawer */}
         {isMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-lg animate-in">
+          <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-lg animate-in">
             <div className="flex flex-col p-6 gap-4">
               <a
                 href="#how-it-works"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-base font-medium text-slate-text hover:text-navy-900 transition"
+                className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
               >
                 How it Works
               </a>
               <a
                 href="#stats"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-base font-medium text-slate-text hover:text-navy-900 transition"
+                className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
               >
                 Stats
               </a>
               <a
-                href="#"
+                href="/pricing"
                 onClick={() => setIsMenuOpen(false)}
-                className="text-base font-medium text-slate-text hover:text-navy-900 transition"
+                className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
               >
                 Pricing
               </a>
-              <hr className="border-slate-100" />
+              <hr className="border-slate-100 dark:border-slate-800" />
               <button
                 onClick={() => {
                   navigate("/auth");
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 text-sm font-semibold text-navy-900 border border-slate-border rounded-lg hover:bg-slate-50 transition"
+                className="w-full text-left px-4 py-2 text-sm font-semibold text-navy-900 dark:text-white border border-slate-border dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition"
               >
                 Log in
               </button>
             </div>
           </div>
         )}
+
       </nav>
 
       {/* Hero Section */}
@@ -205,10 +208,10 @@ export default function Landing() {
               Microtasking, Done Right
             </span>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-navy-900 mb-6 leading-tight">
+          <h1 className="text-5xl md:text-6xl font-bold text-navy-900 dark:text-white mb-6 leading-tight">
             Break Big Work Into Small Wins
           </h1>
-          <p className="text-xl text-slate-text mb-8 leading-relaxed">
+          <p className="text-xl text-slate-text dark:text-slate-300 mb-8 leading-relaxed">
             Post tasks, get results. Giglify connects your project with
             thousands of vetted workers ready to help you scale faster.
           </p>
@@ -220,7 +223,7 @@ export default function Landing() {
               Get started
               <ArrowRight size={18} />
             </button>
-            <button className="inline-flex items-center gap-2 px-8 py-3 text-base font-semibold text-navy-900 bg-white border-2 border-slate-border rounded-lg hover:bg-slate-50 transition">
+            <button className="inline-flex items-center gap-2 px-8 py-3 text-base font-semibold text-navy-900 dark:text-white bg-white dark:bg-slate-800 border-2 border-slate-border dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
               Learn more
             </button>
           </div>
@@ -256,7 +259,7 @@ export default function Landing() {
       </section>
 
       {/* Stats Section */}
-      <section id="stats" className="w-full bg-navy-900 py-16">
+      <section id="stats" className="w-full bg-navy-900 dark:bg-slate-950 py-16">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-4 gap-8">
             {stats.map((stat, i) => (
@@ -284,10 +287,10 @@ export default function Landing() {
         className="max-w-6xl mx-auto px-6 py-20 md:py-32"
       >
         <div className="text-center mb-16" data-aos="fade-up">
-          <h2 className="text-4xl md:text-5xl font-bold text-navy-900 mb-4">
+          <h2 className="text-4xl md:text-5xl font-bold text-navy-900 dark:text-white mb-4">
             Simple, Three-Step Process
           </h2>
-          <p className="text-xl text-slate-text max-w-2xl mx-auto">
+          <p className="text-xl text-slate-text dark:text-slate-300 max-w-2xl mx-auto">
             From concept to completion, our streamlined workflow makes scaling
             effortless.
           </p>
@@ -306,10 +309,10 @@ export default function Landing() {
                   {step.number}
                 </span>
               </div>
-              <h3 className="text-2xl font-semibold text-navy-900 mb-4">
+              <h3 className="text-2xl font-semibold text-navy-900 dark:text-white mb-4">
                 {step.title}
               </h3>
-              <p className="text-base text-slate-text leading-relaxed">
+              <p className="text-base text-slate-text dark:text-slate-300 leading-relaxed">
                 {step.description}
               </p>
             </div>
@@ -318,11 +321,11 @@ export default function Landing() {
       </section>
 
       {/* Feature Highlights */}
-      <section className="bg-navy-50 py-20 md:py-32">
+      <section className="bg-navy-50 dark:bg-slate-900 py-20 md:py-32">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
             <div data-aos="fade-right">
-              <h2 className="text-4xl font-bold text-navy-900 mb-6">
+              <h2 className="text-4xl font-bold text-navy-900 dark:text-white mb-6">
                 Built for Scale
               </h2>
               <ul className="space-y-4">
@@ -337,13 +340,13 @@ export default function Landing() {
                       className="text-accent-green flex-shrink-0 mt-1"
                       size={20}
                     />
-                    <span className="text-lg text-slate-text">{feature}</span>
+                    <span className="text-lg text-slate-text dark:text-slate-300">{feature}</span>
                   </li>
                 ))}
               </ul>
             </div>
             <div
-              className="bg-white rounded-2xl p-8 shadow-lg"
+              className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-lg"
               data-aos="fade-left"
             >
               <div className="space-y-6">
@@ -352,10 +355,10 @@ export default function Landing() {
                     <Zap size={24} className="text-navy-900" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-navy-900 mb-1">
+                    <h4 className="font-semibold text-navy-900 dark:text-white mb-1">
                       Fast Results
                     </h4>
-                    <p className="text-slate-text">
+                    <p className="text-slate-text dark:text-slate-300">
                       Average task completion in 24 hours
                     </p>
                   </div>
@@ -365,10 +368,10 @@ export default function Landing() {
                     <BarChart3 size={24} className="text-navy-900" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-navy-900 mb-1">
+                    <h4 className="font-semibold text-navy-900 dark:text-white mb-1">
                       Quality Assured
                     </h4>
-                    <p className="text-slate-text">
+                    <p className="text-slate-text dark:text-slate-300">
                       Automated validation ensures accuracy
                     </p>
                   </div>
@@ -378,10 +381,10 @@ export default function Landing() {
                     <Users size={24} className="text-navy-900" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-navy-900 mb-1">
+                    <h4 className="font-semibold text-navy-900 dark:text-white mb-1">
                       Expert Network
                     </h4>
-                    <p className="text-slate-text">
+                    <p className="text-slate-text dark:text-slate-300">
                       Vetted professionals ready to work
                     </p>
                   </div>
@@ -397,10 +400,10 @@ export default function Landing() {
         className="max-w-6xl mx-auto px-6 py-20 md:py-32 text-center"
         data-aos="zoom-in"
       >
-        <h2 className="text-5xl font-bold text-navy-900 mb-6">
+        <h2 className="text-5xl font-bold text-navy-900 dark:text-white mb-6">
           Ready to Scale?
         </h2>
-        <p className="text-xl text-slate-text mb-8 max-w-2xl mx-auto">
+        <p className="text-xl text-slate-text dark:text-slate-300 mb-8 max-w-2xl mx-auto">
           Join hundreds of companies using Giglify to accelerate their projects.
         </p>
         <button
@@ -413,7 +416,7 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-navy-900 text-white">
+      <footer className="bg-navy-900 dark:bg-slate-950 text-white">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
@@ -490,7 +493,7 @@ export default function Landing() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-navy-800 pt-8 flex md:flex-row flex-col justify-between items-center text-sm text-slate-400">
+          <div className="border-t border-navy-800 dark:border-slate-800 pt-8 flex md:flex-row flex-col justify-between items-center text-sm text-slate-400">
             <p>&copy; 2024 Giglify. All rights reserved.</p>
             <div className="flex gap-6 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition">

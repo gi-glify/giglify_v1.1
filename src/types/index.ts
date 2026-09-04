@@ -14,6 +14,15 @@ export interface User {
   skills?: string[];
   dateOfBirth?: string;
   payoutMethodAdded?: boolean;
+  profilePicture?: string;
+  // KYC & POP fields
+  idType?: string;
+  idNumber?: string;
+  address?: string;
+  fullLegalName?: string;
+  payoutMethod?: string;
+  payoutAccount?: string;
+  proofOfPayment?: string;
 }
 
 export interface Task {

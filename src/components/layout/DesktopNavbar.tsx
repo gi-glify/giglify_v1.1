@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
-  Menu,
   Bell,
   Wallet,
   Moon,
@@ -9,23 +8,18 @@ import {
   ChevronDown,
   LogOut,
   User as UserIcon,
-  Smartphone,
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
-import { usePlatform } from "../../hooks/usePlatform";
-import { NAV_ITEMS } from "../../config/navigation";
+import { PRIMARY_NAV_ITEMS } from "../../config/navigation";
 import { useAuthStore } from "../../store/authStore";
-import { signOut } from "../../utils/supabase";
 
 interface DesktopNavbarProps {
-  onToggleDrawer: () => void;
+  onLogout: () => void;
 }
 
-export default function DesktopNavbar({ onToggleDrawer }: DesktopNavbarProps) {
+export default function DesktopNavbar({ onLogout }: DesktopNavbarProps) {
   const { theme, toggleTheme } = useTheme();
-  const { setOverride } = usePlatform();
-  const { user, setUser } = useAuthStore();
-  const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -38,12 +32,6 @@ export default function DesktopNavbar({ onToggleDrawer }: DesktopNavbarProps) {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  const handleLogout = async () => {
-    await signOut();
-    setUser(null);
-    navigate("/auth");
-  };
-
   return (
     <header
       className="hidden md:flex sticky top-0 z-30 items-center justify-between px-6 py-3 border-b backdrop-blur"
@@ -52,26 +40,22 @@ export default function DesktopNavbar({ onToggleDrawer }: DesktopNavbarProps) {
         background: "color-mix(in srgb, var(--bg-elevated) 92%, transparent)",
       }}
     >
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onToggleDrawer}
-          className="btn-icon"
-          aria-label="Toggle navigation"
-        >
-          <Menu size={20} />
-        </button>
-        <div className="flex items-center gap-2 h-10">
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2">
           <img
             src="/giglify.svg"
             alt="Giglify Logo"
             className="h-8 w-8 object-contain flex-shrink-0"
           />
-          <span className="font-display text-xl font-bold whitespace-nowrap">
+          <span
+            className="text-lg font-bold whitespace-nowrap"
+            style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+          >
             Giglify
           </span>
         </div>
-        <nav className="flex items-center gap-1 ml-4" aria-label="Primary">
-          {NAV_ITEMS.filter((i) => i.primary).map((item) => (
+        <nav className="flex items-center gap-1" aria-label="Primary">
+          {PRIMARY_NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -109,15 +93,6 @@ export default function DesktopNavbar({ onToggleDrawer }: DesktopNavbarProps) {
           <Bell size={18} />
           <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
         </NavLink>
-
-        <button
-          onClick={() => setOverride("mobile")}
-          className="btn-icon"
-          title="Switch to mobile view"
-          aria-label="Switch to mobile view"
-        >
-          <Smartphone size={18} />
-        </button>
 
         <button
           onClick={toggleTheme}
@@ -160,7 +135,7 @@ export default function DesktopNavbar({ onToggleDrawer }: DesktopNavbarProps) {
                 Settings
               </NavLink>
               <button
-                onClick={handleLogout}
+                onClick={onLogout}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
               >
                 <LogOut size={16} /> Log out
