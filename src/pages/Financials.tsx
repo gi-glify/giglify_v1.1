@@ -127,7 +127,7 @@ export default function FinancialsPage() {
                           ? 'bg-green-100 text-green-800'
                           : tx.type === 'withdrawal'
                           ? 'bg-orange-100 text-orange-800'
-                          : 'bg-blue-100 text-blue-800'
+                          : 'bg-navy-100 text-navy-800'
                       }`}>
                         {tx.type.charAt(0).toUpperCase() + tx.type.slice(1)}
                       </span>

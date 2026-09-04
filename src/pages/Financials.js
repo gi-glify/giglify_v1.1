@@ -45,7 +45,7 @@ export default function FinancialsPage() {
                                                                 ? 'bg-green-100 text-green-800'
                                                                 : tx.type === 'withdrawal'
                                                                     ? 'bg-orange-100 text-orange-800'
-                                                                    : 'bg-blue-100 text-blue-800'}`, children: tx.type.charAt(0).toUpperCase() + tx.type.slice(1) }) }), _jsxs("td", { className: `px-6 py-4 text-sm text-right font-semibold ${tx.type === 'withdrawal' ? 'text-red-600' : 'text-green-600'}`, children: [tx.type === 'withdrawal' ? '-' : '+', formatCurrency(tx.amount, tx.currency)] }), _jsx("td", { className: "px-6 py-4 text-sm", children: _jsx("span", { className: `px-2 py-1 rounded text-xs ${tx.status === 'completed'
+                                                                    : 'bg-navy-100 text-navy-800'}`, children: tx.type.charAt(0).toUpperCase() + tx.type.slice(1) }) }), _jsxs("td", { className: `px-6 py-4 text-sm text-right font-semibold ${tx.type === 'withdrawal' ? 'text-red-600' : 'text-green-600'}`, children: [tx.type === 'withdrawal' ? '-' : '+', formatCurrency(tx.amount, tx.currency)] }), _jsx("td", { className: "px-6 py-4 text-sm", children: _jsx("span", { className: `px-2 py-1 rounded text-xs ${tx.status === 'completed'
                                                                 ? 'bg-green-100 text-green-800'
                                                                 : tx.status === 'pending'
                                                                     ? 'bg-yellow-100 text-yellow-800'

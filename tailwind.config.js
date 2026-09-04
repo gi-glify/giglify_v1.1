@@ -10,16 +10,16 @@ export default {
       colors: {
         // Giglify Design System
         brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#fff8e7',
+          100: '#ffedb8',
+          200: '#fddd7a',
+          300: '#f7c24b',
+          400: '#f5a623',
+          500: '#d88908',
+          600: '#b46f04',
+          700: '#7f4d03',
+          800: '#4f3002',
+          900: '#2f1d01',
         },
         primary: {
           amber: '#F5A623',

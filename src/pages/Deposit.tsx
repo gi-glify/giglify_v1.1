@@ -15,14 +15,14 @@ const TIERS = [
     name: 'Pro',
     price: 29,
     benefits: ['Academic tasks', '50 tasks/month', 'Desktop + Mobile', 'Priority support'],
-    color: 'border-blue-300',
+    color: 'border-navy-300',
     recommended: true,
   },
   {
     name: 'Elite',
     price: 99,
     benefits: ['All tasks', 'Unlimited tasks', 'High-priority access', '24/7 support', 'Custom datasets'],
-    color: 'border-purple-300',
+    color: 'border-[#F5A623]',
   },
 ];
 
@@ -66,7 +66,7 @@ export default function DepositPage() {
                 } ${tier.recommended ? 'md:scale-105 shadow-lg' : ''}`}
               >
                 {tier.recommended && (
-                  <div className="absolute -top-3 left-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                  <div className="absolute -top-3 left-4 bg-navy-700 text-white px-3 py-1 rounded-full text-xs font-semibold">
                     Recommended
                   </div>
                 )}
@@ -80,7 +80,7 @@ export default function DepositPage() {
                   ))}
                 </ul>
                 <button className={`w-full btn-primary py-2 rounded-lg font-semibold transition-all ${
-                  tier.recommended ? 'bg-blue-500 text-white hover:bg-blue-600' : ''
+                  tier.recommended ? 'bg-navy-700 text-white hover:bg-navy-800' : ''
                 }`}>
                   {tier.price === 0 ? 'Current Plan' : 'Upgrade'}
                 </button>
