@@ -13,6 +13,14 @@ export interface User {
     skills?: string[];
     dateOfBirth?: string;
     payoutMethodAdded?: boolean;
+    profilePicture?: string;
+    idType?: string;
+    idNumber?: string;
+    address?: string;
+    fullLegalName?: string;
+    payoutMethod?: string;
+    payoutAccount?: string;
+    proofOfPayment?: string;
 }
 export interface Task {
     id: string;

@@ -1,4 +1,4 @@
-export type PlatformMode = 'desktop' | 'mobile';
+export type PlatformMode = "desktop" | "mobile";
 /**
  * Detects whether the UI should render the desktop shell (top navbar +
  * side drawer) or the mobile shell (bottom tab bar). Auto-detects from

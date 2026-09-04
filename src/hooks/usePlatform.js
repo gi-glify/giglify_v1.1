@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
-const STORAGE_KEY = 'giglify_platform_override';
+import { useEffect, useState } from "react";
+const STORAGE_KEY = "giglify_platform_override";
 const BREAKPOINT = 768; // matches Tailwind's `md`
 function detectMode() {
-    if (typeof window === 'undefined')
-        return 'desktop';
-    return window.innerWidth < BREAKPOINT ? 'mobile' : 'desktop';
+    if (typeof window === "undefined")
+        return "desktop";
+    return window.innerWidth < BREAKPOINT ? "mobile" : "desktop";
+}
+function getSavedOverride() {
+    if (typeof window === "undefined")
+        return null;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved === "desktop" || saved === "mobile" ? saved : null;
 }
 /**
  * Detects whether the UI should render the desktop shell (top navbar +
@@ -14,21 +20,20 @@ function detectMode() {
  */
 export function usePlatform() {
     const [auto, setAuto] = useState(detectMode);
-    const [override, setOverrideState] = useState(() => {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        return saved === 'desktop' || saved === 'mobile' ? saved : null;
-    });
+    const [override, setOverrideState] = useState(getSavedOverride);
     useEffect(() => {
         const onResize = () => setAuto(detectMode());
-        window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
     }, []);
     const setOverride = (mode) => {
-        if (mode)
-            localStorage.setItem(STORAGE_KEY, mode);
-        else
-            localStorage.removeItem(STORAGE_KEY);
         setOverrideState(mode);
+        if (mode) {
+            localStorage.setItem(STORAGE_KEY, mode);
+        }
+        else {
+            localStorage.removeItem(STORAGE_KEY);
+        }
     };
     return {
         mode: override ?? auto,

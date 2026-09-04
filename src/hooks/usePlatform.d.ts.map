@@ -1,1 +1,1 @@
-{"version":3,"file":"usePlatform.d.ts","sourceRoot":"","sources":["usePlatform.ts"],"names":[],"mappings":"AAEA,MAAM,MAAM,YAAY,GAAG,SAAS,GAAG,QAAQ,CAAC;AAUhD;;;;;GAKG;AACH,wBAAgB,WAAW;;;wBAaE,YAAY,GAAG,IAAI;EAW/C"}
+{"version":3,"file":"usePlatform.d.ts","sourceRoot":"","sources":["usePlatform.ts"],"names":[],"mappings":"AAEA,MAAM,MAAM,YAAY,GAAG,SAAS,GAAG,QAAQ,CAAC;AAgBhD;;;;;GAKG;AACH,wBAAgB,WAAW;;;wBAYE,YAAY,GAAG,IAAI;EAc/C"}

@@ -1,13 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-export type PlatformMode = 'desktop' | 'mobile';
+export type PlatformMode = "desktop" | "mobile";
 
-const STORAGE_KEY = 'giglify_platform_override';
+const STORAGE_KEY = "giglify_platform_override";
 const BREAKPOINT = 768; // matches Tailwind's `md`
 
 function detectMode(): PlatformMode {
-  if (typeof window === 'undefined') return 'desktop';
-  return window.innerWidth < BREAKPOINT ? 'mobile' : 'desktop';
+  if (typeof window === "undefined") return "desktop";
+  return window.innerWidth < BREAKPOINT ? "mobile" : "desktop";
+}
+
+function getSavedOverride(): PlatformMode | null {
+  if (typeof window === "undefined") return null;
+  const saved = localStorage.getItem(STORAGE_KEY);
+  return saved === "desktop" || saved === "mobile" ? saved : null;
 }
 
 /**
@@ -18,15 +24,28 @@ function detectMode(): PlatformMode {
  */
 export function usePlatform() {
   const [auto, setAuto] = useState<PlatformMode>(detectMode);
+  const [override, setOverrideState] = useState<PlatformMode | null>(
+    getSavedOverride,
+  );
 
   useEffect(() => {
     const onResize = () => setAuto(detectMode());
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  const setOverride = (mode: PlatformMode | null) => {
+    setOverrideState(mode);
+    if (mode) {
+      localStorage.setItem(STORAGE_KEY, mode);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
   return {
-    mode: auto,
-    isAutoDetected: true,
+    mode: override ?? auto,
+    isAutoDetected: override === null,
+    setOverride,
   };
 }
