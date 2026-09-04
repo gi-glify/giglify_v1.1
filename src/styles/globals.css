@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Antic+Slab:wght@400;700&display=swap');
-@import 'aos/dist/aos.css';
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100..700;1,100..700&family=Space+Grotesk:wght@300..700&display=swap");
+@import "aos/dist/aos.css";
 
 @tailwind base;
 @tailwind components;
@@ -10,28 +10,28 @@
    these variables (or Tailwind `dark:` variants) over hand-rolled
    `theme === 'dark' ? a : b` ternaries, so nothing is ever missed. */
 :root {
-  --bg: #F8FAFC;
-  --bg-elevated: #FFFFFF;
-  --text: #0F172A;
-  --text-muted: #64748B;
-  --border: #E2E8F0;
-  --accent: #F5A623;
-  --accent-hover: #F59E0B;
-  --scrollbar-track: #E2E8F0;
-  --scrollbar-thumb: #CBD5E1;
-  --scrollbar-thumb-hover: #94A3B8;
+  --bg: #f8fafc;
+  --bg-elevated: #ffffff;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --accent: #f5a623;
+  --accent-hover: #f59e0b;
+  --scrollbar-track: #e2e8f0;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
 }
 
 html.dark {
   --bg: #020617;
-  --bg-elevated: #0F172A;
-  --text: #F8FAFC;
-  --text-muted: #94A3B8;
-  --border: #1E293B;
-  --accent: #F5A623;
-  --accent-hover: #F59E0B;
-  --scrollbar-track: #0F172A;
-  --scrollbar-thumb: #1E293B;
+  --bg-elevated: #0f172a;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+  --border: #1e293b;
+  --accent: #f5a623;
+  --accent-hover: #f59e0b;
+  --scrollbar-track: #0f172a;
+  --scrollbar-thumb: #1e293b;
   --scrollbar-thumb-hover: #334155;
 }
 
@@ -39,7 +39,7 @@ html.dark {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Antic Slab', cursive;
+  font-family: "IBM Plex Sans", sans-serif;
 }
 
 html {
@@ -47,24 +47,43 @@ html {
 }
 
 body {
-  font-family: 'Antic Slab', cursive;
+  font-family: "IBM Plex Sans", sans-serif;
   background-color: var(--bg);
   color: var(--text);
-  transition: background-color 0.35s ease, color 0.35s ease;
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Antic Slab', cursive;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Space Grotesk", sans-serif;
   font-weight: 700;
   letter-spacing: -0.5px;
   color: var(--text);
 }
 
-h1 { font-size: 3rem; line-height: 1.2; }
-h2 { font-size: 2rem; line-height: 1.3; }
-h3 { font-size: 1.5rem; line-height: 1.4; }
+h1 {
+  font-size: 3rem;
+  line-height: 1.2;
+}
+h2 {
+  font-size: 2rem;
+  line-height: 1.3;
+}
+h3 {
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
 
-p, span, label, li {
+p,
+span,
+label,
+li {
   color: inherit;
 }
 
@@ -73,32 +92,85 @@ a {
 }
 
 button {
-  font-family: 'Antic Slab', cursive;
+  font-family: "IBM Plex Sans", sans-serif;
   border: none;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-input, textarea, select {
-  font-family: 'Antic Slab', cursive;
+input,
+textarea,
+select {
+  font-family: "IBM Plex Sans", sans-serif;
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--scrollbar-track); }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
 
 /* Animation utilities */
-.animate-in { animation: slideUp 0.6s ease-out both; }
-.fade-in { animation: fadeIn 0.6s ease-in both; }
-.pulse-slow { animation: pulseSoft 3s ease-in-out infinite; }
+.animate-in {
+  animation: slideUp 0.6s ease-out both;
+}
+.fade-in {
+  animation: fadeIn 0.6s ease-in both;
+}
+.pulse-slow {
+  animation: pulseSoft 3s ease-in-out infinite;
+}
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes pulseSoft { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes shimmer { 0% { background-position: -450px 0; } 100% { background-position: 450px 0; } }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pulseSoft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -450px 0;
+  }
+  100% {
+    background-position: 450px 0;
+  }
+}
 
 /* Card styles — theme-aware via CSS variables, no per-element ternary needed */
 .card {
@@ -107,7 +179,11 @@ input, textarea, select {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(26, 26, 26, 0.05);
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
   color: var(--text);
 }
 
@@ -119,15 +195,20 @@ input, textarea, select {
 /* Button variants */
 .btn-primary {
   background: var(--accent);
-  color: #1A1A1A;
+  color: #1a1a1a;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.95rem;
-  transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
-html.dark .btn-primary { color: #14140F; }
+html.dark .btn-primary {
+  color: #14140f;
+}
 
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
@@ -143,7 +224,9 @@ html.dark .btn-primary { color: #14140F; }
   border-radius: 6px;
   font-weight: 600;
   font-size: 0.95rem;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .btn-secondary:hover {
@@ -206,25 +289,34 @@ html.dark .btn-primary { color: #14140F; }
 }
 
 .alert-success {
-  background: #E8F5E9;
-  border-left: 4px solid #4CAF50;
-  color: #2E7D32;
+  background: #e8f5e9;
+  border-left: 4px solid #4caf50;
+  color: #2e7d32;
 }
-html.dark .alert-success { background: rgba(76, 175, 80, 0.12); color: #81C784; }
+html.dark .alert-success {
+  background: rgba(76, 175, 80, 0.12);
+  color: #81c784;
+}
 
 .alert-error {
-  background: #FFEBEE;
-  border-left: 4px solid #F44336;
-  color: #C62828;
+  background: #ffebee;
+  border-left: 4px solid #f44336;
+  color: #c62828;
 }
-html.dark .alert-error { background: rgba(244, 67, 54, 0.12); color: #EF9A9A; }
+html.dark .alert-error {
+  background: rgba(244, 67, 54, 0.12);
+  color: #ef9a9a;
+}
 
 .alert-info {
-  background: #E3F2FD;
-  border-left: 4px solid #2196F3;
-  color: #1565C0;
+  background: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  color: #1565c0;
 }
-html.dark .alert-info { background: rgba(33, 150, 243, 0.12); color: #90CAF9; }
+html.dark .alert-info {
+  background: rgba(33, 150, 243, 0.12);
+  color: #90caf9;
+}
 
 /* Tag / badge helper — use instead of hardcoded bg-x-100 text-x-800 pairs,
    which is what was making text vanish in dark mode. */
@@ -237,20 +329,55 @@ html.dark .alert-info { background: rgba(33, 150, 243, 0.12); color: #90CAF9; }
   font-weight: 600;
   line-height: 1.4;
 }
-.badge-blue { background: #DBEAFE; color: #1E40AF; }
-html.dark .badge-blue { background: rgba(59, 130, 246, 0.18); color: #93C5FD; }
-.badge-purple { background: #EDE9FE; color: #5B21B6; }
-html.dark .badge-purple { background: rgba(139, 92, 246, 0.18); color: #C4B5FD; }
-.badge-green { background: #DCFCE7; color: #166534; }
-html.dark .badge-green { background: rgba(34, 197, 94, 0.18); color: #86EFAC; }
-.badge-yellow { background: #FEF9C3; color: #854D0E; }
-html.dark .badge-yellow { background: rgba(234, 179, 8, 0.18); color: #FDE68A; }
-.badge-red { background: #FEE2E2; color: #991B1B; }
-html.dark .badge-red { background: rgba(239, 68, 68, 0.18); color: #FCA5A5; }
+.badge-blue {
+  background: #dbeafe;
+  color: #1e40af;
+}
+html.dark .badge-blue {
+  background: rgba(59, 130, 246, 0.18);
+  color: #93c5fd;
+}
+.badge-purple {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+html.dark .badge-purple {
+  background: rgba(139, 92, 246, 0.18);
+  color: #c4b5fd;
+}
+.badge-green {
+  background: #dcfce7;
+  color: #166534;
+}
+html.dark .badge-green {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+.badge-yellow {
+  background: #fef9c3;
+  color: #854d0e;
+}
+html.dark .badge-yellow {
+  background: rgba(234, 179, 8, 0.18);
+  color: #fde68a;
+}
+.badge-red {
+  background: #fee2e2;
+  color: #991b1b;
+}
+html.dark .badge-red {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
 
 /* Skeleton loading */
 .skeleton {
-  background: linear-gradient(90deg, var(--border) 25%, var(--bg) 37%, var(--border) 63%);
+  background: linear-gradient(
+    90deg,
+    var(--border) 25%,
+    var(--bg) 37%,
+    var(--border) 63%
+  );
   background-size: 400% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
   border-radius: 6px;
@@ -270,7 +397,13 @@ html.dark .badge-red { background: rgba(239, 68, 68, 0.18); color: #FCA5A5; }
 }
 
 @media (max-width: 768px) {
-  h1 { font-size: 2rem; }
-  h2 { font-size: 1.5rem; }
-  h3 { font-size: 1.25rem; }
+  h1 {
+    font-size: 2rem;
+  }
+  h2 {
+    font-size: 1.5rem;
+  }
+  h3 {
+    font-size: 1.25rem;
+  }
 }
