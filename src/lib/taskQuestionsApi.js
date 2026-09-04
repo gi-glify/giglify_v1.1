@@ -2,6 +2,20 @@
 // Uses the existing supabase client from src/utils/supabase.ts — does not
 // create a second client or duplicate auth logic.
 import { supabase } from '../utils/supabase';
+import { mapTaskRow } from './taskCatalog';
+/** Fetch the active catalog tasks shown on the tasks page. */
+export async function fetchTasks() {
+    const { data, error } = await supabase
+        .from('tasks')
+        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+    if (error) {
+        console.error('fetchTasks error:', error.message);
+        return { tasks: [], error: new Error(error.message) };
+    }
+    return { tasks: (data ?? []).map((row) => mapTaskRow(row)), error: null };
+}
 /** Fetch one catalog task by its human-readable code (e.g. "TSK-005"). */
 export async function fetchTaskByCode(taskCode) {
     const { data, error } = await supabase

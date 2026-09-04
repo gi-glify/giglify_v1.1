@@ -3,12 +3,29 @@
 // create a second client or duplicate auth logic.
 
 import { supabase } from '../utils/supabase';
+import { mapTaskRow, type TaskCatalogItem, type TaskRow } from './taskCatalog';
 import type {
   TaskQuestion,
   TaskWithCode,
   QuestionRunAnswer,
   SubmittedContent,
 } from '../types/taskQuestions';
+
+/** Fetch the active catalog tasks shown on the tasks page. */
+export async function fetchTasks(): Promise<{ tasks: TaskCatalogItem[]; error: Error | null }> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('fetchTasks error:', error.message);
+    return { tasks: [], error: new Error(error.message) };
+  }
+
+  return { tasks: (data ?? []).map((row) => mapTaskRow(row as TaskRow)), error: null };
+}
 
 /** Fetch one catalog task by its human-readable code (e.g. "TSK-005"). */
 export async function fetchTaskByCode(taskCode: string): Promise<TaskWithCode | null> {

@@ -1,22 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ArrowRight, Laptop, Smartphone, Globe2 } from 'lucide-react';
-import { Task } from '../types';
 import { TaskListSkeleton } from '../components/ui/Skeleton';
 import { useAuthStore } from '../store/authStore';
 import { getProfileCompletion, PROFILE_TASK_LIMIT_THRESHOLD, DAILY_TASK_LIMIT_BELOW_THRESHOLD } from '../utils/profileCompletion';
+import { fetchTasks } from '../lib/taskQuestionsApi';
+import type { TaskCatalogItem } from '../lib/taskCatalog';
 
 type TaskDevice = 'any' | 'mobile' | 'desktop';
 
-interface DemoTask extends Task {
-  device: TaskDevice;
-}
-
-// Demo data removed. Real tasks should be fetched from Supabase.
-const tasks: DemoTask[] = [];
-
-
-const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+const DIFFICULTIES = ['easy', 'medium', 'hard', 'expert'] as const;
 const DEVICES: { value: TaskDevice; label: string; icon: typeof Globe2 }[] = [
   { value: 'any', label: 'Any device', icon: Globe2 },
   { value: 'mobile', label: 'Mobile', icon: Smartphone },
@@ -31,14 +24,22 @@ const PAY_BANDS = [
 export default function TasksPage() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<TaskCatalogItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [difficulty, setDifficulty] = useState<Set<string>>(new Set());
   const [device, setDevice] = useState<Set<TaskDevice>>(new Set());
   const [payBand, setPayBand] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 450);
-    return () => clearTimeout(t);
+    let cancelled = false;
+    fetchTasks().then(({ tasks: fetchedTasks, error: fetchError }) => {
+      if (cancelled) return;
+      setTasks(fetchedTasks);
+      setError(fetchError?.message ?? null);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   const completion = getProfileCompletion(user);
@@ -69,7 +70,7 @@ export default function TasksPage() {
       <main className="container py-8">
         <h1 className="font-display text-2xl mb-1" data-aos="fade-down">Available Tasks</h1>
         <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-          {tasks.length} tasks available — real tasks appear here once your task list is imported.
+          {tasks.length} task{tasks.length === 1 ? '' : 's'} available
         </p>
 
         {gated && (
@@ -149,9 +150,11 @@ export default function TasksPage() {
 
         {loading ? (
           <TaskListSkeleton count={4} />
+        ) : error ? (
+          <div className="alert alert-error text-sm">Unable to load tasks: {error}</div>
         ) : filtered.length === 0 ? (
           <div className="card text-center py-10" style={{ color: 'var(--text-muted)' }}>
-            No tasks match your filters. Try clearing a few.
+            {tasks.length === 0 ? 'No tasks are available right now.' : 'No tasks match your filters. Try clearing a few.'}
           </div>
         ) : (
           <div className="grid gap-4">
@@ -181,9 +184,15 @@ export default function TasksPage() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-display text-2xl font-bold text-green-600 dark:text-green-400">+${task.reward}</p>
-                    <button disabled={gated} className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
-                      Start <ArrowRight size={14} />
-                    </button>
+                    {task.taskCode && !gated ? (
+                      <Link to={`/tasks/${encodeURIComponent(task.taskCode)}`} className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto">
+                        Start <ArrowRight size={14} />
+                      </Link>
+                    ) : (
+                      <button disabled className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                        Start <ArrowRight size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

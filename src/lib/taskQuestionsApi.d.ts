@@ -1,4 +1,10 @@
+import { type TaskCatalogItem } from './taskCatalog';
 import type { TaskQuestion, TaskWithCode, QuestionRunAnswer } from '../types/taskQuestions';
+/** Fetch the active catalog tasks shown on the tasks page. */
+export declare function fetchTasks(): Promise<{
+    tasks: TaskCatalogItem[];
+    error: Error | null;
+}>;
 /** Fetch one catalog task by its human-readable code (e.g. "TSK-005"). */
 export declare function fetchTaskByCode(taskCode: string): Promise<TaskWithCode | null>;
 /** Fetch the 10 (or fewer) questions for a task, in order. */

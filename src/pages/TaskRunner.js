@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Eye } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { fetchTaskByCode, fetchTaskQuestions, getOrCreateSubmission, saveAnswerProgress, finalizeSubmission, } from "../lib/taskQuestionsApi";
 export default function TaskRunnerPage() {
+    console.log('🔴 TaskRunnerPage is loading!');
     const { taskCode } = useParams();
     const navigate = useNavigate();
     const { user } = useAuthStore();
