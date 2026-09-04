@@ -13,4 +13,7 @@ export function mapTaskRow(row) {
         status: 'available',
     };
 }
+export function mapLegacyTaskRow(row) {
+    return mapTaskRow({ ...row, task_code: null });
+}
 //# sourceMappingURL=taskCatalog.js.map

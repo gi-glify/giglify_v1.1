@@ -21,6 +21,8 @@ export interface TaskRow {
   is_active: boolean;
 }
 
+export type LegacyTaskRow = Omit<TaskRow, 'task_code' | 'field'>;
+
 export function mapTaskRow(row: TaskRow): TaskCatalogItem {
   return {
     id: row.id,
@@ -35,4 +37,8 @@ export function mapTaskRow(row: TaskRow): TaskCatalogItem {
     requiresDesktop: row.requires_desktop,
     status: 'available',
   };
+}
+
+export function mapLegacyTaskRow(row: LegacyTaskRow): TaskCatalogItem {
+  return mapTaskRow({ ...row, task_code: null });
 }

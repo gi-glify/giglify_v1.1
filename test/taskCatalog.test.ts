@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mapTaskRow } from '../src/lib/taskCatalog.ts';
+import { mapLegacyTaskRow, mapTaskRow } from '../src/lib/taskCatalog.ts';
 
 test('maps an active database task into the shape rendered by the task catalog', () => {
   const task = mapTaskRow({
@@ -30,4 +30,24 @@ test('maps an active database task into the shape rendered by the task catalog',
     requiresDesktop: true,
     status: 'available',
   });
+});
+
+test('maps a legacy database task when question-bank columns are not deployed yet', () => {
+  const task = mapLegacyTaskRow({
+    id: 'legacy-1',
+    title: 'Legacy task',
+    description: 'Still available',
+    category: 'academic',
+    reward: 4,
+    estimated_time_minutes: 15,
+    difficulty: 'easy',
+    device: 'any',
+    requires_desktop: false,
+    is_active: true,
+  });
+
+  assert.equal(task.title, 'Legacy task');
+  assert.equal(task.taskCode, null);
+  assert.equal(task.reward, 4);
+  assert.equal(task.status, 'available');
 });

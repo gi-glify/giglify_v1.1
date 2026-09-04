@@ -18,5 +18,7 @@ export interface TaskRow {
     requires_desktop: boolean;
     is_active: boolean;
 }
+export type LegacyTaskRow = Omit<TaskRow, 'task_code' | 'field'>;
 export declare function mapTaskRow(row: TaskRow): TaskCatalogItem;
+export declare function mapLegacyTaskRow(row: LegacyTaskRow): TaskCatalogItem;
 //# sourceMappingURL=taskCatalog.d.ts.map

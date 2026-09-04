@@ -3,7 +3,7 @@
 // create a second client or duplicate auth logic.
 
 import { supabase } from '../utils/supabase';
-import { mapTaskRow, type TaskCatalogItem, type TaskRow } from './taskCatalog';
+import { mapLegacyTaskRow, mapTaskRow, type LegacyTaskRow, type TaskCatalogItem, type TaskRow } from './taskCatalog';
 import type {
   TaskQuestion,
   TaskWithCode,
@@ -20,6 +20,21 @@ export async function fetchTasks(): Promise<{ tasks: TaskCatalogItem[]; error: E
     .order('created_at', { ascending: false });
 
   if (error) {
+    // Older deployments predate the question-bank columns. Keep those tasks
+    // visible until the schema migration is applied.
+    if (error.code === '42703' && /task_code/.test(error.message)) {
+      const legacy = await supabase
+        .from('tasks')
+        .select('id, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (!legacy.error) {
+        return { tasks: (legacy.data ?? []).map((row) => mapLegacyTaskRow(row as LegacyTaskRow)), error: null };
+      }
+      console.error('fetchTasks legacy fallback error:', legacy.error.message);
+      return { tasks: [], error: new Error(legacy.error.message) };
+    }
     console.error('fetchTasks error:', error.message);
     return { tasks: [], error: new Error(error.message) };
   }
