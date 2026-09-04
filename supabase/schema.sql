@@ -1,10 +1,8 @@
 -- ============================================================================
--- Giglify database schema
--- Run in the Supabase SQL editor (or `supabase db push`) after auth is set up.
--- Everything here assumes Supabase Auth's built-in `auth.users` table.
--- Models the "start from scratch, earn your way to a $15 withdrawal"
--- simulation described in the product brief: every dollar of balance is
--- derived from completed task submissions, never typed in directly.
+-- Giglify database schema + Question Bank migrations
+-- This is the COMPLETE, updated schema with all question bank additions
+-- Replace the contents of supabase/schema.sql with this file
+-- Run in the Supabase SQL editor or via `supabase db push`
 -- ============================================================================
 
 -- Extensions -----------------------------------------------------------------
@@ -53,21 +51,39 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- ============================================================================
--- tasks — the catalog. Seed manually or import from the tasks MD/CSV.
+-- tasks — the catalog. Includes question bank metadata (task_code, field).
 -- ============================================================================
 create table if not exists public.tasks (
   id uuid primary key default uuid_generate_v4(),
   title text not null,
   description text not null,
-  category text not null check (category in ('academic', 'rlhf')),
+  category text not null check (category in ('academic', 'rlhf', 'data-verification')),
   reward numeric(10, 2) not null check (reward >= 0),
   estimated_time_minutes int not null check (estimated_time_minutes > 0),
-  difficulty text not null check (difficulty in ('easy', 'medium', 'hard')),
+  difficulty text not null check (difficulty in ('easy', 'medium', 'hard', 'expert')),
   device text not null default 'any' check (device in ('any', 'mobile', 'desktop')),
   requires_desktop boolean not null default false,
   is_active boolean not null default true,
+  task_code text unique,
+  field text,
   created_at timestamptz not null default now()
 );
+
+-- ============================================================================
+-- task_questions — 10 open-ended review questions per task (600 total)
+-- Read policy checks is_active on the parent task
+-- ============================================================================
+create table if not exists public.task_questions (
+  id uuid primary key default uuid_generate_v4(),
+  task_code text not null references public.tasks(task_code) on delete cascade,
+  question_number int not null check (question_number >= 1 and question_number <= 10),
+  question_text text not null,
+  model_answer text not null,
+  created_at timestamptz not null default now(),
+  unique(task_code, question_number)
+);
+
+create index if not exists idx_task_questions_code on public.task_questions (task_code);
 
 -- ============================================================================
 -- task_submissions — one row per user attempt/completion of a task.
@@ -216,10 +232,11 @@ create table if not exists public.notifications (
 
 -- ============================================================================
 -- Row Level Security — users only ever see/modify their own rows.
--- Tasks are readable by any authenticated user but not writable by them.
+-- Tasks and task questions are readable by any authenticated user but not writable by them.
 -- ============================================================================
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;
+alter table public.task_questions enable row level security;
 alter table public.task_submissions enable row level security;
 alter table public.wallets enable row level security;
 alter table public.transactions enable row level security;
@@ -230,6 +247,15 @@ create policy "profiles: read own" on public.profiles for select using (auth.uid
 create policy "profiles: update own" on public.profiles for update using (auth.uid() = id);
 
 create policy "tasks: read active tasks" on public.tasks for select using (is_active = true);
+
+create policy "task_questions: read for active tasks" on public.task_questions
+  for select using (
+    exists (
+      select 1 from public.tasks t
+      where t.task_code = task_questions.task_code
+        and t.is_active = true
+    )
+  );
 
 create policy "submissions: read own" on public.task_submissions for select using (auth.uid() = user_id);
 create policy "submissions: insert own" on public.task_submissions for insert with check (auth.uid() = user_id);
@@ -247,5 +273,6 @@ create policy "notifications: update own" on public.notifications for update usi
 
 -- ============================================================================
 -- Seed demo tasks (REMOVED)
+-- Note: Question bank data (60 tasks + 600 questions) are seeded separately
+-- via seed_questions.sql when the module is deployed.
 -- ============================================================================
-

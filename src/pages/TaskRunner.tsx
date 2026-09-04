@@ -20,9 +20,12 @@ import type {
   QuestionRunAnswer,
 } from "../types/taskQuestions";
 
+
+
 type SelfMark = QuestionRunAnswer["self_marked"];
 
 export default function TaskRunnerPage() {
+  console.log('🔴 TaskRunnerPage is loading!');  
   const { taskCode } = useParams<{ taskCode: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
