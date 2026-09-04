@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { getCurrentUser } from "./utils/supabase";
@@ -22,6 +23,21 @@ import FinancialsPage from "./pages/Financials";
 import ProfileCompletionPage from "./pages/ProfileCompletion";
 import NotificationsPage from "./pages/Notifications";
 import SettingsPage from "./pages/Settings";
+import { rememberRoute } from "./utils/routeMemory";
+
+function RouteMemory({ user }: { user: boolean }) {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (user) rememberRoute(pathname);
+  }, [pathname, user]);
+
+  return null;
+}
+
+function AuthLoadingScreen() {
+  return <div className="min-h-screen" style={{ background: "var(--bg)" }} />;
+}
 
 function AuthedRoutes() {
   return (
@@ -43,7 +59,7 @@ function AuthedRoutes() {
 }
 
 function App() {
-  const { setUser, setLoading, user } = useAuthStore();
+  const { setUser, setLoading, user, loading } = useAuthStore();
 
   useEffect(() => {
     const initAuth = async () => {
@@ -68,17 +84,20 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          {!user ? (
-            <>
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </>
-          ) : (
-            <Route path="/*" element={<AuthedRoutes />} />
-          )}
-        </Routes>
+        <RouteMemory user={Boolean(user)} />
+        {loading ? <Routes><Route path="*" element={<AuthLoadingScreen />} /></Routes> : (
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            {!user ? (
+              <>
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </>
+            ) : (
+              <Route path="/*" element={<AuthedRoutes />} />
+            )}
+          </Routes>
+        )}
       </Router>
     </ThemeProvider>
   );

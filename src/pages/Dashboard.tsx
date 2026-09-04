@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Clock3 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { StatCardSkeleton, TaskListSkeleton } from '../components/ui/Skeleton';
 import { fetchTasks } from '../lib/taskQuestionsApi';
 import type { TaskCatalogItem } from '../lib/taskCatalog';
+import { getProfileCompletion, PROFILE_TASK_LIMIT_THRESHOLD } from '../utils/profileCompletion';
 
 export default function DashboardPage() {
   useTheme();
   const { user } = useAuthStore();
+  const gated = getProfileCompletion(user) < PROFILE_TASK_LIMIT_THRESHOLD;
   const [tasks, setTasks] = useState<TaskCatalogItem[]>([]);
   const [completedToday] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -117,16 +119,23 @@ export default function DashboardPage() {
                         {task.description}
                       </p>
                       <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        ⏱️ {task.estimatedTime} min
+                        <span className="inline-flex items-center gap-1">
+                          <Clock3 size={12} aria-hidden="true" />
+                          {task.estimatedTime} min
+                        </span>
                       </div>
                     </div>
                     <div className="text-right ml-4">
                       <p className="font-display text-2xl font-bold text-green-600 dark:text-green-400">+${task.reward}</p>
-                    {task.taskCode ? (
+                    {task.taskCode && !gated ? (
                       <Link to={`/tasks/${encodeURIComponent(task.taskCode)}`} className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto">
                         Start <ArrowRight size={14} />
                       </Link>
-                    ) : null}
+                    ) : (
+                      <button disabled className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                        Start <ArrowRight size={14} />
+                      </button>
+                    )}
                     </div>
                   </div>
                 </div>

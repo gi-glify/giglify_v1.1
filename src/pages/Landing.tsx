@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import AOS from "aos";
+import { getLastRoute } from "../utils/routeMemory";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -17,8 +19,13 @@ export default function Landing() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
+    AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
+    AOS.refreshHard();
+  }, []);
+
+  useEffect(() => {
     if (!loading && user) {
-      navigate("/dashboard");
+      navigate(getLastRoute() || "/dashboard", { replace: true });
     }
   }, [user, loading, navigate]);
 

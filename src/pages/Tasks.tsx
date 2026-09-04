@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ArrowRight, Laptop, Smartphone, Globe2 } from 'lucide-react';
+import { Search, ArrowRight, Clock3, Laptop, Smartphone, Globe2 } from 'lucide-react';
 import { TaskListSkeleton } from '../components/ui/Skeleton';
 import { useAuthStore } from '../store/authStore';
 import { getProfileCompletion, PROFILE_TASK_LIMIT_THRESHOLD, DAILY_TASK_LIMIT_BELOW_THRESHOLD } from '../utils/profileCompletion';
@@ -180,7 +180,10 @@ export default function TasksPage() {
                       )}
                     </div>
                     <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>{task.description}</p>
-                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>⏱️ {task.estimatedTime} min</div>
+                    <div className="text-xs inline-flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                      <Clock3 size={12} aria-hidden="true" />
+                      {task.estimatedTime} min
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-display text-2xl font-bold text-green-600 dark:text-green-400">+${task.reward}</p>
