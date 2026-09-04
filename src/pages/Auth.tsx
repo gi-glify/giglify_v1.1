@@ -7,7 +7,7 @@ import {
   signInWithGoogle,
 } from "../utils/supabase";
 import { Moon, Sun } from "lucide-react";
-import { FcGoogle } from "react-icons/fc/index.js";
+import { FcGoogle } from "react-icons/fc";
 import { useTheme } from "../context/ThemeContext";
 import PasswordInput from "../components/ui/PasswordInput";
 
