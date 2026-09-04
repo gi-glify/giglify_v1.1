@@ -16,6 +16,7 @@ import FinancialsPage from './pages/Financials';
 import ProfileCompletionPage from './pages/ProfileCompletion';
 import NotificationsPage from './pages/Notifications';
 import SettingsPage from './pages/Settings';
+import TaskRunnerPage from './pages/TaskRunner';
 
 function AuthedRoutes() {
   return (
@@ -29,6 +30,7 @@ function AuthedRoutes() {
         <Route path="/profile" element={<ProfileCompletionPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/tasks/:taskCode" element={<TaskRunnerPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AppLayout>
