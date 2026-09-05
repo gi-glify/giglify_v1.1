@@ -1,7 +1,10 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Bell, Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { PRIMARY_NAV_ITEMS } from "../../config/navigation";
+import { useAuthStore } from "../../store/authStore";
+import { AppNotification, fetchNotifications, formatNotificationTime, NOTIFICATION_EVENT } from "../../lib/notifications";
 
 interface MobileTopBarProps {
   onLogout: () => void;
@@ -9,6 +12,18 @@ interface MobileTopBarProps {
 
 export function MobileTopBar({ onLogout }: MobileTopBarProps) {
   const { theme, toggleTheme } = useTheme();
+  const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchNotifications(user.id, 5).then(setNotifications).catch(() => setNotifications([]));
+    const onNotification = (event: Event) => setNotifications((current) => [(event as CustomEvent<AppNotification>).detail, ...current].slice(0, 5));
+    window.addEventListener(NOTIFICATION_EVENT, onNotification);
+    return () => window.removeEventListener(NOTIFICATION_EVENT, onNotification);
+  }, [user?.id]);
 
   return (
     <header
@@ -27,14 +42,16 @@ export function MobileTopBar({ onLogout }: MobileTopBarProps) {
         >
           {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
         </button>
-        <NavLink
-          to="/notifications"
-          className="btn-icon relative"
-          aria-label="Notifications"
-        >
-          <Bell size={18} />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
-        </NavLink>
+        <div className="relative">
+          <button onClick={() => setOpen((value) => !value)} className="btn-icon relative" aria-label="Notifications" aria-expanded={open}>
+            <Bell size={18} />
+            {notifications.some((item) => !item.read) && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />}
+          </button>
+          {open && <div className="absolute right-0 mt-2 w-72 rounded-xl shadow-lg border p-2 z-40" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+            {notifications.slice(0, 3).map((item) => <button key={item.id} onClick={() => { setOpen(false); navigate('/notifications'); }} className="w-full text-left rounded-lg p-2 hover:bg-black/5 dark:hover:bg-white/5"><strong className="block text-sm">{item.title}</strong><span className="block text-xs mt-1" style={{ color: "var(--text-muted)" }}>{item.detail}</span><span className="block text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>{formatNotificationTime(item.createdAt)}</span></button>)}
+            <button onClick={() => { setOpen(false); navigate('/notifications'); }} className="w-full border-t mt-1 pt-2 text-sm font-semibold text-brand-600 dark:text-brand-300">Show all</button>
+          </div>}
+        </div>
         <button
           onClick={onLogout}
           className="btn-icon text-red-600 dark:text-red-400"

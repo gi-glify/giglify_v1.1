@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
-import { Bell, CheckCircle2, DollarSign, ListChecks } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import { Skeleton } from "../components/ui/Skeleton";
-
-interface DemoNotification {
-  id: string;
-  icon: typeof Bell;
-  title: string;
-  detail: string;
-  time: string;
-}
+import { useAuthStore } from "../store/authStore";
+import { AppNotification, fetchNotifications, formatNotificationTime, markNotificationRead } from "../lib/notifications";
 
 export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
-  const [notifications, setNotifications] = useState<DemoNotification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(t);
-  }, []);
+    if (!user) return;
+    fetchNotifications(user.id).then(setNotifications).catch(() => setNotifications([])).finally(() => setLoading(false));
+  }, [user?.id]);
+
+  async function openNotification(notification: AppNotification) {
+    if (notification.read) return;
+    await markNotificationRead(notification.id).catch(() => undefined);
+    setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, read: true } : item));
+  }
 
   return (
     <div
@@ -46,12 +47,12 @@ export default function NotificationsPage() {
             {notifications.map((n, i) => (
               <div
                 key={n.id}
-                className="card flex gap-3 items-start"
+                className={`card flex gap-3 items-start ${!n.read ? "border-brand-400" : ""}`}
                 data-aos="fade-up"
                 data-aos-delay={i * 60}
               >
                 <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300 flex items-center justify-center shrink-0">
-                  <n.icon size={18} />
+                  <Bell size={18} />
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-sm">{n.title}</p>
@@ -63,8 +64,9 @@ export default function NotificationsPage() {
                   className="text-xs shrink-0"
                   style={{ color: "var(--text-muted)" }}
                 >
-                  {n.time}
+                  {formatNotificationTime(n.createdAt)}
                 </span>
+                {!n.read && <button onClick={() => openNotification(n)} className="text-xs font-semibold text-brand-600 dark:text-brand-300" aria-label="Mark notification read"><Check size={14} /></button>}
               </div>
             ))}
           </div>

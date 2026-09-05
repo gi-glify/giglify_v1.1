@@ -382,6 +382,7 @@ create policy "withdrawals: read own" on public.withdrawals for select using (au
 create policy "withdrawals: insert own" on public.withdrawals for insert with check (auth.uid() = user_id);
 
 create policy "notifications: read own" on public.notifications for select using (auth.uid() = user_id);
+create policy "notifications: insert own" on public.notifications for insert with check (auth.uid() = user_id);
 create policy "notifications: update own" on public.notifications for update using (auth.uid() = user_id);
 
 create policy "payout_accounts: read own" on public.payout_accounts for select using (auth.uid() = user_id);

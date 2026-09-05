@@ -4,6 +4,7 @@ import AOS from "aos";
 import DesktopNavbar from "./DesktopNavbar";
 import { MobileTopBar, MobileBottomNav } from "./MobileShell";
 import AIChatWidget from "../ai/AIChatWidget";
+import NotificationToast from "../ui/NotificationToast";
 import { usePlatform } from "../../hooks/usePlatform";
 import { useAuthStore } from "../../store/authStore";
 import { signOut } from "../../utils/supabase";
@@ -43,6 +44,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="mobile-nav-spacer" />
         <MobileBottomNav />
         <AIChatWidget />
+        <NotificationToast />
       </div>
     );
   }
@@ -55,6 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <DesktopNavbar onLogout={handleLogout} />
       <main className="flex-1">{children}</main>
       <AIChatWidget />
+      <NotificationToast />
     </div>
   );
 }

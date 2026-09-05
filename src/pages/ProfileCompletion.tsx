@@ -7,10 +7,12 @@ import {
   PROFILE_TASK_LIMIT_THRESHOLD,
 } from "../utils/profileCompletion";
 import { toProfilePayload, type ProfileForm } from "../utils/profilePayload";
+import { createNotification } from "../lib/notifications";
 
 const PROFILE_PENDING_MS = 60 * 1000;
 const pendingProfileKey = (userId: string) => `giglify:pending-profile:${userId}`;
 const profileDraftKey = (userId: string) => `giglify:profile-draft:${userId}`;
+const profileSavedKey = (userId: string) => `giglify:profile-saved:${userId}`;
 
 const SKILL_OPTIONS = [
   "Writing",
@@ -46,6 +48,7 @@ export default function ProfileCompletionPage() {
   const [saveError, setSaveError] = useState("");
   const [pendingUntil, setPendingUntil] = useState<number | null>(null);
   const [draftReady, setDraftReady] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(user?.profilePicture || null);
@@ -69,13 +72,20 @@ export default function ProfileCompletionPage() {
       throw new Error([error.message, error.details, error.hint, error.code].filter(Boolean).join(" | "));
     }
     localStorage.removeItem(profileDraftKey(user.id));
+    localStorage.setItem(profileSavedKey(user.id), "true");
     setUser({ ...user, ...profileForm });
+    try {
+      await createNotification(user.id, "Profile updated", "Your profile changes were saved successfully.");
+    } catch (notificationError) {
+      console.error("Profile notification failed", notificationError);
+    }
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2500);
   };
 
   useEffect(() => {
     if (!user) return;
+    setIsEditing(!localStorage.getItem(profileSavedKey(user.id)));
     setDraftReady(false);
     const storedDraft = localStorage.getItem(profileDraftKey(user.id));
     if (storedDraft) {
@@ -275,11 +285,15 @@ export default function ProfileCompletionPage() {
               </div>
             </div>
           )}
+          {!isEditing && !pendingUntil && (
+            <div className="alert alert-info text-sm">Your profile is saved. Select Edit profile to make changes.</div>
+          )}
           {saved && (
             <div className="alert alert-success text-sm">Profile updated.</div>
           )}
           {saveError && <div className="alert alert-error text-sm">{saveError}</div>}
 
+          <fieldset disabled={!isEditing || Boolean(pendingUntil)} className="contents">
           {/* Profile Picture */}
           <div>
             <label className="block text-sm font-semibold mb-3">
@@ -562,9 +576,14 @@ export default function ProfileCompletionPage() {
             I've added a payout method (needed before your first withdrawal)
           </label>
 
-          <button type="submit" disabled={saving || Boolean(pendingUntil)} className="btn-primary w-full py-3 disabled:opacity-60">
-            {saving ? "Saving profile..." : pendingUntil ? "Profile saved" : "Save profile"}
-          </button>
+          </fieldset>
+          {isEditing ? (
+            <button type="submit" disabled={saving || Boolean(pendingUntil)} className="btn-primary w-full py-3 disabled:opacity-60">
+              {saving ? "Saving profile..." : pendingUntil ? "Profile saved" : "Save profile"}
+            </button>
+          ) : (
+            <button type="button" onClick={() => setIsEditing(true)} className="btn-primary w-full py-3">Edit profile</button>
+          )}
         </form>
       </main>
     </div>
