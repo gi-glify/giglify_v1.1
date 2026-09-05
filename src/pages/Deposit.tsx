@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
-import { fetchExchangeRate, convertUSDtoKES, formatCurrency } from '../utils/currency';
-import { CurrencyRate } from '../types';
+import { useState } from 'react';
+import { formatCurrency } from '../utils/currency';
 import { CreditCard } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuthStore } from '../store/authStore';
+import { createVerificationPayment } from '../lib/paymentsApi';
+import { VERIFICATION_KES, VERIFICATION_USD } from '../lib/paymentConstants';
+import { PaymentMethod } from '../lib/paymentTypes';
 
 const TIERS = [
   {
@@ -28,24 +31,46 @@ const TIERS = [
 
 export default function DepositPage() {
   const { theme } = useTheme();
-  const [amount, setAmount] = useState('100');
-  const [currency, setCurrency] = useState<'USD' | 'KES'>('USD');
-  const [exchangeRate, setExchangeRate] = useState<CurrencyRate | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'mpesa'>('stripe');
+  const user = useAuthStore((state) => state.user);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [accountValue, setAccountValue] = useState('');
+  const [accountLabel, setAccountLabel] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [checkoutUrl, setCheckoutUrl] = useState('');
 
-  useEffect(() => {
-    const loadExchangeRate = async () => {
-      const rate = await fetchExchangeRate();
-      setExchangeRate(rate);
-    };
-    loadExchangeRate();
-  }, []);
+  const accountPlaceholder = paymentMethod === 'mpesa'
+    ? '+254 7XX XXX XXX'
+    : paymentMethod === 'paypal'
+      ? 'PayPal email address'
+      : 'Stripe customer email';
 
-  const convertedAmount = exchangeRate
-    ? currency === 'USD'
-      ? convertUSDtoKES(parseFloat(amount), exchangeRate.rate)
-      : parseFloat(amount)
-    : parseFloat(amount);
+  async function handleVerification(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    setCheckoutUrl('');
+    if (!user) {
+      setError('Sign in before starting payment verification.');
+      return;
+    }
+    if (!accountValue.trim() || !accountLabel.trim()) {
+      setError('Add a label and the account or phone number used for payout.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const result = await createVerificationPayment({ method: paymentMethod, accountLabel: accountLabel.trim(), accountValue: accountValue.trim() });
+      setMessage('Verification payment created. Complete the provider payment, then wait for admin approval.');
+      setCheckoutUrl(result.checkoutUrl || '');
+      setAccountValue('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to start verification payment.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen transition-colors" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
@@ -90,39 +115,13 @@ export default function DepositPage() {
         </div>
 
         {/* Deposit Section */}
-        <div className={`card max-w-2xl mx-auto animate-in ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`}>
-          <h2 className="font-display text-2xl mb-6">Make a Deposit</h2>
+        <form onSubmit={handleVerification} className={`card max-w-2xl mx-auto animate-in ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`}>
+          <h2 className="font-display text-2xl mb-2">Verify Your Payout Account</h2>
+          <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-stone-300' : 'text-stone-600'}`}>
+            Pay exactly {formatCurrency(VERIFICATION_USD, 'USD')} ({formatCurrency(VERIFICATION_KES, 'KES')}) to verify ownership. The payment is held for admin review.
+          </p>
 
           <div className="space-y-6">
-            {/* Amount Input */}
-            <div>
-              <label className={`block text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-stone-300' : ''}`}>
-                Amount
-              </label>
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="input-field w-full"
-                    min="1"
-                  />
-                  <span className="absolute right-3 top-3 text-sm font-semibold">{currency}</span>
-                </div>
-                <button
-                  onClick={() => setCurrency(currency === 'USD' ? 'KES' : 'USD')}
-                  className="btn-secondary px-4"
-                >
-                  Switch
-                </button>
-              </div>
-              {exchangeRate && (
-                <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-stone-400' : 'text-stone-600'}`}>
-                  {currency === 'USD' ? 'KES ' : 'USD '}{formatCurrency(convertedAmount, currency === 'USD' ? 'KES' : 'USD')}
-                </p>
-              )}
-            </div>
 
             {/* Payment Method */}
             <div>
@@ -130,14 +129,14 @@ export default function DepositPage() {
                 Payment Method
               </label>
               <div className="space-y-2">
-                {['stripe', 'paypal', 'mpesa'].map((method) => (
+                {(['stripe', 'paypal', 'mpesa'] as PaymentMethod[]).map((method) => (
                   <label key={method} className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="radio"
                       name="payment"
                       value={method}
-                      checked={paymentMethod === method as any}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
+                      checked={paymentMethod === method}
+                      onChange={() => setPaymentMethod(method)}
                       className="w-4 h-4"
                     />
                     <div className="flex items-center gap-2">
@@ -149,16 +148,35 @@ export default function DepositPage() {
               </div>
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-semibold">
+                Account label
+                <input className="input-field w-full mt-2" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder="My primary account" />
+              </label>
+              <label className="text-sm font-semibold">
+                Account or phone
+                <input className="input-field w-full mt-2" value={accountValue} onChange={(e) => setAccountValue(e.target.value)} placeholder={accountPlaceholder} autoComplete="off" />
+              </label>
+            </div>
+
+            {message && <div className="alert alert-success">{message}</div>}
+            {checkoutUrl && (
+              <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={checkoutUrl} target="_blank" rel="noreferrer">
+                Continue to PayPal
+              </a>
+            )}
+            {error && <div className="alert alert-error">{error}</div>}
+
             {/* Submit */}
-            <button className="w-full btn-primary py-3 rounded-lg font-semibold hover:shadow-lg text-lg">
-              Deposit {formatCurrency(parseFloat(amount), currency)}
+            <button disabled={submitting} className="w-full btn-primary py-3 rounded-lg font-semibold hover:shadow-lg text-lg disabled:opacity-60">
+              {submitting ? 'Starting verification...' : `Start verification for ${formatCurrency(VERIFICATION_USD, 'USD')}`}
             </button>
 
             <p className={`text-xs text-center ${theme === 'dark' ? 'text-stone-500' : 'text-stone-600'}`}>
               Your payment is secured and encrypted. No additional fees.
             </p>
           </div>
-        </div>
+        </form>
       </main>
     </div>
   );

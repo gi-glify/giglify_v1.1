@@ -20,6 +20,7 @@ import TaskRunnerPage from "./pages/TaskRunner";
 import VerifyPage from "./pages/Verify";
 import DepositPage from "./pages/Deposit";
 import FinancialsPage from "./pages/Financials";
+import AdminPaymentsPage from "./pages/AdminPayments";
 import ProfileCompletionPage from "./pages/ProfileCompletion";
 import NotificationsPage from "./pages/Notifications";
 import SettingsPage from "./pages/Settings";
@@ -49,6 +50,7 @@ function AuthedRoutes() {
         <Route path="/verify" element={<VerifyPage />} />
         <Route path="/deposit" element={<DepositPage />} />
         <Route path="/financials" element={<FinancialsPage />} />
+        <Route path="/admin/payments" element={<AdminPaymentsPage />} />
         <Route path="/profile" element={<ProfileCompletionPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />

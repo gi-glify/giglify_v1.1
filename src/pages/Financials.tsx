@@ -4,6 +4,7 @@ import { formatCurrency } from '../utils/currency';
 import { Transaction } from '../types';
 import { Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { createPayoutRequest, fetchPaymentVerificationState, PaymentVerificationState } from '../lib/paymentsApi';
 
 export default function FinancialsPage() {
   const { theme } = useTheme();
@@ -12,6 +13,9 @@ export default function FinancialsPage() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawalSubmitted, setWithdrawalSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [paymentState, setPaymentState] = useState<PaymentVerificationState | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
 
   useEffect(() => {
     async function fetchTransactions() {
@@ -24,9 +28,17 @@ export default function FinancialsPage() {
       }
     }
     fetchTransactions();
+    if (user?.id) {
+      fetchPaymentVerificationState(user.id)
+        .then((state) => {
+          setPaymentState(state);
+          setSelectedAccountId(state.accounts.find((account) => account.isPrimary && account.status === 'verified')?.id || '');
+        })
+        .catch((e) => setError(e instanceof Error ? e.message : 'Unable to load payout verification status.'));
+    }
   }, [user]);
 
-  const handleWithdrawal = (e: React.FormEvent) => {
+  const handleWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -43,10 +55,26 @@ export default function FinancialsPage() {
       return;
     }
 
-    setWithdrawalSubmitted(true);
-    setWithdrawAmount('');
+    if (paymentState?.status !== 'verified') {
+      setError('Verify a payout account before requesting a withdrawal.');
+      return;
+    }
+    if (!selectedAccountId) {
+      setError('Select a verified payout account.');
+      return;
+    }
 
-    setTimeout(() => setWithdrawalSubmitted(false), 3000);
+    setSubmittingWithdrawal(true);
+    try {
+      await createPayoutRequest({ amount, payoutAccountId: selectedAccountId });
+      setWithdrawalSubmitted(true);
+      setWithdrawAmount('');
+      setTimeout(() => setWithdrawalSubmitted(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to submit withdrawal request.');
+    } finally {
+      setSubmittingWithdrawal(false);
+    }
   };
 
   return (
@@ -70,6 +98,22 @@ export default function FinancialsPage() {
               <div className="alert alert-success">Withdrawal request submitted! Processing...</div>
             )}
             {error && <div className="alert alert-error">{error}</div>}
+            {paymentState?.status !== 'verified' && (
+              <div className="alert alert-warning">
+                Payouts are locked until your verification payment is approved by an administrator.
+              </div>
+            )}
+            {paymentState?.status === 'verified' && (
+              <label className="block text-sm font-semibold">
+                Payout account
+                <select className="input-field w-full mt-2" value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)} required>
+                  <option value="">Select a verified account</option>
+                  {paymentState.accounts.filter((account) => account.status === 'verified').map((account) => (
+                    <option key={account.id} value={account.id}>{account.accountLabel} ({account.method})</option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div className="flex gap-2">
               <input
                 type="number"
@@ -81,8 +125,8 @@ export default function FinancialsPage() {
                 step="0.01"
                 required
               />
-              <button type="submit" className="btn-primary px-6 py-2 rounded-lg font-semibold">
-                Withdraw
+              <button type="submit" disabled={submittingWithdrawal || paymentState?.status !== 'verified'} className="btn-primary px-6 py-2 rounded-lg font-semibold disabled:opacity-60">
+                {submittingWithdrawal ? 'Submitting...' : 'Withdraw'}
               </button>
             </div>
             <p className={`text-xs ${theme === 'dark' ? 'text-stone-400' : 'text-stone-600'}`}>
