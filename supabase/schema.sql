@@ -356,6 +356,7 @@ alter table public.payment_audit_logs enable row level security;
 alter table public.payment_provider_events enable row level security;
 
 create policy "profiles: read own" on public.profiles for select using (auth.uid() = id);
+create policy "profiles: insert own" on public.profiles for insert with check (auth.uid() = id);
 create policy "profiles: update own" on public.profiles for update using (auth.uid() = id);
 
 create policy "tasks: read active tasks" on public.tasks for select using (is_active = true);
