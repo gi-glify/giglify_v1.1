@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Bot, X, Send, Trash2 } from "lucide-react";
 import { supabase } from "../../utils/supabase";
 import { useAuthStore } from "../../store/authStore";
@@ -11,6 +11,43 @@ interface ChatMessage {
 
 const chatKey = (userId: string) => `giglify:ai-chat:${userId}`;
 const chatEvent = "giglify:ai-chat-updated";
+
+function formatInline(text: string): ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return <code key={index} className="rounded bg-black/10 px-1 dark:bg-white/10">{part.slice(1, -1)}</code>;
+    }
+    return part;
+  });
+}
+
+function FormattedAssistantMessage({ content }: { content: string }) {
+  return (
+    <div className="space-y-2">
+      {content.split(/\r?\n/).map((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={index} className="h-1" aria-hidden="true" />;
+
+        const bullet = trimmed.match(/^[-*]\s+(.+)$/);
+        if (bullet) {
+          return <div key={index} className="flex gap-2"><span aria-hidden="true">•</span><span>{formatInline(bullet[1])}</span></div>;
+        }
+
+        const numbered = trimmed.match(/^(\d+)[.)]\s+(.+)$/);
+        if (numbered) {
+          return <div key={index} className="flex gap-2"><span className="font-semibold">{numbered[1]}.</span><span>{formatInline(numbered[2])}</span></div>;
+        }
+
+        const heading = trimmed.match(/^#{1,3}\s+(.+)$/);
+        if (heading) return <p key={index} className="font-semibold">{formatInline(heading[1])}</p>;
+        return <p key={index}>{formatInline(trimmed)}</p>;
+      })}
+    </div>
+  );
+}
 
 /**
  * Floating AI assistant. The panel and message list work out of the box;
@@ -143,7 +180,7 @@ export default function AIChatWidget() {
             style={{ borderColor: "var(--border)" }}
           >
             <Bot size={16} className="text-brand-500" />
-            <span className="font-semibold text-sm">Giglify Assistant</span>
+            <span className="font-semibold text-sm">Gig Buddy</span>
             <button type="button" onClick={clearChat} className="ml-auto btn-icon !h-7 !w-7" aria-label="Clear AI chat history" title="Clear chat history">
               <Trash2 size={14} />
             </button>
@@ -165,7 +202,7 @@ export default function AIChatWidget() {
                       : "bg-black/5 dark:bg-white/10 text-inherit rounded-tl-sm"
                   }`}
                 >
-                  {m.content}
+                  {m.role === "assistant" ? <FormattedAssistantMessage content={m.content} /> : m.content}
                 </div>
               </div>
             ))}

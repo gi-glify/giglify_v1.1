@@ -73,7 +73,7 @@ export default function TasksPage() {
       }
       return true;
     });
-  }, [search, difficulty, device, payBand]);
+  }, [tasks, search, difficulty, device, payBand]);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
