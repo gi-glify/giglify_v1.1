@@ -5,6 +5,7 @@ function normalizeDate(value) {
 }
 export function toProfilePayload(form) {
     return {
+        email: form.email.trim(),
         phone: form.phone,
         country: form.country,
         bio: form.bio,

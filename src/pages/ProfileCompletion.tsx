@@ -25,6 +25,7 @@ const ID_TYPES = ["National ID", "Passport", "Driving License", "Resident ID"];
 export default function ProfileCompletionPage() {
   const { user, setUser } = useAuthStore();
   const [form, setForm] = useState<ProfileForm>({
+    email: user?.email || "",
     phone: user?.phone || "",
     country: user?.country || "",
     bio: user?.bio || "",
@@ -80,7 +81,7 @@ export default function ProfileCompletionPage() {
     if (storedDraft) {
       try {
         const draft = JSON.parse(storedDraft) as ProfileForm;
-        setForm(draft);
+        setForm({ ...draft, email: user.email });
         setProfilePicturePreview(draft.profilePicture || null);
       } catch {
         localStorage.removeItem(profileDraftKey(user.id));
@@ -99,6 +100,7 @@ export default function ProfileCompletionPage() {
     const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     if (error) throw error;
     const refreshedForm: ProfileForm = {
+      email: data.email || user.email,
       phone: data.phone || "",
       country: data.country || "",
       bio: data.bio || "",
@@ -312,6 +314,23 @@ export default function ProfileCompletionPage() {
           </div>
 
           {/* Basic Information */}
+          <div className="mb-4">
+            <label className="block text-sm font-semibold mb-2" htmlFor="profile-email">
+              Login email
+            </label>
+            <input
+              id="profile-email"
+              className="input-field w-full opacity-75"
+              type="email"
+              value={form.email}
+              readOnly
+              autoComplete="email"
+              aria-describedby="profile-email-note"
+            />
+            <p id="profile-email-note" className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+              This is linked to your login and cannot be edited here.
+            </p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold mb-2">

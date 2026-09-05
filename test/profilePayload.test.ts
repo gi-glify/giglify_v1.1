@@ -4,6 +4,7 @@ import { toProfilePayload } from '../src/utils/profilePayload.ts';
 
 test('maps profile form fields to the database column names', () => {
   const payload = toProfilePayload({
+    email: 'test@example.com',
     phone: '+254700000000',
     country: 'Kenya',
     bio: 'A sufficiently long profile biography.',
@@ -29,6 +30,7 @@ test('maps profile form fields to the database column names', () => {
 
 test('normalizes a browser-localized date before sending it to Postgres', () => {
   const payload = toProfilePayload({
+    email: 'test@example.com',
     phone: '', country: '', bio: '', skills: [], payoutMethodAdded: false,
     profilePicture: '', idType: '', idNumber: '', dateOfBirth: '07/07/2005',
     address: '', fullLegalName: '', payoutMethod: '', payoutAccount: '', proofOfPayment: '',

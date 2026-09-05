@@ -1,4 +1,5 @@
 export interface ProfileForm {
+  email: string;
   phone: string;
   country: string;
   bio: string;
@@ -23,6 +24,7 @@ function normalizeDate(value: string) {
 
 export function toProfilePayload(form: ProfileForm) {
   return {
+    email: form.email.trim(),
     phone: form.phone,
     country: form.country,
     bio: form.bio,

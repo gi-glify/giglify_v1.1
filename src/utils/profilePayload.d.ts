@@ -1,4 +1,5 @@
 export interface ProfileForm {
+    email: string;
     phone: string;
     country: string;
     bio: string;
@@ -15,6 +16,7 @@ export interface ProfileForm {
     proofOfPayment: string;
 }
 export declare function toProfilePayload(form: ProfileForm): {
+    email: string;
     phone: string;
     country: string;
     bio: string;
