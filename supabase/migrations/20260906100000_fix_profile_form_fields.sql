@@ -1,4 +1,5 @@
--- Fields used by the profile and KYC forms.
+-- The profile form writes these fields, including databases created from the
+-- original schema before the complete profile definition was introduced.
 alter table public.profiles
   add column if not exists date_of_birth date,
   add column if not exists payout_method_added boolean not null default false,
