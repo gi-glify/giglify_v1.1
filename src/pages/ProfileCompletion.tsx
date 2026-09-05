@@ -293,6 +293,9 @@ export default function ProfileCompletionPage() {
               <input
                 className="input-field"
                 placeholder="+254 7xx xxx xxx"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
@@ -359,6 +362,8 @@ export default function ProfileCompletionPage() {
                 <input
                   className="input-field"
                   placeholder="Enter ID number"
+                  inputMode={form.idType === "National ID" ? "numeric" : "text"}
+                  autoComplete="off"
                   value={form.idNumber}
                   onChange={(e) =>
                     setForm({ ...form, idNumber: e.target.value })
@@ -425,6 +430,8 @@ export default function ProfileCompletionPage() {
                 <input
                   className="input-field"
                   placeholder="Enter details"
+                  inputMode={form.payoutMethod === "mpesa" ? "tel" : "email"}
+                  autoComplete="off"
                   value={form.payoutAccount}
                   onChange={(e) =>
                     setForm({ ...form, payoutAccount: e.target.value })
