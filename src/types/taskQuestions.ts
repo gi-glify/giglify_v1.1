@@ -6,7 +6,6 @@ export interface TaskQuestion {
   task_code: string;
   question_number: number;
   question_text: string;
-  model_answer: string;
 }
 
 export interface TaskWithCode {
@@ -28,8 +27,6 @@ export interface TaskWithCode {
 export interface QuestionRunAnswer {
   question_number: number;
   response: string;
-  revealed_model_answer: boolean;
-  self_marked: 'correct' | 'partial' | 'incorrect' | null;
 }
 
 export interface SubmittedContent {

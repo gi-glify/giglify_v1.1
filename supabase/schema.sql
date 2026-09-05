@@ -99,6 +99,33 @@ create table if not exists public.task_questions (
 
 create index if not exists idx_task_questions_code on public.task_questions (task_code);
 
+-- Worker-visible prompt projection. Model answers remain private to grading.
+create table if not exists public.task_question_prompts (
+  id uuid primary key,
+  task_code text not null references public.tasks(task_code) on delete cascade,
+  question_number int not null check (question_number >= 1 and question_number <= 10),
+  question_text text not null,
+  unique(task_code, question_number)
+);
+
+create or replace function public.sync_task_question_prompt()
+returns trigger as $$
+begin
+  insert into public.task_question_prompts (id, task_code, question_number, question_text)
+  values (new.id, new.task_code, new.question_number, new.question_text)
+  on conflict (id) do update set
+    task_code = excluded.task_code,
+    question_number = excluded.question_number,
+    question_text = excluded.question_text;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists sync_task_question_prompt on public.task_questions;
+create trigger sync_task_question_prompt
+  after insert or update of task_code, question_number, question_text on public.task_questions
+  for each row execute procedure public.sync_task_question_prompt();
+
 -- ============================================================================
 -- task_submissions — one row per user attempt/completion of a task.
 -- This is the single source of truth for "completed today" counts and
@@ -110,6 +137,13 @@ create table if not exists public.task_submissions (
   task_id uuid not null references public.tasks (id) on delete cascade,
   status text not null default 'in-progress' check (status in ('in-progress', 'submitted', 'approved', 'rejected')),
   reward_paid numeric(10, 2),
+  grading_status text not null default 'pending' check (grading_status in ('pending', 'processing', 'graded', 'manual_review', 'failed')),
+  grading_percentage numeric(5, 2) check (grading_percentage is null or (grading_percentage >= 0 and grading_percentage <= 100)),
+  grading_decision text,
+  grading_confidence numeric(5, 2) check (grading_confidence is null or (grading_confidence >= 0 and grading_confidence <= 100)),
+  grading_feedback jsonb,
+  graded_at timestamptz,
+  reward_approved numeric(10, 2),
   submitted_content jsonb,
   started_at timestamptz not null default now(),
   completed_at timestamptz
@@ -117,6 +151,43 @@ create table if not exists public.task_submissions (
 
 create index if not exists idx_task_submissions_user on public.task_submissions (user_id);
 create index if not exists idx_task_submissions_task on public.task_submissions (task_id);
+
+create table if not exists public.grading_jobs (
+  id uuid primary key default gen_random_uuid(),
+  submission_id uuid not null unique references public.task_submissions(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  status text not null default 'queued' check (status in ('queued', 'processing', 'completed', 'retry', 'failed')),
+  attempts integer not null default 0 check (attempts >= 0),
+  next_attempt_at timestamptz not null default now(),
+  last_error text,
+  created_at timestamptz not null default now(),
+  started_at timestamptz,
+  completed_at timestamptz
+);
+
+create index if not exists grading_jobs_queue_idx on public.grading_jobs(status, next_attempt_at, created_at);
+
+create table if not exists public.grading_usage (
+  usage_date date primary key default current_date,
+  request_count integer not null default 0 check (request_count >= 0),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.reserve_grading_request(p_daily_limit integer)
+returns boolean as $$
+declare
+  reserved boolean;
+begin
+  insert into public.grading_usage (usage_date, request_count) values (current_date, 1)
+  on conflict (usage_date) do update
+    set request_count = public.grading_usage.request_count + 1, updated_at = now()
+    where public.grading_usage.request_count < greatest(p_daily_limit, 1)
+  returning true into reserved;
+  return coalesce(reserved, false);
+end;
+$$ language plpgsql security definer set search_path = public;
+revoke execute on function public.reserve_grading_request(integer) from public, anon, authenticated;
+grant execute on function public.reserve_grading_request(integer) to service_role;
 
 -- ==========================================================================
 -- Payment verification and manual payouts
@@ -276,7 +347,7 @@ returns trigger as $$
 begin
   if new.status = 'approved' and old.status is distinct from 'approved' then
     new.completed_at := now();
-    new.reward_paid := (select reward from public.tasks where id = new.task_id);
+    new.reward_paid := coalesce(new.reward_approved, (select reward from public.tasks where id = new.task_id));
 
     update public.wallets
       set balance = balance + new.reward_paid,
@@ -301,6 +372,35 @@ drop trigger if exists on_submission_status_change on public.task_submissions;
 create trigger on_submission_status_change
   before update on public.task_submissions
   for each row execute procedure public.handle_submission_approved();
+
+create or replace function public.protect_task_submission_workflow()
+returns trigger as $$
+begin
+  if auth.uid() = old.user_id then
+    if old.status <> 'in-progress' and new.submitted_content is distinct from old.submitted_content then
+      raise exception 'Submitted task answers cannot be changed';
+    end if;
+    if new.status is distinct from old.status and not (old.status = 'in-progress' and new.status = 'submitted') then
+      raise exception 'Task status can only be changed by the grading service';
+    end if;
+    if new.grading_status is distinct from old.grading_status
+      or new.grading_percentage is distinct from old.grading_percentage
+      or new.grading_decision is distinct from old.grading_decision
+      or new.grading_confidence is distinct from old.grading_confidence
+      or new.grading_feedback is distinct from old.grading_feedback
+      or new.graded_at is distinct from old.graded_at
+      or new.reward_approved is distinct from old.reward_approved then
+      raise exception 'Task grading can only be changed by the grading service';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists protect_task_submission_workflow on public.task_submissions;
+create trigger protect_task_submission_workflow
+  before update on public.task_submissions
+  for each row execute procedure public.protect_task_submission_workflow();
 
 -- ============================================================================
 -- withdrawals — enforces the $15 minimum described in the product brief.
@@ -361,7 +461,10 @@ create table if not exists public.notifications (
 alter table public.profiles enable row level security;
 alter table public.tasks enable row level security;
 alter table public.task_questions enable row level security;
+alter table public.task_question_prompts enable row level security;
 alter table public.task_submissions enable row level security;
+alter table public.grading_jobs enable row level security;
+alter table public.grading_usage enable row level security;
 alter table public.wallets enable row level security;
 alter table public.transactions enable row level security;
 alter table public.withdrawals enable row level security;
@@ -379,11 +482,11 @@ create policy "profiles: update own" on public.profiles for update using (auth.u
 
 create policy "tasks: read active tasks" on public.tasks for select using (is_active = true);
 
-create policy "task_questions: read for active tasks" on public.task_questions
+create policy "task_question_prompts: read for active tasks" on public.task_question_prompts
   for select using (
     exists (
       select 1 from public.tasks t
-      where t.task_code = task_questions.task_code
+      where t.task_code = task_question_prompts.task_code
         and t.is_active = true
     )
   );
@@ -391,6 +494,9 @@ create policy "task_questions: read for active tasks" on public.task_questions
 create policy "submissions: read own" on public.task_submissions for select using (auth.uid() = user_id);
 create policy "submissions: insert own" on public.task_submissions for insert with check (auth.uid() = user_id);
 create policy "submissions: update own" on public.task_submissions for update using (auth.uid() = user_id);
+
+create policy "grading jobs: read own" on public.grading_jobs for select using (auth.uid() = user_id);
+create policy "grading jobs: insert own" on public.grading_jobs for insert with check (auth.uid() = user_id);
 
 create policy "wallets: read own" on public.wallets for select using (auth.uid() = user_id);
 

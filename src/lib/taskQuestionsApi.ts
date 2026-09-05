@@ -60,8 +60,8 @@ export async function fetchTaskByCode(taskCode: string): Promise<TaskWithCode | 
 /** Fetch the 10 (or fewer) questions for a task, in order. */
 export async function fetchTaskQuestions(taskCode: string): Promise<TaskQuestion[]> {
   const { data, error } = await supabase
-    .from('task_questions')
-    .select('id, task_code, question_number, question_text, model_answer')
+    .from('task_question_prompts')
+    .select('id, task_code, question_number, question_text')
     .eq('task_code', taskCode)
     .order('question_number', { ascending: true });
 
@@ -145,6 +145,16 @@ export async function finalizeSubmission(submissionId: string) {
     .update({ status: 'submitted' })
     .eq('id', submissionId);
 
-  if (error) console.error('finalizeSubmission error:', error.message);
-  return !error;
+  if (error) {
+    console.error('finalizeSubmission error:', error.message);
+    return false;
+  }
+
+  // Queue grading so a provider quota limit stalls the job instead of
+  // turning a valid submission into a user-facing failure.
+  const { error: queueError } = await supabase
+    .from('grading_jobs')
+    .upsert({ submission_id: submissionId, user_id: (await supabase.auth.getUser()).data.user?.id, status: 'queued', next_attempt_at: new Date().toISOString() }, { onConflict: 'submission_id', ignoreDuplicates: true });
+  if (queueError) console.error('grading queue error:', queueError.message);
+  return true;
 }

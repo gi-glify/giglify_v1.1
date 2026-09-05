@@ -46,8 +46,8 @@ export async function fetchTaskByCode(taskCode) {
 /** Fetch the 10 (or fewer) questions for a task, in order. */
 export async function fetchTaskQuestions(taskCode) {
     const { data, error } = await supabase
-        .from('task_questions')
-        .select('id, task_code, question_number, question_text, model_answer')
+        .from('task_question_prompts')
+        .select('id, task_code, question_number, question_text')
         .eq('task_code', taskCode)
         .order('question_number', { ascending: true });
     if (error) {
@@ -116,8 +116,17 @@ export async function finalizeSubmission(submissionId) {
         .from('task_submissions')
         .update({ status: 'submitted' })
         .eq('id', submissionId);
-    if (error)
+    if (error) {
         console.error('finalizeSubmission error:', error.message);
-    return !error;
+        return false;
+    }
+    // Queue grading so a provider quota limit stalls the job instead of
+    // turning a valid submission into a user-facing failure.
+    const { error: queueError } = await supabase
+        .from('grading_jobs')
+        .upsert({ submission_id: submissionId, user_id: (await supabase.auth.getUser()).data.user?.id, status: 'queued', next_attempt_at: new Date().toISOString() }, { onConflict: 'submission_id', ignoreDuplicates: true });
+    if (queueError)
+        console.error('grading queue error:', queueError.message);
+    return true;
 }
 //# sourceMappingURL=taskQuestionsApi.js.map

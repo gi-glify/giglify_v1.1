@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Eye } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Circle } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import {
   fetchTaskByCode,
@@ -22,10 +22,7 @@ import type {
 
 
 
-type SelfMark = QuestionRunAnswer["self_marked"];
-
 export default function TaskRunnerPage() {
-  console.log('🔴 TaskRunnerPage is loading!');  
   const { taskCode } = useParams<{ taskCode: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -35,11 +32,10 @@ export default function TaskRunnerPage() {
   const [questions, setQuestions] = useState<TaskQuestion[]>([]);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<QuestionRunAnswer[]>([]);
+  const [pendingReview, setPendingReview] = useState(false);
 
   const [index, setIndex] = useState(0);
   const [response, setResponse] = useState("");
-  const [revealed, setRevealed] = useState(false);
-  const [selfMark, setSelfMark] = useState<SelfMark>(null);
   const [done, setDone] = useState(false);
 
   useEffect(() => {
@@ -66,6 +62,11 @@ export default function TaskRunnerPage() {
       setQuestions(qs);
       if (sub) {
         setSubmissionId(sub.id);
+        if (sub.status !== "in-progress") {
+          setPendingReview(true);
+          setLoading(false);
+          return;
+        }
         const existing = (sub.submitted_content?.answers ??
           []) as QuestionRunAnswer[];
         setAnswers(existing);
@@ -92,8 +93,6 @@ export default function TaskRunnerPage() {
       (a) => a.question_number === q.question_number,
     );
     setResponse(existing?.response ?? "");
-    setRevealed(existing?.revealed_model_answer ?? false);
-    setSelfMark(existing?.self_marked ?? null);
   }, [index, questions, answers]);
 
   if (!user) {
@@ -127,11 +126,30 @@ export default function TaskRunnerPage() {
     );
   }
 
+  if (pendingReview) {
+    return (
+      <div className="container py-12 max-w-xl mx-auto text-center">
+        <CheckCircle2
+          size={40}
+          className="mx-auto mb-3 text-brand-600 dark:text-brand-400"
+        />
+        <h1 className="font-display text-xl mb-2">Pending approval</h1>
+        <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
+          This task has already been submitted. Gig Buddy is grading it now,
+          and you will receive a notification when the result is ready.
+        </p>
+        <Link to="/tasks" className="btn-primary text-sm inline-flex items-center gap-1">
+          Back to tasks <ArrowRight size={14} />
+        </Link>
+      </div>
+    );
+  }
+
   const q = questions[index];
   const isLast = index === questions.length - 1;
   const answeredCount = answers.length;
 
-  const persist = async (mark: SelfMark, reveal: boolean) => {
+  const persist = async () => {
     if (!submissionId) return;
     const updated = await saveAnswerProgress(
       submissionId,
@@ -140,25 +158,13 @@ export default function TaskRunnerPage() {
       {
         question_number: q.question_number,
         response,
-        revealed_model_answer: reveal,
-        self_marked: mark,
       },
     );
     setAnswers(updated);
   };
 
-  const handleReveal = async () => {
-    setRevealed(true);
-    await persist(selfMark, true);
-  };
-
-  const handleMark = async (mark: SelfMark) => {
-    setSelfMark(mark);
-    await persist(mark, true);
-  };
-
   const goNext = async () => {
-    await persist(selfMark, revealed);
+    await persist();
     if (isLast) {
       if (submissionId) await finalizeSubmission(submissionId);
       setDone(true);
@@ -240,61 +246,15 @@ export default function TaskRunnerPage() {
         <textarea
           value={response}
           onChange={(e) => setResponse(e.target.value)}
-          onBlur={() => persist(selfMark, revealed)}
+          onBlur={() => persist()}
           placeholder="Write your answer here…"
           rows={5}
           className="input-field w-full resize-none"
         />
 
-        {!revealed ? (
-          <button
-            onClick={handleReveal}
-            className="btn-secondary text-xs mt-3 flex items-center gap-1"
-          >
-            <Eye size={12} /> Reveal model answer
-          </button>
-        ) : (
-          <div
-            className="mt-4 pt-4"
-            style={{ borderTop: "1px solid var(--border)" }}
-          >
-            <p
-              className="text-xs font-semibold mb-1"
-              style={{ color: "var(--text-muted)" }}
-            >
-              Model answer
-            </p>
-            <p className="text-sm mb-3">{q.model_answer}</p>
-
-            <p
-              className="text-xs font-semibold mb-1.5"
-              style={{ color: "var(--text-muted)" }}
-            >
-              How did your answer compare?
-            </p>
-            <div className="flex gap-1.5">
-              {(
-                [
-                  ["correct", "Matched it"],
-                  ["partial", "Partially"],
-                  ["incorrect", "Missed it"],
-                ] as [SelfMark, string][]
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  onClick={() => handleMark(value)}
-                  className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${
-                    selfMark === value
-                      ? "bg-brand-600 text-white border-brand-600"
-                      : "border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <p className="text-xs mt-3" style={{ color: "var(--text-muted)" }}>
+          Your response will be compared with the task rubric after submission.
+        </p>
       </div>
 
       <div className="flex justify-between">

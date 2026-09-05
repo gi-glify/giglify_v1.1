@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient, type User } from "npm:@supabase/supabase-js@2";
 
-function adminClient(): SupabaseClient {
+export function adminClient(): SupabaseClient {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
