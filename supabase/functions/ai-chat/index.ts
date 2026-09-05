@@ -29,33 +29,42 @@ Deno.serve(async (req) => {
     { role: "user", parts: [{ text: message }] },
   ];
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash"}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text:
-                "You are the Giglify assistant. Help users understand tasks, " +
-                "their balance, profile completion, and how withdrawals work " +
-                "($15 minimum). Be concise and friendly.",
-            },
-          ],
+  try {
+    const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-goog-api-key": apiKey,
         },
-        contents,
-      }),
-    }
-  );
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [
+              {
+                text:
+                  "You are the Giglify assistant. Help users understand tasks, " +
+                  "their balance, profile completion, and how withdrawals work " +
+                  "($15 minimum). Be concise and friendly.",
+              },
+            ],
+          },
+          contents,
+        }),
+      },
+    );
 
-  const data = await res.json();
-  if (!res.ok) return response({ error: data?.error?.message || "Gemini request failed" }, 502);
-  const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!reply) return response({ error: "Gemini returned no text response" }, 502);
-  return response({ reply });
+    const data = await res.json();
+    if (!res.ok) {
+      return response({ error: `Gemini ${res.status}: ${data?.error?.message || "request rejected"}` }, 502);
+    }
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!reply) return response({ error: "Gemini returned no text response" }, 502);
+    return response({ reply });
+  } catch (error) {
+    console.error("Gemini request failed", error);
+    const message = error instanceof Error ? error.message : "Unable to reach Gemini";
+    return response({ error: `Gemini request failed: ${message}` }, 502);
+  }
 });

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bot, X, Send } from "lucide-react";
+import { Bot, X, Send, Trash2 } from "lucide-react";
 import { supabase } from "../../utils/supabase";
 import { useAuthStore } from "../../store/authStore";
 
@@ -25,7 +25,19 @@ async function sendToAssistant(
   const { data, error } = await supabase.functions.invoke("ai-chat", {
     body: { message, history },
   });
-  if (error) throw error;
+  if (error) {
+    let detail = error.message;
+    const context = (error as Error & { context?: Response }).context;
+    if (context) {
+      try {
+        const body = await context.clone().json();
+        if (body?.error) detail = body.error;
+      } catch {
+        // Keep the SDK error when the function response is not JSON.
+      }
+    }
+    throw new Error(detail);
+  }
   return data.reply;
 }
 
@@ -38,13 +50,20 @@ export default function AIChatWidget() {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setMessages([]);
     if (!user) return;
     const stored = localStorage.getItem(chatKey(user.id));
     if (stored) {
-      try { setMessages(JSON.parse(stored) as ChatMessage[]); } catch { localStorage.removeItem(chatKey(user.id)); }
+      try { setMessages(JSON.parse(stored) as ChatMessage[]); } catch {
+        localStorage.removeItem(chatKey(user.id));
+      }
     }
     const onStorage = (event: StorageEvent) => {
-      if (event.key !== chatKey(user.id) || !event.newValue) return;
+      if (event.key !== chatKey(user.id)) return;
+      if (!event.newValue) {
+        setMessages([]);
+        return;
+      }
       try { setMessages(JSON.parse(event.newValue) as ChatMessage[]); } catch { /* Ignore malformed stale drafts. */ }
     };
     const onChatEvent = (event: Event) => {
@@ -60,6 +79,13 @@ export default function AIChatWidget() {
     if (!user) return;
     localStorage.setItem(chatKey(user.id), JSON.stringify(next));
     window.dispatchEvent(new CustomEvent(chatEvent, { detail: { userId: user.id, messages: next } }));
+  };
+
+  const clearChat = () => {
+    if (!user) return;
+    setMessages([]);
+    localStorage.removeItem(chatKey(user.id));
+    window.dispatchEvent(new CustomEvent(chatEvent, { detail: { userId: user.id, messages: [] } }));
   };
 
   useEffect(() => {
@@ -86,8 +112,9 @@ export default function AIChatWidget() {
       const reply = await sendToAssistant(text, messages);
       const assistantMessage = { id: crypto.randomUUID(), role: "assistant" as const, content: reply };
       setMessages((current) => { const next = [...current, assistantMessage]; persistMessages(next); return next; });
-    } catch {
-      const assistantMessage = { id: crypto.randomUUID(), role: "assistant" as const, content: "Sorry, I ran into an error. Please try again." };
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Unknown error";
+      const assistantMessage = { id: crypto.randomUUID(), role: "assistant" as const, content: `AI error: ${reason}` };
       setMessages((current) => { const next = [...current, assistantMessage]; persistMessages(next); return next; });
     } finally {
       setSending(false);
@@ -118,6 +145,9 @@ export default function AIChatWidget() {
           >
             <Bot size={16} className="text-brand-500" />
             <span className="font-semibold text-sm">Giglify Assistant</span>
+            <button type="button" onClick={clearChat} className="ml-auto btn-icon !h-7 !w-7" aria-label="Clear AI chat history" title="Clear chat history">
+              <Trash2 size={14} />
+            </button>
           </div>
 
           <div
