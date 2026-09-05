@@ -112,9 +112,8 @@ export default function AIChatWidget() {
       const reply = await sendToAssistant(text, messages);
       const assistantMessage = { id: crypto.randomUUID(), role: "assistant" as const, content: reply };
       setMessages((current) => { const next = [...current, assistantMessage]; persistMessages(next); return next; });
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : "Unknown error";
-      const assistantMessage = { id: crypto.randomUUID(), role: "assistant" as const, content: `AI error: ${reason}` };
+    } catch {
+      const assistantMessage = { id: crypto.randomUUID(), role: "assistant" as const, content: "Sorry, I ran into an error. Please try again." };
       setMessages((current) => { const next = [...current, assistantMessage]; persistMessages(next); return next; });
     } finally {
       setSending(false);

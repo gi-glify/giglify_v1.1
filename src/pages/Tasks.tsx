@@ -51,12 +51,22 @@ export default function TasksPage() {
     setter(next);
   };
 
+  const clearFilters = () => {
+    setSearch('');
+    setDifficulty(new Set());
+    setDevice(new Set());
+    setPayBand(new Set());
+  };
+
+  const hasFilters = Boolean(search.trim()) || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
+
   const filtered = useMemo(() => {
     return tasks.filter((task) => {
       const q = search.trim().toLowerCase();
       if (q && !task.title.toLowerCase().includes(q) && !task.description.toLowerCase().includes(q)) return false;
       if (difficulty.size && !difficulty.has(task.difficulty)) return false;
-      if (device.size && !device.has(task.device)) return false;
+      // "Any device" is an unrestricted option, not a task device value.
+      if (device.size && !device.has('any') && !device.has(task.device)) return false;
       if (payBand.size) {
         const matches = PAY_BANDS.filter((b) => payBand.has(b.label)).some((b) => b.test(task.reward));
         if (!matches) return false;
@@ -95,7 +105,20 @@ export default function TasksPage() {
         </div>
 
         {/* Filter divs */}
-        <div className="flex flex-wrap gap-4 mb-6" data-aos="fade-up" data-aos-delay="60">
+        <div className="flex flex-wrap items-end gap-4 mb-6" data-aos="fade-up" data-aos-delay="60">
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={!hasFilters}
+            className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${
+              !hasFilters
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'
+            } disabled:cursor-default disabled:opacity-100`}
+          >
+            All tasks
+          </button>
+
           <div>
             <p className="text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Difficulty</p>
             <div className="flex gap-1.5 flex-wrap">
@@ -136,7 +159,16 @@ export default function TasksPage() {
               {DEVICES.map((d) => (
                 <button
                   key={d.value}
-                  onClick={() => toggle(device, d.value, setDevice)}
+                  onClick={() => {
+                    if (d.value === 'any') {
+                      setDevice(device.has('any') ? new Set() : new Set(['any']));
+                      return;
+                    }
+                    const next = new Set(device);
+                    next.delete('any');
+                    next.has(d.value) ? next.delete(d.value) : next.add(d.value);
+                    setDevice(next);
+                  }}
                   className={`text-xs px-3 py-1.5 rounded-full border font-semibold flex items-center gap-1 transition-colors ${
                     device.has(d.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'
                   }`}
