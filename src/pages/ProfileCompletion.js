@@ -9,7 +9,6 @@ import { createNotification } from "../lib/notifications";
 const PROFILE_PENDING_MS = 60 * 1000;
 const pendingProfileKey = (userId) => `giglify:pending-profile:${userId}`;
 const profileDraftKey = (userId) => `giglify:profile-draft:${userId}`;
-const profileSavedKey = (userId) => `giglify:profile-saved:${userId}`;
 const SKILL_OPTIONS = [
     "Writing",
     "Data labeling",
@@ -19,6 +18,21 @@ const SKILL_OPTIONS = [
     "Design",
 ];
 const ID_TYPES = ["National ID", "Passport", "Driving License", "Resident ID"];
+function ProfileReadOnlyView({ form, onEdit }) {
+    const rows = [
+        ["Email", form.email],
+        ["Phone number", form.phone],
+        ["Country", form.country],
+        ["Full legal name", form.fullLegalName],
+        ["ID type", form.idType],
+        ["ID number", form.idNumber],
+        ["Date of birth", form.dateOfBirth],
+        ["Residential address", form.address],
+        ["Payout method", form.payoutMethod],
+        ["Payout account", form.payoutAccount],
+    ];
+    return (_jsxs("section", { className: "card", "data-aos": "fade-up", children: [_jsxs("div", { className: "flex items-start justify-between gap-4 mb-6", children: [_jsxs("div", { children: [_jsx("h2", { className: "font-display text-xl", children: "Your profile" }), _jsx("p", { className: "text-sm mt-1", style: { color: "var(--text-muted)" }, children: "Your saved information is shown below." })] }), _jsx("button", { type: "button", onClick: onEdit, className: "btn-primary px-4 py-2 rounded-lg", children: "Edit" })] }), _jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4", children: [rows.map(([label, value]) => _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold", style: { color: "var(--text-muted)" }, children: label }), _jsx("p", { className: "text-sm mt-1", children: value || "Not provided" })] }, label)), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold", style: { color: "var(--text-muted)" }, children: "Skills" }), _jsx("p", { className: "text-sm mt-1", children: form.skills.length ? form.skills.join(", ") : "Not provided" })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold", style: { color: "var(--text-muted)" }, children: "Payout method added" }), _jsx("p", { className: "text-sm mt-1", children: form.payoutMethodAdded ? "Yes" : "No" })] }), _jsxs("div", { className: "sm:col-span-2", children: [_jsx("p", { className: "text-xs font-semibold", style: { color: "var(--text-muted)" }, children: "Short bio" }), _jsx("p", { className: "text-sm mt-1", children: form.bio || "Not provided" })] })] })] }));
+}
 export default function ProfileCompletionPage() {
     const { user, setUser } = useAuthStore();
     const [form, setForm] = useState({
@@ -43,7 +57,7 @@ export default function ProfileCompletionPage() {
     const [saveError, setSaveError] = useState("");
     const [pendingUntil, setPendingUntil] = useState(null);
     const [draftReady, setDraftReady] = useState(false);
-    const [isEditing, setIsEditing] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
     const [profilePicturePreview, setProfilePicturePreview] = useState(user?.profilePicture || null);
     const preview = { ...user, ...form };
     const completion = getProfileCompletion(preview);
@@ -62,7 +76,6 @@ export default function ProfileCompletionPage() {
             throw new Error([error.message, error.details, error.hint, error.code].filter(Boolean).join(" | "));
         }
         localStorage.removeItem(profileDraftKey(user.id));
-        localStorage.setItem(profileSavedKey(user.id), "true");
         setUser({ ...user, ...profileForm });
         try {
             await createNotification(user.id, "Profile updated", "Your profile changes were saved successfully.");
@@ -76,26 +89,14 @@ export default function ProfileCompletionPage() {
     useEffect(() => {
         if (!user)
             return;
-        setIsEditing(!localStorage.getItem(profileSavedKey(user.id)));
         setDraftReady(false);
-        const storedDraft = localStorage.getItem(profileDraftKey(user.id));
-        if (storedDraft) {
-            try {
-                const draft = JSON.parse(storedDraft);
-                setForm({ ...draft, email: user.email });
-                setProfilePicturePreview(draft.profilePicture || null);
-            }
-            catch {
-                localStorage.removeItem(profileDraftKey(user.id));
-            }
-        }
         setDraftReady(true);
     }, [user?.id]);
     useEffect(() => {
-        if (!user || !draftReady)
+        if (!user || !draftReady || !isEditing)
             return;
         localStorage.setItem(profileDraftKey(user.id), JSON.stringify(form));
-    }, [form, user?.id, draftReady]);
+    }, [form, user?.id, draftReady, isEditing]);
     const reloadProfile = async () => {
         if (!user)
             return;
@@ -132,6 +133,14 @@ export default function ProfileCompletionPage() {
     useEffect(() => {
         if (!user)
             return;
+        void reloadProfile().catch((error) => {
+            console.error("Unable to load saved profile", error);
+            setSaveError("Unable to load your saved profile.");
+        });
+    }, [user?.id]);
+    useEffect(() => {
+        if (!user)
+            return;
         const stored = localStorage.getItem(pendingProfileKey(user.id));
         if (!stored)
             return;
@@ -144,7 +153,7 @@ export default function ProfileCompletionPage() {
                 });
                 return;
             }
-            setForm(pending.form);
+            setForm({ ...pending.form, email: pending.form.email || user.email });
             setProfilePicturePreview(pending.form.profilePicture || null);
             setPendingUntil(pending.expiresAt);
         }
@@ -198,6 +207,7 @@ export default function ProfileCompletionPage() {
         setSaving(true);
         try {
             await saveProfile(form);
+            setIsEditing(false);
             const expiresAt = Date.now() + PROFILE_PENDING_MS;
             localStorage.setItem(pendingProfileKey(user.id), JSON.stringify({ form, expiresAt }));
             setPendingUntil(expiresAt);
@@ -209,12 +219,28 @@ export default function ProfileCompletionPage() {
             setSaving(false);
         }
     };
+    const handleEdit = () => {
+        if (!user)
+            return;
+        const storedDraft = localStorage.getItem(profileDraftKey(user.id));
+        if (storedDraft) {
+            try {
+                const draft = JSON.parse(storedDraft);
+                setForm({ ...draft, email: user.email });
+                setProfilePicturePreview(draft.profilePicture || null);
+            }
+            catch {
+                localStorage.removeItem(profileDraftKey(user.id));
+            }
+        }
+        setIsEditing(true);
+    };
     return (_jsx("div", { className: "min-h-screen", style: { background: "var(--bg)", color: "var(--text)" }, children: _jsxs("main", { className: "container py-8 max-w-2xl", children: [_jsx("h1", { className: "font-display text-2xl mb-1", "data-aos": "fade-down", children: "Complete your profile" }), _jsxs("p", { className: "text-sm mb-6", style: { color: "var(--text-muted)" }, children: ["Reach ", PROFILE_TASK_LIMIT_THRESHOLD, "% to unlock unlimited daily tasks."] }), _jsxs("div", { className: "card mb-6", "data-aos": "fade-up", children: [_jsxs("div", { className: "flex items-center justify-between mb-2", children: [_jsxs("span", { className: "text-sm font-semibold flex items-center gap-2", children: [_jsx(UserIcon, { size: 16 }), " Profile strength"] }), _jsxs("span", { className: "text-sm font-bold", children: [completion, "%"] })] }), _jsx("div", { className: "w-full h-2.5 rounded-full overflow-hidden", style: { background: "var(--border)" }, children: _jsx("div", { className: "h-full rounded-full transition-all duration-500 ease-out", style: {
                                     width: `${completion}%`,
                                     background: completion >= PROFILE_TASK_LIMIT_THRESHOLD
                                         ? "#22c55e"
                                         : "var(--accent)",
-                                } }) }), completion < PROFILE_TASK_LIMIT_THRESHOLD ? (_jsxs("p", { className: "text-xs mt-2", style: { color: "var(--text-muted)" }, children: [PROFILE_TASK_LIMIT_THRESHOLD - completion, "% to go until the task limit lifts."] })) : (_jsxs("p", { className: "text-xs mt-2 flex items-center gap-1 text-green-600 dark:text-green-400", children: [_jsx(CheckCircle2, { size: 14 }), " Task limit lifted \u2014 full task access unlocked."] }))] }), _jsxs("form", { onSubmit: handleSave, className: "space-y-6 card relative", "data-aos": "fade-up", "data-aos-delay": "80", children: [pendingUntil && (_jsx("div", { className: "absolute inset-0 z-10 rounded-lg backdrop-blur-md bg-[var(--bg)]/80 flex items-center justify-center p-6 text-center", children: _jsxs("div", { className: "max-w-sm", children: [_jsx(LockKeyhole, { size: 72, strokeWidth: 1.5, className: "mx-auto mb-5 text-brand-600 dark:text-brand-300" }), _jsx("h2", { className: "font-display text-2xl mb-2", children: "Pending admin approval" }), _jsx("p", { className: "text-sm", style: { color: "var(--text-muted)" }, children: "Your saved profile is being refreshed. Editing will be available shortly." })] }) })), !isEditing && !pendingUntil && (_jsx("div", { className: "alert alert-info text-sm", children: "Your profile is saved. Select Edit profile to make changes." })), saved && (_jsx("div", { className: "alert alert-success text-sm", children: "Profile updated." })), saveError && _jsx("div", { className: "alert alert-error text-sm", children: saveError }), _jsxs("fieldset", { disabled: !isEditing || Boolean(pendingUntil), className: "contents", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-3", children: "Profile Picture" }), _jsxs("div", { className: "flex items-center gap-4", children: [_jsx("div", { className: "w-24 h-24 rounded-full bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center overflow-hidden flex-shrink-0", children: profilePicturePreview ? (_jsx("img", { src: profilePicturePreview, alt: "Profile", className: "w-full h-full object-cover" })) : (_jsx(UserIcon, { size: 40, className: "text-brand-600 dark:text-brand-300" })) }), _jsxs("label", { className: "flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5", children: [_jsx(Upload, { size: 18, className: "mr-2" }), _jsx("span", { className: "text-sm font-semibold", children: "Upload photo" }), _jsx("input", { type: "file", accept: "image/*", onChange: handleProfilePictureChange, className: "hidden" })] })] })] }), _jsxs("div", { className: "mb-4", children: [_jsx("label", { className: "block text-sm font-semibold mb-2", htmlFor: "profile-email", children: "Login email" }), _jsx("input", { id: "profile-email", className: "input-field w-full opacity-75", type: "email", value: form.email, readOnly: true, autoComplete: "email", "aria-describedby": "profile-email-note" }), _jsx("p", { id: "profile-email-note", className: "text-xs mt-1", style: { color: "var(--text-muted)" }, children: "This is linked to your login and cannot be edited here." })] }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Phone number" }), _jsx("input", { className: "input-field", placeholder: "+254 7xx xxx xxx", type: "tel", inputMode: "tel", autoComplete: "tel", value: form.phone, onChange: (e) => setForm({ ...form, phone: e.target.value }) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Country" }), _jsx("input", { className: "input-field", placeholder: "Kenya", value: form.country, onChange: (e) => setForm({ ...form, country: e.target.value }) })] })] }), _jsxs("div", { className: "border-t pt-6", style: { borderColor: "var(--border)" }, children: [_jsx("h3", { className: "text-sm font-semibold mb-4", children: "KYC Information" }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Full Legal Name" }), _jsx("input", { className: "input-field", placeholder: "As it appears on ID", value: form.fullLegalName, onChange: (e) => setForm({ ...form, fullLegalName: e.target.value }) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "ID Type" }), _jsxs("select", { className: "input-field", value: form.idType, onChange: (e) => setForm({ ...form, idType: e.target.value }), children: [_jsx("option", { value: "", children: "Select ID type" }), ID_TYPES.map((type) => (_jsx("option", { value: type, children: type }, type)))] })] })] }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "ID Number" }), _jsx("input", { className: "input-field", placeholder: "Enter ID number", inputMode: form.idType === "National ID" ? "numeric" : "text", autoComplete: "off", value: form.idNumber, onChange: (e) => setForm({ ...form, idNumber: e.target.value }) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Date of Birth" }), _jsx("input", { type: "date", className: "input-field", value: form.dateOfBirth, onChange: (e) => setForm({ ...form, dateOfBirth: e.target.value }) })] })] }), _jsxs("div", { className: "mb-4", children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Residential Address" }), _jsx("input", { className: "input-field", placeholder: "Full residential address", value: form.address, onChange: (e) => setForm({ ...form, address: e.target.value }) })] })] }), _jsxs("div", { className: "border-t pt-6", style: { borderColor: "var(--border)" }, children: [_jsx("h3", { className: "text-sm font-semibold mb-4", children: "Proof of Payment (POP)" }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Payout Method" }), _jsxs("select", { className: "input-field", value: form.payoutMethod, onChange: (e) => setForm({ ...form, payoutMethod: e.target.value }), children: [_jsx("option", { value: "", children: "Select method" }), _jsx("option", { value: "mpesa", children: "M-Pesa" }), _jsx("option", { value: "bank", children: "Bank Transfer" }), _jsx("option", { value: "paypal", children: "PayPal" })] })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Account / Phone Number" }), _jsx("input", { className: "input-field", placeholder: "Enter details", inputMode: form.payoutMethod === "mpesa" ? "tel" : "email", autoComplete: "off", value: form.payoutAccount, onChange: (e) => setForm({ ...form, payoutAccount: e.target.value }) })] })] }), _jsxs("div", { className: "mb-4", children: [_jsx("label", { className: "block text-sm font-semibold mb-3", children: "Upload POP Screenshot" }), _jsxs("label", { className: "flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5", children: [_jsx(Upload, { size: 18, className: "mr-2" }), _jsx("span", { className: "text-sm font-semibold", children: "Choose File" }), _jsx("input", { type: "file", accept: "image/*,application/pdf", onChange: (e) => {
+                                } }) }), completion < PROFILE_TASK_LIMIT_THRESHOLD ? (_jsxs("p", { className: "text-xs mt-2", style: { color: "var(--text-muted)" }, children: [PROFILE_TASK_LIMIT_THRESHOLD - completion, "% to go until the task limit lifts."] })) : (_jsxs("p", { className: "text-xs mt-2 flex items-center gap-1 text-green-600 dark:text-green-400", children: [_jsx(CheckCircle2, { size: 14 }), " Task limit lifted \u2014 full task access unlocked."] }))] }), !isEditing ? (_jsx(ProfileReadOnlyView, { form: form, onEdit: handleEdit })) : _jsxs("form", { onSubmit: handleSave, className: "space-y-6 card relative", "data-aos": "fade-up", "data-aos-delay": "80", children: [pendingUntil && (_jsx("div", { className: "absolute inset-0 z-10 rounded-lg backdrop-blur-md bg-[var(--bg)]/80 flex items-center justify-center p-6 text-center", children: _jsxs("div", { className: "max-w-sm", children: [_jsx(LockKeyhole, { size: 72, strokeWidth: 1.5, className: "mx-auto mb-5 text-brand-600 dark:text-brand-300" }), _jsx("h2", { className: "font-display text-2xl mb-2", children: "Pending admin approval" }), _jsx("p", { className: "text-sm", style: { color: "var(--text-muted)" }, children: "Your saved profile is being refreshed. Editing will be available shortly." })] }) })), !isEditing && !pendingUntil && (_jsx("div", { className: "alert alert-info text-sm", children: "Your profile is saved. Select Edit profile to make changes." })), saved && (_jsx("div", { className: "alert alert-success text-sm", children: "Profile updated." })), saveError && _jsx("div", { className: "alert alert-error text-sm", children: saveError }), _jsxs("fieldset", { disabled: !isEditing || Boolean(pendingUntil), className: "contents", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-3", children: "Profile Picture" }), _jsxs("div", { className: "flex items-center gap-4", children: [_jsx("div", { className: "w-24 h-24 rounded-full bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center overflow-hidden flex-shrink-0", children: profilePicturePreview ? (_jsx("img", { src: profilePicturePreview, alt: "Profile", className: "w-full h-full object-cover" })) : (_jsx(UserIcon, { size: 40, className: "text-brand-600 dark:text-brand-300" })) }), _jsxs("label", { className: "flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5", children: [_jsx(Upload, { size: 18, className: "mr-2" }), _jsx("span", { className: "text-sm font-semibold", children: "Upload photo" }), _jsx("input", { type: "file", accept: "image/*", onChange: handleProfilePictureChange, className: "hidden" })] })] })] }), _jsxs("div", { className: "mb-4", children: [_jsx("label", { className: "block text-sm font-semibold mb-2", htmlFor: "profile-email", children: "Login email" }), _jsx("input", { id: "profile-email", className: "input-field w-full opacity-75", type: "email", value: form.email, readOnly: true, autoComplete: "email", "aria-describedby": "profile-email-note" }), _jsx("p", { id: "profile-email-note", className: "text-xs mt-1", style: { color: "var(--text-muted)" }, children: "This is linked to your login and cannot be edited here." })] }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Phone number" }), _jsx("input", { className: "input-field", placeholder: "+254 7xx xxx xxx", type: "tel", inputMode: "tel", autoComplete: "tel", value: form.phone, onChange: (e) => setForm({ ...form, phone: e.target.value }) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Country" }), _jsx("input", { className: "input-field", placeholder: "Kenya", value: form.country, onChange: (e) => setForm({ ...form, country: e.target.value }) })] })] }), _jsxs("div", { className: "border-t pt-6", style: { borderColor: "var(--border)" }, children: [_jsx("h3", { className: "text-sm font-semibold mb-4", children: "KYC Information" }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Full Legal Name" }), _jsx("input", { className: "input-field", placeholder: "As it appears on ID", value: form.fullLegalName, onChange: (e) => setForm({ ...form, fullLegalName: e.target.value }) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "ID Type" }), _jsxs("select", { className: "input-field", value: form.idType, onChange: (e) => setForm({ ...form, idType: e.target.value }), children: [_jsx("option", { value: "", children: "Select ID type" }), ID_TYPES.map((type) => (_jsx("option", { value: type, children: type }, type)))] })] })] }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "ID Number" }), _jsx("input", { className: "input-field", placeholder: "Enter ID number", inputMode: form.idType === "National ID" ? "numeric" : "text", autoComplete: "off", value: form.idNumber, onChange: (e) => setForm({ ...form, idNumber: e.target.value }) })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Date of Birth" }), _jsx("input", { type: "date", className: "input-field", value: form.dateOfBirth, onChange: (e) => setForm({ ...form, dateOfBirth: e.target.value }) })] })] }), _jsxs("div", { className: "mb-4", children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Residential Address" }), _jsx("input", { className: "input-field", placeholder: "Full residential address", value: form.address, onChange: (e) => setForm({ ...form, address: e.target.value }) })] })] }), _jsxs("div", { className: "border-t pt-6", style: { borderColor: "var(--border)" }, children: [_jsx("h3", { className: "text-sm font-semibold mb-4", children: "Proof of Payment (POP)" }), _jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-4", children: [_jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Payout Method" }), _jsxs("select", { className: "input-field", value: form.payoutMethod, onChange: (e) => setForm({ ...form, payoutMethod: e.target.value }), children: [_jsx("option", { value: "", children: "Select method" }), _jsx("option", { value: "mpesa", children: "M-Pesa" }), _jsx("option", { value: "bank", children: "Bank Transfer" }), _jsx("option", { value: "paypal", children: "PayPal" })] })] }), _jsxs("div", { children: [_jsx("label", { className: "block text-sm font-semibold mb-2", children: "Account / Phone Number" }), _jsx("input", { className: "input-field", placeholder: "Enter details", inputMode: form.payoutMethod === "mpesa" ? "tel" : "email", autoComplete: "off", value: form.payoutAccount, onChange: (e) => setForm({ ...form, payoutAccount: e.target.value }) })] })] }), _jsxs("div", { className: "mb-4", children: [_jsx("label", { className: "block text-sm font-semibold mb-3", children: "Upload POP Screenshot" }), _jsxs("label", { className: "flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5", children: [_jsx(Upload, { size: 18, className: "mr-2" }), _jsx("span", { className: "text-sm font-semibold", children: "Choose File" }), _jsx("input", { type: "file", accept: "image/*,application/pdf", onChange: (e) => {
                                                                 const file = e.target.files?.[0];
                                                                 if (file) {
                                                                     const reader = new FileReader();

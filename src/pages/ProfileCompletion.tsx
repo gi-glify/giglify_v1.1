@@ -12,7 +12,6 @@ import { createNotification } from "../lib/notifications";
 const PROFILE_PENDING_MS = 60 * 1000;
 const pendingProfileKey = (userId: string) => `giglify:pending-profile:${userId}`;
 const profileDraftKey = (userId: string) => `giglify:profile-draft:${userId}`;
-const profileSavedKey = (userId: string) => `giglify:profile-saved:${userId}`;
 
 const SKILL_OPTIONS = [
   "Writing",
@@ -23,6 +22,36 @@ const SKILL_OPTIONS = [
   "Design",
 ];
 const ID_TYPES = ["National ID", "Passport", "Driving License", "Resident ID"];
+
+function ProfileReadOnlyView({ form, onEdit }: { form: ProfileForm; onEdit: () => void }) {
+  const rows = [
+    ["Email", form.email],
+    ["Phone number", form.phone],
+    ["Country", form.country],
+    ["Full legal name", form.fullLegalName],
+    ["ID type", form.idType],
+    ["ID number", form.idNumber],
+    ["Date of birth", form.dateOfBirth],
+    ["Residential address", form.address],
+    ["Payout method", form.payoutMethod],
+    ["Payout account", form.payoutAccount],
+  ];
+
+  return (
+    <section className="card" data-aos="fade-up">
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div><h2 className="font-display text-xl">Your profile</h2><p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Your saved information is shown below.</p></div>
+        <button type="button" onClick={onEdit} className="btn-primary px-4 py-2 rounded-lg">Edit</button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        {rows.map(([label, value]) => <div key={label}><p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>{label}</p><p className="text-sm mt-1">{value || "Not provided"}</p></div>)}
+        <div><p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Skills</p><p className="text-sm mt-1">{form.skills.length ? form.skills.join(", ") : "Not provided"}</p></div>
+        <div><p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Payout method added</p><p className="text-sm mt-1">{form.payoutMethodAdded ? "Yes" : "No"}</p></div>
+        <div className="sm:col-span-2"><p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Short bio</p><p className="text-sm mt-1">{form.bio || "Not provided"}</p></div>
+      </div>
+    </section>
+  );
+}
 
 export default function ProfileCompletionPage() {
   const { user, setUser } = useAuthStore();
@@ -48,7 +77,7 @@ export default function ProfileCompletionPage() {
   const [saveError, setSaveError] = useState("");
   const [pendingUntil, setPendingUntil] = useState<number | null>(null);
   const [draftReady, setDraftReady] = useState(false);
-  const [isEditing, setIsEditing] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(user?.profilePicture || null);
@@ -72,7 +101,6 @@ export default function ProfileCompletionPage() {
       throw new Error([error.message, error.details, error.hint, error.code].filter(Boolean).join(" | "));
     }
     localStorage.removeItem(profileDraftKey(user.id));
-    localStorage.setItem(profileSavedKey(user.id), "true");
     setUser({ ...user, ...profileForm });
     try {
       await createNotification(user.id, "Profile updated", "Your profile changes were saved successfully.");
@@ -85,25 +113,14 @@ export default function ProfileCompletionPage() {
 
   useEffect(() => {
     if (!user) return;
-    setIsEditing(!localStorage.getItem(profileSavedKey(user.id)));
     setDraftReady(false);
-    const storedDraft = localStorage.getItem(profileDraftKey(user.id));
-    if (storedDraft) {
-      try {
-        const draft = JSON.parse(storedDraft) as ProfileForm;
-        setForm({ ...draft, email: user.email });
-        setProfilePicturePreview(draft.profilePicture || null);
-      } catch {
-        localStorage.removeItem(profileDraftKey(user.id));
-      }
-    }
     setDraftReady(true);
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user || !draftReady) return;
+    if (!user || !draftReady || !isEditing) return;
     localStorage.setItem(profileDraftKey(user.id), JSON.stringify(form));
-  }, [form, user?.id, draftReady]);
+  }, [form, user?.id, draftReady, isEditing]);
 
   const reloadProfile = async () => {
     if (!user) return;
@@ -139,6 +156,14 @@ export default function ProfileCompletionPage() {
 
   useEffect(() => {
     if (!user) return;
+    void reloadProfile().catch((error) => {
+      console.error("Unable to load saved profile", error);
+      setSaveError("Unable to load your saved profile.");
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
     const stored = localStorage.getItem(pendingProfileKey(user.id));
     if (!stored) return;
 
@@ -151,7 +176,7 @@ export default function ProfileCompletionPage() {
         });
         return;
       }
-      setForm(pending.form);
+      setForm({ ...pending.form, email: pending.form.email || user.email });
       setProfilePicturePreview(pending.form.profilePicture || null);
       setPendingUntil(pending.expiresAt);
     } catch {
@@ -209,6 +234,7 @@ export default function ProfileCompletionPage() {
     setSaving(true);
     try {
       await saveProfile(form);
+      setIsEditing(false);
       const expiresAt = Date.now() + PROFILE_PENDING_MS;
       localStorage.setItem(pendingProfileKey(user.id), JSON.stringify({ form, expiresAt }));
       setPendingUntil(expiresAt);
@@ -217,6 +243,21 @@ export default function ProfileCompletionPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEdit = () => {
+    if (!user) return;
+    const storedDraft = localStorage.getItem(profileDraftKey(user.id));
+    if (storedDraft) {
+      try {
+        const draft = JSON.parse(storedDraft) as ProfileForm;
+        setForm({ ...draft, email: user.email });
+        setProfilePicturePreview(draft.profilePicture || null);
+      } catch {
+        localStorage.removeItem(profileDraftKey(user.id));
+      }
+    }
+    setIsEditing(true);
   };
 
   return (
@@ -268,7 +309,9 @@ export default function ProfileCompletionPage() {
           )}
         </div>
 
-        <form
+        {!isEditing ? (
+          <ProfileReadOnlyView form={form} onEdit={handleEdit} />
+        ) : <form
           onSubmit={handleSave}
           className="space-y-6 card relative"
           data-aos="fade-up"
@@ -584,7 +627,7 @@ export default function ProfileCompletionPage() {
           ) : (
             <button type="button" onClick={() => setIsEditing(true)} className="btn-primary w-full py-3">Edit profile</button>
           )}
-        </form>
+        </form>}
       </main>
     </div>
   );
