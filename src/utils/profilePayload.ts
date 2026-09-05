@@ -15,6 +15,12 @@ export interface ProfileForm {
   proofOfPayment: string;
 }
 
+function normalizeDate(value: string) {
+  const trimmed = value.trim();
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : trimmed || null;
+}
+
 export function toProfilePayload(form: ProfileForm) {
   return {
     phone: form.phone,
@@ -25,7 +31,7 @@ export function toProfilePayload(form: ProfileForm) {
     profile_picture: form.profilePicture || null,
     id_type: form.idType || null,
     id_number: form.idNumber || null,
-    date_of_birth: form.dateOfBirth || null,
+    date_of_birth: normalizeDate(form.dateOfBirth),
     address: form.address || null,
     full_legal_name: form.fullLegalName || null,
     payout_method: form.payoutMethod || null,

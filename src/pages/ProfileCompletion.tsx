@@ -63,7 +63,10 @@ export default function ProfileCompletionPage() {
         updated_at: new Date().toISOString(),
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Profile save failed", error);
+      throw new Error([error.message, error.details, error.hint, error.code].filter(Boolean).join(" | "));
+    }
     localStorage.removeItem(profileDraftKey(user.id));
     setUser({ ...user, ...profileForm });
     setSaved(true);
