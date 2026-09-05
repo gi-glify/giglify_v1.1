@@ -2,6 +2,9 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useEffect, useRef, useState } from "react";
 import { Bot, X, Send } from "lucide-react";
 import { supabase } from "../../utils/supabase";
+import { useAuthStore } from "../../store/authStore";
+const chatKey = (userId) => `giglify:ai-chat:${userId}`;
+const chatEvent = "giglify:ai-chat-updated";
 /**
  * Floating AI assistant. The panel and message list work out of the box;
  * `sendToAssistant` is the one function to wire up to a real backend —
@@ -9,7 +12,7 @@ import { supabase } from "../../utils/supabase";
  * (Supabase Edge Function) setup.
  */
 async function sendToAssistant(message, history) {
-    const { data, error } = await supabase.functions.invoke('ai-chat', {
+    const { data, error } = await supabase.functions.invoke("ai-chat", {
         body: { message, history },
     });
     if (error)
@@ -21,7 +24,43 @@ export default function AIChatWidget() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
+    const user = useAuthStore((state) => state.user);
     const listRef = useRef(null);
+    useEffect(() => {
+        if (!user)
+            return;
+        const stored = localStorage.getItem(chatKey(user.id));
+        if (stored) {
+            try {
+                setMessages(JSON.parse(stored));
+            }
+            catch {
+                localStorage.removeItem(chatKey(user.id));
+            }
+        }
+        const onStorage = (event) => {
+            if (event.key !== chatKey(user.id) || !event.newValue)
+                return;
+            try {
+                setMessages(JSON.parse(event.newValue));
+            }
+            catch { /* Ignore malformed stale drafts. */ }
+        };
+        const onChatEvent = (event) => {
+            const detail = event.detail;
+            if (detail.userId === user.id)
+                setMessages(detail.messages);
+        };
+        window.addEventListener("storage", onStorage);
+        window.addEventListener(chatEvent, onChatEvent);
+        return () => { window.removeEventListener("storage", onStorage); window.removeEventListener(chatEvent, onChatEvent); };
+    }, [user?.id]);
+    const persistMessages = (next) => {
+        if (!user)
+            return;
+        localStorage.setItem(chatKey(user.id), JSON.stringify(next));
+        window.dispatchEvent(new CustomEvent(chatEvent, { detail: { userId: user.id, messages: next } }));
+    };
     useEffect(() => {
         listRef.current?.scrollTo({
             top: listRef.current.scrollHeight,
@@ -37,25 +76,19 @@ export default function AIChatWidget() {
             role: "user",
             content: text,
         };
-        setMessages((m) => [...m, userMsg]);
+        const withUserMessage = [...messages, userMsg];
+        setMessages(withUserMessage);
+        persistMessages(withUserMessage);
         setInput("");
         setSending(true);
         try {
             const reply = await sendToAssistant(text, messages);
-            setMessages((m) => [
-                ...m,
-                { id: crypto.randomUUID(), role: "assistant", content: reply },
-            ]);
+            const assistantMessage = { id: crypto.randomUUID(), role: "assistant", content: reply };
+            setMessages((current) => { const next = [...current, assistantMessage]; persistMessages(next); return next; });
         }
         catch {
-            setMessages((m) => [
-                ...m,
-                {
-                    id: crypto.randomUUID(),
-                    role: "assistant",
-                    content: "Sorry, I ran into an error. Please try again.",
-                },
-            ]);
+            const assistantMessage = { id: crypto.randomUUID(), role: "assistant", content: "Sorry, I ran into an error. Please try again." };
+            setMessages((current) => { const next = [...current, assistantMessage]; persistMessages(next); return next; });
         }
         finally {
             setSending(false);
