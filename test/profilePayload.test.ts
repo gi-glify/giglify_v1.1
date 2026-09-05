@@ -15,7 +15,6 @@ test('maps profile form fields to the database column names', () => {
     idNumber: 'P123',
     dateOfBirth: '1990-01-01',
     address: 'Nairobi',
-    fullLegalName: 'Test User',
     payoutMethod: 'mpesa',
     payoutAccount: '0712345678',
     proofOfPayment: 'data:image/png;base64,proof',
@@ -23,7 +22,6 @@ test('maps profile form fields to the database column names', () => {
 
   assert.equal(payload.payout_method_added, true);
   assert.equal(payload.profile_picture, 'data:image/png;base64,abc');
-  assert.equal(payload.full_legal_name, 'Test User');
   assert.equal(payload.date_of_birth, '1990-01-01');
   assert.equal('payoutMethodAdded' in payload, false);
 });
@@ -33,7 +31,7 @@ test('normalizes a browser-localized date before sending it to Postgres', () => 
     email: 'test@example.com',
     phone: '', country: '', bio: '', skills: [], payoutMethodAdded: false,
     profilePicture: '', idType: '', idNumber: '', dateOfBirth: '07/07/2005',
-    address: '', fullLegalName: '', payoutMethod: '', payoutAccount: '', proofOfPayment: '',
+    address: '', payoutMethod: '', payoutAccount: '', proofOfPayment: '',
   });
   assert.equal(payload.date_of_birth, '2005-07-07');
 });

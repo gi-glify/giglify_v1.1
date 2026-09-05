@@ -23,12 +23,12 @@ const SKILL_OPTIONS = [
 ];
 const ID_TYPES = ["National ID", "Passport", "Driving License", "Resident ID"];
 
-function ProfileReadOnlyView({ form, locked, appealStatus, appealReason, onEdit, onSubmitAppeal, onReasonChange, submitting }: { form: ProfileForm; locked: boolean; appealStatus: string | null; appealReason: string; onEdit: () => void; onSubmitAppeal: () => void; onReasonChange: (value: string) => void; submitting: boolean }) {
+function ProfileReadOnlyView({ form, displayName, locked, appealStatus, appealReason, onEdit, onSubmitAppeal, onReasonChange, submitting }: { form: ProfileForm; displayName: string; locked: boolean; appealStatus: string | null; appealReason: string; onEdit: () => void; onSubmitAppeal: () => void; onReasonChange: (value: string) => void; submitting: boolean }) {
   const rows = [
     ["Email", form.email],
     ["Phone number", form.phone],
     ["Country", form.country],
-    ["Full legal name", form.fullLegalName],
+    ["Full name", displayName],
     ["ID type", form.idType],
     ["ID number", form.idNumber],
     ["Date of birth", form.dateOfBirth],
@@ -68,7 +68,6 @@ export default function ProfileCompletionPage() {
     idNumber: user?.idNumber || "",
     dateOfBirth: user?.dateOfBirth || "",
     address: user?.address || "",
-    fullLegalName: user?.fullLegalName || "",
     payoutMethod: user?.payoutMethod || "",
     payoutAccount: user?.payoutAccount || "",
     proofOfPayment: user?.proofOfPayment || "",
@@ -84,6 +83,7 @@ export default function ProfileCompletionPage() {
   const [appealStatus, setAppealStatus] = useState<string | null>(null);
   const [appealReason, setAppealReason] = useState("");
   const [submittingAppeal, setSubmittingAppeal] = useState(false);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(user?.profilePicture || null);
@@ -147,7 +147,6 @@ export default function ProfileCompletionPage() {
       idNumber: data.id_number || "",
       dateOfBirth: data.date_of_birth || "",
       address: data.address || "",
-      fullLegalName: data.full_legal_name || "",
       payoutMethod: data.payout_method || "",
       payoutAccount: data.payout_account || "",
       proofOfPayment: data.proof_of_payment || "",
@@ -222,19 +221,23 @@ export default function ProfileCompletionPage() {
     }));
   };
 
-  const handleProfilePictureChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleProfilePictureChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        setForm((f) => ({ ...f, profilePicture: base64 }));
-        setProfilePicturePreview(base64);
-      };
-      reader.readAsDataURL(file);
+    if (!file || !user) return;
+    setUploadingPicture(true);
+    setSaveError("");
+    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${user.id}/${crypto.randomUUID()}.${extension}`;
+    const { error } = await supabase.storage.from("profile-pictures").upload(path, file, { upsert: false, contentType: file.type });
+    if (error) {
+      setSaveError(`Unable to upload profile picture: ${error.message}`);
+      setUploadingPicture(false);
+      return;
     }
+    const { data } = supabase.storage.from("profile-pictures").getPublicUrl(path);
+    setForm((f) => ({ ...f, profilePicture: data.publicUrl }));
+    setProfilePicturePreview(data.publicUrl);
+    setUploadingPicture(false);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -342,7 +345,7 @@ export default function ProfileCompletionPage() {
         </div>
 
         {!isEditing ? (
-          <ProfileReadOnlyView form={form} locked={editCount >= 1 && !appealApproved} appealStatus={appealStatus} appealReason={appealReason} onEdit={handleEdit} onSubmitAppeal={submitAppeal} onReasonChange={setAppealReason} submitting={submittingAppeal} />
+          <ProfileReadOnlyView form={form} displayName={[user?.firstName, user?.lastName].filter(Boolean).join(" ")} locked={editCount >= 1 && !appealApproved} appealStatus={appealStatus} appealReason={appealReason} onEdit={handleEdit} onSubmitAppeal={submitAppeal} onReasonChange={setAppealReason} submitting={submittingAppeal} />
         ) : <form
           onSubmit={handleSave}
           className="space-y-6 card relative"
@@ -391,7 +394,7 @@ export default function ProfileCompletionPage() {
               </div>
               <label className="flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5">
                 <Upload size={18} className="mr-2" />
-                <span className="text-sm font-semibold">Upload photo</span>
+                <span className="text-sm font-semibold">{uploadingPicture ? "Uploading photo..." : "Upload photo"}</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -457,19 +460,6 @@ export default function ProfileCompletionPage() {
             <h3 className="text-sm font-semibold mb-4">KYC Information</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Full Legal Name
-                </label>
-                <input
-                  className="input-field"
-                  placeholder="As it appears on ID"
-                  value={form.fullLegalName}
-                  onChange={(e) =>
-                    setForm({ ...form, fullLegalName: e.target.value })
-                  }
-                />
-              </div>
               <div>
                 <label className="block text-sm font-semibold mb-2">
                   ID Type

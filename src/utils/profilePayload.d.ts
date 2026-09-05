@@ -10,7 +10,6 @@ export interface ProfileForm {
     idNumber: string;
     dateOfBirth: string;
     address: string;
-    fullLegalName: string;
     payoutMethod: string;
     payoutAccount: string;
     proofOfPayment: string;
@@ -27,7 +26,6 @@ export declare function toProfilePayload(form: ProfileForm): {
     id_number: string | null;
     date_of_birth: string | null;
     address: string | null;
-    full_legal_name: string | null;
     payout_method: string | null;
     payout_account: string | null;
     proof_of_payment: string | null;
