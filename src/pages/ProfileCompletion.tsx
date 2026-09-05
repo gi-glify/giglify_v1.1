@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Clock3, LockKeyhole, User as UserIcon, Upload } from "lucide-react";
+import { CheckCircle2, LockKeyhole, User as UserIcon, Upload } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { supabase } from "../utils/supabase";
 import {
@@ -8,7 +8,7 @@ import {
 } from "../utils/profileCompletion";
 import { toProfilePayload, type ProfileForm } from "../utils/profilePayload";
 
-const PROFILE_PENDING_MS = 15 * 60 * 1000;
+const PROFILE_PENDING_MS = 60 * 1000;
 const pendingProfileKey = (userId: string) => `giglify:pending-profile:${userId}`;
 
 const SKILL_OPTIONS = [
@@ -40,8 +40,9 @@ export default function ProfileCompletionPage() {
     proofOfPayment: user?.proofOfPayment || "",
   });
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [pendingUntil, setPendingUntil] = useState<number | null>(null);
-  const [remainingMs, setRemainingMs] = useState(0);
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(user?.profilePicture || null);
@@ -61,12 +62,40 @@ export default function ProfileCompletionPage() {
       });
 
     if (error) throw error;
-    localStorage.removeItem(pendingProfileKey(user.id));
-    setPendingUntil(null);
-    setRemainingMs(0);
     setUser({ ...user, ...profileForm });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2500);
+  };
+
+  const reloadProfile = async () => {
+    if (!user) return;
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    if (error) throw error;
+    const refreshedForm: ProfileForm = {
+      phone: data.phone || "",
+      country: data.country || "",
+      bio: data.bio || "",
+      skills: data.skills || [],
+      payoutMethodAdded: data.payout_method_added || false,
+      profilePicture: data.profile_picture || "",
+      idType: data.id_type || "",
+      idNumber: data.id_number || "",
+      dateOfBirth: data.date_of_birth || "",
+      address: data.address || "",
+      fullLegalName: data.full_legal_name || "",
+      payoutMethod: data.payout_method || "",
+      payoutAccount: data.payout_account || "",
+      proofOfPayment: data.proof_of_payment || "",
+    };
+    setForm(refreshedForm);
+    setProfilePicturePreview(refreshedForm.profilePicture || null);
+    setUser({
+      ...user,
+      ...refreshedForm,
+      firstName: data.first_name || user.firstName,
+      lastName: data.last_name || user.lastName,
+      subscription: data.subscription || user.subscription,
+    });
   };
 
   useEffect(() => {
@@ -77,7 +106,8 @@ export default function ProfileCompletionPage() {
     try {
       const pending = JSON.parse(stored) as { form: ProfileForm; expiresAt: number };
       if (pending.expiresAt <= Date.now()) {
-        void saveProfile(pending.form).catch((error) => {
+        localStorage.removeItem(pendingProfileKey(user.id));
+        void reloadProfile().catch((error) => {
           console.error("Error applying pending profile:", error);
         });
         return;
@@ -85,7 +115,6 @@ export default function ProfileCompletionPage() {
       setForm(pending.form);
       setProfilePicturePreview(pending.form.profilePicture || null);
       setPendingUntil(pending.expiresAt);
-      setRemainingMs(pending.expiresAt - Date.now());
     } catch {
       localStorage.removeItem(pendingProfileKey(user.id));
     }
@@ -95,13 +124,12 @@ export default function ProfileCompletionPage() {
     if (!pendingUntil || !user) return;
     const tick = () => {
       const remaining = pendingUntil - Date.now();
-      setRemainingMs(Math.max(0, remaining));
       if (remaining <= 0) {
-        const stored = localStorage.getItem(pendingProfileKey(user.id));
-        if (!stored) return;
-        const pending = JSON.parse(stored) as { form: ProfileForm };
-        void saveProfile(pending.form).catch((error) => {
+        localStorage.removeItem(pendingProfileKey(user.id));
+        setPendingUntil(null);
+        void reloadProfile().catch((error) => {
           console.error("Error applying pending profile:", error);
+          setSaveError("Profile was saved, but the latest data could not be reloaded.");
         });
       }
     };
@@ -138,14 +166,19 @@ export default function ProfileCompletionPage() {
     e.preventDefault();
     if (!user) return;
 
-    const expiresAt = Date.now() + PROFILE_PENDING_MS;
-    localStorage.setItem(pendingProfileKey(user.id), JSON.stringify({ form, expiresAt }));
-    setPendingUntil(expiresAt);
-    setRemainingMs(PROFILE_PENDING_MS);
+    setSaveError("");
+    setSaving(true);
+    try {
+      await saveProfile(form);
+      const expiresAt = Date.now() + PROFILE_PENDING_MS;
+      localStorage.setItem(pendingProfileKey(user.id), JSON.stringify({ form, expiresAt }));
+      setPendingUntil(expiresAt);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Unable to save your profile.");
+    } finally {
+      setSaving(false);
+    }
   };
-
-  const minutes = Math.floor(remainingMs / 60000).toString().padStart(2, "0");
-  const seconds = Math.floor((remainingMs % 60000) / 1000).toString().padStart(2, "0");
 
   return (
     <div
@@ -207,18 +240,16 @@ export default function ProfileCompletionPage() {
               <div className="max-w-sm">
                 <LockKeyhole size={72} strokeWidth={1.5} className="mx-auto mb-5 text-brand-600 dark:text-brand-300" />
                 <h2 className="font-display text-2xl mb-2">Pending admin approval</h2>
-                <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>
-                  Your edits are locked while they are reviewed. They will save automatically when the approval window ends.
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  Your saved profile is being refreshed. Editing will be available shortly.
                 </p>
-                <div className="inline-flex items-center gap-2 text-lg font-semibold" aria-live="polite">
-                  <Clock3 size={20} /> {minutes}:{seconds}
-                </div>
               </div>
             </div>
           )}
           {saved && (
             <div className="alert alert-success text-sm">Profile updated.</div>
           )}
+          {saveError && <div className="alert alert-error text-sm">{saveError}</div>}
 
           {/* Profile Picture */}
           <div>
@@ -478,8 +509,8 @@ export default function ProfileCompletionPage() {
             I've added a payout method (needed before your first withdrawal)
           </label>
 
-          <button type="submit" className="btn-primary w-full py-3">
-            Save profile
+          <button type="submit" disabled={saving || Boolean(pendingUntil)} className="btn-primary w-full py-3 disabled:opacity-60">
+            {saving ? "Saving profile..." : pendingUntil ? "Profile saved" : "Save profile"}
           </button>
         </form>
       </main>

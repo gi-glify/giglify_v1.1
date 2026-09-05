@@ -7,7 +7,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
-import { getCurrentUser } from "./utils/supabase";
+import { getCurrentUser, supabase } from "./utils/supabase";
 import { ThemeProvider } from "./context/ThemeContext";
 import AppLayout from "./components/layout/AppLayout";
 
@@ -67,14 +67,33 @@ function App() {
     const initAuth = async () => {
       const { user } = await getCurrentUser();
       if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
         setUser({
           id: user.id,
           email: user.email || "",
-          firstName: user.user_metadata?.first_name || "",
-          lastName: user.user_metadata?.last_name || "",
+          firstName: profile?.first_name || user.user_metadata?.first_name || "",
+          lastName: profile?.last_name || user.user_metadata?.last_name || "",
           createdAt: user.created_at,
-          subscription: "free",
+          subscription: profile?.subscription || "free",
           balance: 0,
+          phone: profile?.phone || "",
+          country: profile?.country || "",
+          bio: profile?.bio || "",
+          skills: profile?.skills || [],
+          payoutMethodAdded: profile?.payout_method_added || false,
+          profilePicture: profile?.profile_picture || "",
+          idType: profile?.id_type || "",
+          idNumber: profile?.id_number || "",
+          dateOfBirth: profile?.date_of_birth || "",
+          address: profile?.address || "",
+          fullLegalName: profile?.full_legal_name || "",
+          payoutMethod: profile?.payout_method || "",
+          payoutAccount: profile?.payout_account || "",
+          proofOfPayment: profile?.proof_of_payment || "",
         });
       }
       setLoading(false);

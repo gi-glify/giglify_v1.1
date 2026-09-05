@@ -80,7 +80,7 @@ export default function DepositPage() {
 
       <main className="container py-8">
         {/* Tiers */}
-        <div className="mb-12">
+        <div id="packages" className="mb-12 scroll-mt-6">
           <h2 className="font-display text-2xl mb-6">Choose Your Tier</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {TIERS.map((tier) => (

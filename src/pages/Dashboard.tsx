@@ -75,6 +75,11 @@ export default function DashboardPage() {
                 </h3>
                 <p className="font-display text-3xl font-bold capitalize">{user?.subscription}</p>
                 <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Membership</p>
+                {user?.subscription === 'free' && (
+                  <Link to="/deposit#packages" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 dark:text-brand-300">
+                    Update tier <ArrowRight size={14} />
+                  </Link>
+                )}
               </div>
             </>
           )}
