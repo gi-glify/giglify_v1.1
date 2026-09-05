@@ -40,7 +40,7 @@ function ProfileReadOnlyView({ form, locked, appealStatus, appealReason, onEdit,
   return (
     <section className="card border border-[var(--border)]" data-aos="fade-up">
       <div className="flex items-start justify-between gap-4 mb-6">
-        <div><p className="text-xs uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300 font-bold">Database profile</p><h2 className="font-display text-2xl mt-1">Your profile</h2><p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>This is the information currently stored on your account.</p></div>
+        <div className="flex items-center gap-3"><div className="h-14 w-14 rounded-full overflow-hidden border border-[var(--border)] bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center shrink-0">{form.profilePicture ? <img src={form.profilePicture} alt="Profile" className="h-full w-full object-cover" /> : <UserIcon size={24} className="text-brand-600 dark:text-brand-300" />}</div><div><p className="text-xs uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300 font-bold">Database profile</p><h2 className="font-display text-2xl mt-1">Your profile</h2><p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>This is the information currently stored on your account.</p></div></div>
         {!locked && <button type="button" onClick={onEdit} className="btn-primary px-4 py-2 rounded-lg">Edit</button>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -107,9 +107,8 @@ export default function ProfileCompletionPage() {
       throw new Error([error.message, error.details, error.hint, error.code].filter(Boolean).join(" | "));
     }
     localStorage.removeItem(profileDraftKey(user.id));
-    setUser({ ...user, ...profileForm });
-    setEditCount((count) => count + 1);
-    setAppealApproved(false);
+    // Re-read the row so the display reflects persisted data, not optimistic state.
+    await reloadProfile();
     try {
       await createNotification(user.id, "Profile updated", "Your profile changes were saved successfully.");
     } catch (notificationError) {
