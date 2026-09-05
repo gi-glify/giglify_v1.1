@@ -18,7 +18,7 @@ async function sendToAssistant(
   message: string,
   history: ChatMessage[],
 ): Promise<string> {
-  const { data, error } = await supabase.functions.invoke('ai-chat', {
+  const { data, error } = await supabase.functions.invoke("ai-chat", {
     body: { message, history },
   });
   if (error) throw error;
