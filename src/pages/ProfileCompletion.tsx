@@ -10,6 +10,7 @@ import { toProfilePayload, type ProfileForm } from "../utils/profilePayload";
 
 const PROFILE_PENDING_MS = 60 * 1000;
 const pendingProfileKey = (userId: string) => `giglify:pending-profile:${userId}`;
+const profileDraftKey = (userId: string) => `giglify:profile-draft:${userId}`;
 
 const SKILL_OPTIONS = [
   "Writing",
@@ -43,6 +44,7 @@ export default function ProfileCompletionPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [pendingUntil, setPendingUntil] = useState<number | null>(null);
+  const [draftReady, setDraftReady] = useState(false);
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(user?.profilePicture || null);
@@ -62,10 +64,32 @@ export default function ProfileCompletionPage() {
       });
 
     if (error) throw error;
+    localStorage.removeItem(profileDraftKey(user.id));
     setUser({ ...user, ...profileForm });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2500);
   };
+
+  useEffect(() => {
+    if (!user) return;
+    setDraftReady(false);
+    const storedDraft = localStorage.getItem(profileDraftKey(user.id));
+    if (storedDraft) {
+      try {
+        const draft = JSON.parse(storedDraft) as ProfileForm;
+        setForm(draft);
+        setProfilePicturePreview(draft.profilePicture || null);
+      } catch {
+        localStorage.removeItem(profileDraftKey(user.id));
+      }
+    }
+    setDraftReady(true);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user || !draftReady) return;
+    localStorage.setItem(profileDraftKey(user.id), JSON.stringify(form));
+  }, [form, user?.id, draftReady]);
 
   const reloadProfile = async () => {
     if (!user) return;
