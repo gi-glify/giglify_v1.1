@@ -84,6 +84,7 @@ export default function ProfileCompletionPage() {
   const [appealReason, setAppealReason] = useState("");
   const [submittingAppeal, setSubmittingAppeal] = useState(false);
   const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(user?.profilePicture || null);
@@ -131,8 +132,9 @@ export default function ProfileCompletionPage() {
 
   const reloadProfile = async () => {
     if (!user) return;
-    const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-    if (error) throw error;
+    const { data, error } = await supabase.from("profiles").select("id, email, phone, country, bio, skills, payout_method_added, profile_picture, id_type, id_number, date_of_birth, address, first_name, last_name, payout_method, payout_account, proof_of_payment, subscription, profile_edit_count, profile_edit_appeal_approved").eq("id", user.id).maybeSingle();
+    if (error) throw new Error([error.message, error.details, error.hint, error.code].filter(Boolean).join(" | "));
+    if (!data) throw new Error("No profile row was found for this account.");
     const { data: latestAppeal } = await supabase.from("profile_edit_appeals").select("status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
     setAppealStatus(latestAppeal?.status || null);
     const refreshedForm: ProfileForm = {
@@ -168,7 +170,9 @@ export default function ProfileCompletionPage() {
     if (!user) return;
     void reloadProfile().catch((error) => {
       console.error("Unable to load saved profile", error);
-      setSaveError("Unable to load your saved profile.");
+      setSaveError(`Unable to load your saved profile: ${error instanceof Error ? error.message : "database request failed"}`);
+    }).finally(() => {
+      setProfileLoading(false);
     });
   }, [user?.id]);
 
@@ -344,7 +348,9 @@ export default function ProfileCompletionPage() {
           )}
         </div>
 
-        {!isEditing ? (
+        {profileLoading ? (
+          <section className="card text-sm" style={{ color: "var(--text-muted)" }}>Loading profile data from the database...</section>
+        ) : !isEditing ? (
           <ProfileReadOnlyView form={form} displayName={[user?.firstName, user?.lastName].filter(Boolean).join(" ")} locked={editCount >= 1 && !appealApproved} appealStatus={appealStatus} appealReason={appealReason} onEdit={handleEdit} onSubmitAppeal={submitAppeal} onReasonChange={setAppealReason} submitting={submittingAppeal} />
         ) : <form
           onSubmit={handleSave}
