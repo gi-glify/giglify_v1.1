@@ -23,7 +23,7 @@ const SKILL_OPTIONS = [
 ];
 const ID_TYPES = ["National ID", "Passport", "Driving License", "Resident ID"];
 
-function ProfileReadOnlyView({ form, onEdit }: { form: ProfileForm; onEdit: () => void }) {
+function ProfileReadOnlyView({ form, locked, appealStatus, appealReason, onEdit, onSubmitAppeal, onReasonChange, submitting }: { form: ProfileForm; locked: boolean; appealStatus: string | null; appealReason: string; onEdit: () => void; onSubmitAppeal: () => void; onReasonChange: (value: string) => void; submitting: boolean }) {
   const rows = [
     ["Email", form.email],
     ["Phone number", form.phone],
@@ -38,17 +38,18 @@ function ProfileReadOnlyView({ form, onEdit }: { form: ProfileForm; onEdit: () =
   ];
 
   return (
-    <section className="card" data-aos="fade-up">
+    <section className="card border border-[var(--border)]" data-aos="fade-up">
       <div className="flex items-start justify-between gap-4 mb-6">
-        <div><h2 className="font-display text-xl">Your profile</h2><p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Your saved information is shown below.</p></div>
-        <button type="button" onClick={onEdit} className="btn-primary px-4 py-2 rounded-lg">Edit</button>
+        <div><p className="text-xs uppercase tracking-[0.18em] text-brand-600 dark:text-brand-300 font-bold">Database profile</p><h2 className="font-display text-2xl mt-1">Your profile</h2><p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>This is the information currently stored on your account.</p></div>
+        {!locked && <button type="button" onClick={onEdit} className="btn-primary px-4 py-2 rounded-lg">Edit</button>}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-        {rows.map(([label, value]) => <div key={label}><p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>{label}</p><p className="text-sm mt-1">{value || "Not provided"}</p></div>)}
-        <div><p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Skills</p><p className="text-sm mt-1">{form.skills.length ? form.skills.join(", ") : "Not provided"}</p></div>
-        <div><p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Payout method added</p><p className="text-sm mt-1">{form.payoutMethodAdded ? "Yes" : "No"}</p></div>
-        <div className="sm:col-span-2"><p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Short bio</p><p className="text-sm mt-1">{form.bio || "Not provided"}</p></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {rows.map(([label, value]) => <div key={label} className="rounded-xl border border-[var(--border)] bg-black/[.02] dark:bg-white/[.03] p-4"><p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{label}</p><p className="text-sm mt-2 font-medium break-words">{value || "Not provided"}</p></div>)}
+        <div className="rounded-xl border border-[var(--border)] bg-black/[.02] dark:bg-white/[.03] p-4"><p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Skills</p><div className="flex flex-wrap gap-2 mt-2">{form.skills.length ? form.skills.map((skill) => <span key={skill} className="rounded-full bg-brand-100 dark:bg-brand-900/40 px-3 py-1 text-xs font-semibold text-brand-800 dark:text-brand-200">{skill}</span>) : <span className="text-sm">Not provided</span>}</div></div>
+        <div className="rounded-xl border border-[var(--border)] bg-black/[.02] dark:bg-white/[.03] p-4"><p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Payout method added</p><p className="text-sm mt-2 font-medium">{form.payoutMethodAdded ? "Yes" : "No"}</p></div>
+        <div className="sm:col-span-2 rounded-xl border border-[var(--border)] bg-black/[.02] dark:bg-white/[.03] p-4"><p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Short bio</p><p className="text-sm mt-2 font-medium">{form.bio || "Not provided"}</p></div>
       </div>
+      {locked && <div className="mt-6 rounded-xl border border-amber-400/50 bg-amber-50 dark:bg-amber-950/20 p-4"><p className="font-semibold">Profile editing is locked</p><p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{appealStatus === "pending" ? "Your appeal is pending admin review." : appealStatus === "rejected" ? "Your previous appeal was rejected. Submit a new reason if your information still needs correction." : "You have used your available profile edit. Submit an appeal with a reason to request another edit."}</p>{appealStatus !== "pending" && <div className="mt-4 space-y-3"><textarea className="input-field w-full min-h-24" value={appealReason} onChange={(e) => onReasonChange(e.target.value)} placeholder="Explain why your profile needs another edit (at least 10 characters)" /><button type="button" disabled={submitting || appealReason.trim().length < 10} onClick={onSubmitAppeal} className="btn-primary px-4 py-2 rounded-lg disabled:opacity-60">{submitting ? "Submitting appeal..." : "Submit appeal"}</button></div>}</div>}
     </section>
   );
 }
@@ -78,6 +79,11 @@ export default function ProfileCompletionPage() {
   const [pendingUntil, setPendingUntil] = useState<number | null>(null);
   const [draftReady, setDraftReady] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editCount, setEditCount] = useState(0);
+  const [appealApproved, setAppealApproved] = useState(false);
+  const [appealStatus, setAppealStatus] = useState<string | null>(null);
+  const [appealReason, setAppealReason] = useState("");
+  const [submittingAppeal, setSubmittingAppeal] = useState(false);
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
   >(user?.profilePicture || null);
@@ -102,6 +108,8 @@ export default function ProfileCompletionPage() {
     }
     localStorage.removeItem(profileDraftKey(user.id));
     setUser({ ...user, ...profileForm });
+    setEditCount((count) => count + 1);
+    setAppealApproved(false);
     try {
       await createNotification(user.id, "Profile updated", "Your profile changes were saved successfully.");
     } catch (notificationError) {
@@ -126,6 +134,8 @@ export default function ProfileCompletionPage() {
     if (!user) return;
     const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     if (error) throw error;
+    const { data: latestAppeal } = await supabase.from("profile_edit_appeals").select("status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    setAppealStatus(latestAppeal?.status || null);
     const refreshedForm: ProfileForm = {
       email: data.email || user.email,
       phone: data.phone || "",
@@ -143,6 +153,8 @@ export default function ProfileCompletionPage() {
       payoutAccount: data.payout_account || "",
       proofOfPayment: data.proof_of_payment || "",
     };
+    setEditCount(data.profile_edit_count || 0);
+    setAppealApproved(Boolean(data.profile_edit_appeal_approved));
     setForm(refreshedForm);
     setProfilePicturePreview(refreshedForm.profilePicture || null);
     setUser({
@@ -247,6 +259,10 @@ export default function ProfileCompletionPage() {
 
   const handleEdit = () => {
     if (!user) return;
+    if (editCount >= 1 && !appealApproved) {
+      setSaveError("Profile editing is locked. Submit an appeal to request another edit.");
+      return;
+    }
     const storedDraft = localStorage.getItem(profileDraftKey(user.id));
     if (storedDraft) {
       try {
@@ -258,6 +274,23 @@ export default function ProfileCompletionPage() {
       }
     }
     setIsEditing(true);
+  };
+
+  const submitAppeal = async () => {
+    if (!user || appealReason.trim().length < 10) return;
+    setSubmittingAppeal(true);
+    setSaveError("");
+    try {
+      const { error } = await supabase.from("profile_edit_appeals").insert({ user_id: user.id, reason: appealReason.trim() });
+      if (error) throw error;
+      setAppealStatus("pending");
+      setAppealReason("");
+      await createNotification(user.id, "Profile appeal submitted", "Your request for another profile edit is awaiting admin review.");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Unable to submit your appeal.");
+    } finally {
+      setSubmittingAppeal(false);
+    }
   };
 
   return (
@@ -310,7 +343,7 @@ export default function ProfileCompletionPage() {
         </div>
 
         {!isEditing ? (
-          <ProfileReadOnlyView form={form} onEdit={handleEdit} />
+          <ProfileReadOnlyView form={form} locked={editCount >= 1 && !appealApproved} appealStatus={appealStatus} appealReason={appealReason} onEdit={handleEdit} onSubmitAppeal={submitAppeal} onReasonChange={setAppealReason} submitting={submittingAppeal} />
         ) : <form
           onSubmit={handleSave}
           className="space-y-6 card relative"

@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const entityId = body?.entityId;
     const action = body?.action;
     const note = typeof body?.note === "string" ? body.note.trim() : "";
-    if (!['verification_deposit', 'payout_request'].includes(entityType) || typeof entityId !== "string" || typeof action !== "string") {
+    if (!['verification_deposit', 'payout_request', 'profile_edit_appeal'].includes(entityType) || typeof entityId !== "string" || typeof action !== "string") {
       return json({ error: "Invalid admin payment action" }, 400);
     }
 
@@ -39,6 +39,21 @@ Deno.serve(async (req) => {
         actorId: user.id,
         metadata: { note },
       });
+      return json({ entityId, status });
+    }
+
+    if (entityType === "profile_edit_appeal") {
+      if (action !== "approve" && action !== "reject") return json({ error: "Invalid profile appeal action" }, 400);
+      const status = action === "approve" ? "approved" : "rejected";
+      const { data: appeal, error: appealError } = await db.from("profile_edit_appeals").select("id, user_id").eq("id", entityId).single();
+      if (appealError) throw appealError;
+      const { error: updateError } = await db.from("profile_edit_appeals").update({ status, admin_note: note || null, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq("id", entityId);
+      if (updateError) throw updateError;
+      if (status === "approved") {
+        const { error: profileError } = await db.from("profiles").update({ profile_edit_appeal_approved: true }).eq("id", appeal.user_id);
+        if (profileError) throw profileError;
+      }
+      await audit(db, { eventType: `profile_appeal_${status}`, entityType, entityId, userId: appeal.user_id, actorId: user.id, metadata: { note } });
       return json({ entityId, status });
     }
 

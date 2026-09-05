@@ -3,7 +3,7 @@ import { Check, X } from 'lucide-react';
 import { supabase } from '../utils/supabase';
 import { useTheme } from '../context/ThemeContext';
 
-type ReviewItem = { id: string; user_id: string; status: string; created_at: string; amount?: number; method?: string };
+type ReviewItem = { id: string; user_id: string; status: string; created_at: string; amount?: number; method?: string; reason?: string };
 
 async function review(entityType: string, entityId: string, action: string) {
   const { data, error } = await supabase.functions.invoke('admin-payment-action', { body: { entityType, entityId, action } });
@@ -15,17 +15,21 @@ export default function AdminPaymentsPage() {
   const { theme } = useTheme();
   const [deposits, setDeposits] = useState<ReviewItem[]>([]);
   const [payouts, setPayouts] = useState<ReviewItem[]>([]);
+  const [appeals, setAppeals] = useState<ReviewItem[]>([]);
   const [error, setError] = useState('');
 
   async function load() {
-    const [depositResult, payoutResult] = await Promise.all([
+    const [depositResult, payoutResult, appealResult] = await Promise.all([
       supabase.from('verification_deposits').select('id, user_id, status, created_at, amount_usd, method').in('status', ['pending', 'held']).order('created_at', { ascending: true }),
       supabase.from('payout_requests').select('id, user_id, status, created_at, amount').in('status', ['requested', 'under_review', 'approved']).order('created_at', { ascending: true }),
+      supabase.from('profile_edit_appeals').select('id, user_id, status, created_at, reason').eq('status', 'pending').order('created_at', { ascending: true }),
     ]);
     if (depositResult.error) throw depositResult.error;
     if (payoutResult.error) throw payoutResult.error;
+    if (appealResult.error) throw appealResult.error;
     setDeposits((depositResult.data || []).map((item) => ({ ...item, amount: Number(item.amount_usd) })));
     setPayouts((payoutResult.data || []).map((item) => ({ ...item, amount: Number(item.amount) })));
+    setAppeals(appealResult.data || []);
   }
 
   useEffect(() => { load().catch((e) => setError(e instanceof Error ? e.message : 'Unable to load payment reviews.')); }, []);
@@ -44,6 +48,10 @@ export default function AdminPaymentsPage() {
         <section className="card mb-8"><h2 className="font-display text-xl mb-4">Verification deposits</h2><div className="space-y-3">
           {deposits.length === 0 && <p className="text-sm opacity-70">No verification deposits awaiting review.</p>}
           {deposits.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sand-200 dark:border-stone-600 p-4"><div><p className="font-semibold">{item.method} · ${item.amount?.toFixed(2)}</p><p className="text-xs opacity-70">User {item.user_id} · {new Date(item.created_at).toLocaleString()}</p></div><div className="flex gap-2"><button aria-label="Approve verification" className="btn-primary px-3 py-2 rounded-lg" onClick={() => act('verification_deposit', item.id, 'approve')}><Check size={16} /></button><button aria-label="Reject verification" className="btn-secondary px-3 py-2 rounded-lg" onClick={() => act('verification_deposit', item.id, 'reject')}><X size={16} /></button></div></div>)}
+        </div></section>
+        <section className="card mt-8"><h2 className="font-display text-xl mb-4">Profile edit appeals</h2><div className="space-y-3">
+          {appeals.length === 0 && <p className="text-sm opacity-70">No profile appeals awaiting review.</p>}
+          {appeals.map((item) => <div key={item.id} className="rounded-lg border border-sand-200 dark:border-stone-600 p-4"><p className="text-xs opacity-70">User {item.user_id} · {new Date(item.created_at).toLocaleString()}</p><p className="text-sm mt-2">{item.reason}</p><div className="flex gap-2 mt-3"><button className="btn-primary px-3 py-2 rounded-lg" onClick={() => act('profile_edit_appeal', item.id, 'approve')}>Approve</button><button className="btn-secondary px-3 py-2 rounded-lg" onClick={() => act('profile_edit_appeal', item.id, 'reject')}>Reject</button></div></div>)}
         </div></section>
         <section className="card"><h2 className="font-display text-xl mb-4">Payout requests</h2><div className="space-y-3">
           {payouts.length === 0 && <p className="text-sm opacity-70">No payout requests awaiting review.</p>}
