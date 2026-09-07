@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatCurrency } from '../utils/currency';
-import { CreditCard } from 'lucide-react';
+import { FaCcStripe, FaPaypal, FaMobileScreenButton } from 'react-icons/fa6';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/authStore';
 import { createVerificationPayment } from '../lib/paymentsApi';
@@ -29,6 +29,12 @@ const TIERS = [
   },
 ];
 
+const PAYMENT_BRANDS = {
+  stripe: { label: 'Card', Icon: FaCcStripe, className: 'text-indigo-500' },
+  paypal: { label: 'PayPal', Icon: FaPaypal, className: 'text-blue-600' },
+  mpesa: { label: 'M-Pesa', Icon: FaMobileScreenButton, className: 'text-green-600' },
+} as const;
+
 export default function DepositPage() {
   const { theme } = useTheme();
   const user = useAuthStore((state) => state.user);
@@ -39,12 +45,24 @@ export default function DepositPage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [checkoutUrl, setCheckoutUrl] = useState('');
+  const [selectedTier, setSelectedTier] = useState('Free');
+  const [packageMessage, setPackageMessage] = useState('');
 
   const accountPlaceholder = paymentMethod === 'mpesa'
     ? '+254 7XX XXX XXX'
     : paymentMethod === 'paypal'
       ? 'PayPal email address'
       : 'Stripe customer email';
+
+  function handleTierSelect(tierName: string, price: number) {
+    setSelectedTier(tierName);
+    if (price === 0) {
+      setPackageMessage('You are already on the Free plan. Choose a paid tier to begin an upgrade flow.');
+      return;
+    }
+    setPackageMessage(`${tierName} selected at $${price}/month. Choose a payment method below to continue.`);
+    window.setTimeout(() => document.getElementById('payment-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  }
 
   async function handleVerification(e: React.FormEvent) {
     e.preventDefault();
@@ -80,15 +98,17 @@ export default function DepositPage() {
 
       <main className="container py-8">
         {/* Tiers */}
-        <div id="packages" className="mb-12 scroll-mt-6">
-          <h2 className="font-display text-2xl mb-6">Choose Your Tier</h2>
+        <div id="packages" className="mb-12 scroll-mt-6" data-aos="fade-up">
+          <h2 className="font-display text-2xl mb-6" data-aos="fade-down">Choose Your Tier</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {TIERS.map((tier) => (
+            {TIERS.map((tier, index) => (
               <div
                 key={tier.name}
+                data-aos="fade-up"
+                data-aos-delay={index * 90}
                 className={`card relative animate-in border-2 ${tier.color} ${
                   theme === 'dark' ? 'bg-stone-800 border-opacity-50' : ''
-                } ${tier.recommended ? 'md:scale-105 shadow-lg' : ''}`}
+                } ${tier.recommended ? 'md:scale-105 shadow-lg' : ''} ${selectedTier === tier.name ? 'ring-2 ring-brand-500' : ''}`}
               >
                 {tier.recommended && (
                   <div className="absolute -top-3 left-4 bg-navy-700 text-white px-3 py-1 rounded-full text-xs font-semibold">
@@ -104,18 +124,19 @@ export default function DepositPage() {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full btn-primary py-2 rounded-lg font-semibold transition-all ${
+                <button onClick={() => handleTierSelect(tier.name, tier.price)} className={`w-full btn-primary py-2 rounded-lg font-semibold transition-all ${
                   tier.recommended ? 'bg-navy-700 text-white hover:bg-navy-800' : ''
                 }`}>
-                  {tier.price === 0 ? 'Current Plan' : 'Upgrade'}
+                  {tier.price === 0 ? 'Current Plan' : selectedTier === tier.name ? 'Selected' : 'Upgrade'}
                 </button>
               </div>
             ))}
           </div>
+          {packageMessage && <div className="alert alert-info mt-6" data-aos="fade-in">{packageMessage}</div>}
         </div>
 
         {/* Deposit Section */}
-        <form onSubmit={handleVerification} className={`card max-w-2xl mx-auto animate-in ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`}>
+        <form id="payment-form" onSubmit={handleVerification} className={`card max-w-2xl mx-auto animate-in scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">
           <h2 className="font-display text-2xl mb-2">Verify Your Payout Account</h2>
           <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-stone-300' : 'text-stone-600'}`}>
             Pay exactly {formatCurrency(VERIFICATION_USD, 'USD')} ({formatCurrency(VERIFICATION_KES, 'KES')}) to verify ownership. The payment is held for admin review.
@@ -128,9 +149,10 @@ export default function DepositPage() {
               <label className={`block text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-stone-300' : ''}`}>
                 Payment Method
               </label>
-              <div className="space-y-2">
-                {(['stripe', 'paypal', 'mpesa'] as PaymentMethod[]).map((method) => (
-                  <label key={method} className="flex items-center gap-3 cursor-pointer">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {(['stripe', 'paypal', 'mpesa'] as PaymentMethod[]).map((method, index) => {
+                  const brand = PAYMENT_BRANDS[method];
+                  return <label key={method} className={`flex items-center gap-3 cursor-pointer rounded-lg border p-3 transition-colors ${paymentMethod === method ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-[var(--border)]'}`} data-aos="fade-up" data-aos-delay={index * 70}>
                     <input
                       type="radio"
                       name="payment"
@@ -140,11 +162,11 @@ export default function DepositPage() {
                       className="w-4 h-4"
                     />
                     <div className="flex items-center gap-2">
-                      <CreditCard size={16} />
-                      <span className="text-sm font-semibold capitalize">{method}</span>
+                      <brand.Icon aria-hidden="true" size={24} className={brand.className} />
+                      <span className="text-sm font-semibold">{brand.label}</span>
                     </div>
-                  </label>
-                ))}
+                  </label>;
+                })}
               </div>
             </div>
 

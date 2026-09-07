@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AOS from "aos";
 import DesktopNavbar from "./DesktopNavbar";
 import { MobileTopBar, MobileBottomNav } from "./MobileShell";
@@ -19,6 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { mode } = usePlatform();
   const { setUser } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
@@ -26,7 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     AOS.refreshHard();
-  }, [mode]);
+  }, [mode, location.pathname]);
 
   const handleLogout = async () => {
     await signOut();

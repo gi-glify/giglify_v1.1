@@ -41,20 +41,20 @@ export default function AboutPage() {
           <p style={{ color: "var(--text-muted)" }}>Giglify connects people with focused microtasks, transparent task requirements, and accountable review.</p>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2">
-          <article id="privacy" className="card scroll-mt-24">
+        <section className="grid gap-4 md:grid-cols-2" data-aos="fade-up">
+          <article id="privacy" className="card scroll-mt-24" data-aos="fade-right">
             <ShieldCheck className="text-brand-600 dark:text-brand-300 mb-3" size={24} />
             <h2 className="font-display text-xl mb-2">Privacy policy</h2>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>We use account, profile, task, payment, and support data to provide Giglify services, protect accounts, review work, process payouts, and improve reliability. We do not sell personal data. Payment credentials are handled by the relevant payment provider.</p>
           </article>
-          <article id="data-policy" className="card scroll-mt-24">
+          <article id="data-policy" className="card scroll-mt-24" data-aos="fade-left">
             <CheckCircle2 className="text-brand-600 dark:text-brand-300 mb-3" size={24} />
             <h2 className="font-display text-xl mb-2">Data policy</h2>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>Task answers may be retained for quality review, fraud prevention, dispute resolution, and payment records. AI grading uses task answers and rubrics only for grading. You may request access, correction, or deletion where legal and operational retention requirements allow.</p>
           </article>
         </section>
 
-        <section className="card">
+        <section className="card" data-aos="fade-up">
           <h2 id="terms" className="font-display text-xl mb-2 scroll-mt-24">Terms of use</h2>
           <div className="text-sm space-y-2" style={{ color: "var(--text-muted)" }}>
             <p>Use one honest account, provide accurate information, submit original work, and follow each task's instructions.</p>
@@ -64,7 +64,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section id="contact" className="card max-w-2xl scroll-mt-24">
+        <section id="contact" className="card max-w-2xl scroll-mt-24" data-aos="fade-up">
           <div className="flex items-center gap-2 mb-1"><Mail className="text-brand-600 dark:text-brand-300" size={20} /><h2 className="font-display text-xl">Contact the team</h2></div>
           <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Email: <a className="text-brand-600 dark:text-brand-300 font-semibold" href={`mailto:${TEAM_EMAIL}`}>{TEAM_EMAIL}</a></p>
           <form onSubmit={submitContact} className="space-y-4">

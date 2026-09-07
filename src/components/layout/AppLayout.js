@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AOS from "aos";
 import DesktopNavbar from "./DesktopNavbar";
 import { MobileTopBar, MobileBottomNav } from "./MobileShell";
@@ -19,12 +19,13 @@ export default function AppLayout({ children }) {
     const { mode } = usePlatform();
     const { setUser } = useAuthStore();
     const navigate = useNavigate();
+    const location = useLocation();
     useEffect(() => {
         AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
     }, []);
     useEffect(() => {
         AOS.refreshHard();
-    }, [mode]);
+    }, [mode, location.pathname]);
     const handleLogout = async () => {
         await signOut();
         setUser(null);

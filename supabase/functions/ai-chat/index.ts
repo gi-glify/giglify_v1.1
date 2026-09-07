@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
                 text:
                   "You are Gig Buddy, the Giglify assistant. Help users understand tasks, " +
                   "their balance, profile completion, and how withdrawals work " +
-                  "($15 minimum). Be concise and friendly.",
+                  "($50 minimum). Be concise and friendly.",
               },
             ],
           },

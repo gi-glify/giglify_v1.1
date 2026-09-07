@@ -12,8 +12,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const amount = Number(body?.amount);
     const payoutAccountId = typeof body?.payoutAccountId === "string" ? body.payoutAccountId : "";
-    if (!Number.isFinite(amount) || amount < 15 || !payoutAccountId) {
-      return json({ error: "A payout amount of at least $15 and a payout account are required" }, 400);
+    if (!Number.isFinite(amount) || amount < 50 || !payoutAccountId) {
+      return json({ error: "A payout amount of at least $50 and a payout account are required" }, 400);
     }
 
     const { data: profile, error: profileError } = await db

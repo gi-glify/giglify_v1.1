@@ -5,6 +5,7 @@ import { Transaction } from '../types';
 import { Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { createPayoutRequest, fetchPaymentVerificationState, PaymentVerificationState } from '../lib/paymentsApi';
+import { MIN_WITHDRAWAL_USD } from '../lib/paymentConstants';
 
 export default function FinancialsPage() {
   const { theme } = useTheme();
@@ -43,10 +44,8 @@ export default function FinancialsPage() {
     setError('');
 
     const amount = parseFloat(withdrawAmount);
-    const MIN_WITHDRAWAL = 15;
-
-    if (amount < MIN_WITHDRAWAL) {
-      setError(`Minimum withdrawal is $${MIN_WITHDRAWAL}.00 USD`);
+    if (amount < MIN_WITHDRAWAL_USD) {
+      setError(`Minimum withdrawal is $${MIN_WITHDRAWAL_USD}.00 USD`);
       return;
     }
 
@@ -85,7 +84,7 @@ export default function FinancialsPage() {
 
       <main className="container py-8">
         {/* Balance Card */}
-        <div className={`card mb-8 animate-in ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : 'bg-gradient-to-br from-sand-200 to-sand-300'}`}>
+        <div className={`card mb-8 animate-in ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : 'bg-gradient-to-br from-sand-200 to-sand-300'}`} data-aos="fade-up">
           <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-stone-400' : 'text-stone-600'}`}>
             Available Balance
           </p>
@@ -117,11 +116,11 @@ export default function FinancialsPage() {
             <div className="flex gap-2">
               <input
                 type="number"
-                placeholder="Amount (min $15.00)"
+                placeholder={`Amount (min $${MIN_WITHDRAWAL_USD}.00)`}
                 className="input-field flex-1"
                 value={withdrawAmount}
                 onChange={(e) => setWithdrawAmount(e.target.value)}
-                min="15"
+                min={MIN_WITHDRAWAL_USD}
                 step="0.01"
                 required
               />
@@ -130,7 +129,7 @@ export default function FinancialsPage() {
               </button>
             </div>
             <p className={`text-xs ${theme === 'dark' ? 'text-stone-400' : 'text-stone-600'}`}>
-              Minimum withdrawal: $15.00 USD. Processing typically takes 1-3 business days.
+              Minimum withdrawal: ${MIN_WITHDRAWAL_USD}.00 USD. Processing typically takes 1-3 business days.
             </p>
           </form>
         </div>
