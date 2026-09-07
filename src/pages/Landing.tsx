@@ -422,6 +422,16 @@ export default function Landing() {
         </button>
       </section>
 
+      <div className="md:hidden fixed bottom-4 inset-x-4 z-40">
+        <button
+          type="button"
+          onClick={() => navigate("/auth")}
+          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-navy-900 bg-primary-amber rounded-full shadow-xl"
+        >
+          Start earning <ArrowRight size={16} />
+        </button>
+      </div>
+
       {/* Footer */}
       <footer className="bg-navy-900 dark:bg-slate-950 text-white">
         <div className="max-w-6xl mx-auto px-6 py-12">
@@ -463,7 +473,7 @@ export default function Landing() {
               <h4 className="font-semibold mb-4">Company</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  <a href="#" className="hover:text-white transition">
+                  <a href="/about" className="hover:text-white transition">
                     About
                   </a>
                 </li>

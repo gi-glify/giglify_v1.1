@@ -23,6 +23,7 @@
     "react-dom": "^18.2.0",
     "react-icons": "^5.7.0",
     "react-router-dom": "^7.18.3",
+    "resend": "^6.26.0",
     "zustand": "^4.4.0"
   },
   "devDependencies": {

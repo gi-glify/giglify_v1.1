@@ -39,6 +39,8 @@ create table if not exists public.profiles (
   payment_verified_at timestamptz,
   profile_edit_count integer not null default 0,
   profile_edit_appeal_approved boolean not null default false,
+  terms_accepted_at timestamptz,
+  terms_version text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -269,6 +271,16 @@ create table if not exists public.profile_edit_appeals (
   reviewed_at timestamptz,
   created_at timestamptz not null default now()
 );
+
+create table if not exists public.contact_messages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.profiles(id) on delete set null,
+  name text not null check (char_length(trim(name)) between 2 and 100),
+  email text not null check (char_length(trim(email)) between 5 and 320),
+  message text not null check (char_length(trim(message)) between 10 and 5000),
+  status text not null default 'received' check (status in ('received', 'sent', 'failed')),
+  created_at timestamptz not null default now()
+);
 create index if not exists profile_edit_appeals_user_idx on public.profile_edit_appeals(user_id);
 
 create unique index if not exists payout_accounts_one_primary_per_user_schema
@@ -475,6 +487,7 @@ alter table public.payout_requests enable row level security;
 alter table public.payment_audit_logs enable row level security;
 alter table public.payment_provider_events enable row level security;
 alter table public.profile_edit_appeals enable row level security;
+alter table public.contact_messages enable row level security;
 
 create policy "profiles: read own" on public.profiles for select using (auth.uid() = id);
 create policy "profiles: insert own" on public.profiles for insert with check (auth.uid() = id);
@@ -517,6 +530,7 @@ create policy "payment_provider_events: admin read" on public.payment_provider_e
   for select using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
 create policy "profile_edit_appeals: read own" on public.profile_edit_appeals for select using (auth.uid() = user_id or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
 create policy "profile_edit_appeals: insert own" on public.profile_edit_appeals for insert with check (auth.uid() = user_id);
+create policy "contact messages: read own" on public.contact_messages for select using (auth.uid() = user_id);
 
 create or replace function public.enforce_profile_edit_limit()
 returns trigger as $$

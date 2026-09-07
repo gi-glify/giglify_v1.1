@@ -9,6 +9,7 @@ export declare const signUpWithEmail: (email: string, password: string, firstNam
     };
     error: import("@supabase/auth-js").AuthError | null;
 }>;
+export declare const resendSignupConfirmation: (email: string) => Promise<import("@supabase/auth-js").AuthOtpResponse>;
 export declare const signInWithEmail: (email: string, password: string) => Promise<{
     data: {
         user: import("@supabase/auth-js").User;

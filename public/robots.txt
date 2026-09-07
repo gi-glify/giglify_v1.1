@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /tasks
+Disallow: /profile
+Disallow: /financials
+Disallow: /notifications
+Disallow: /settings
+Sitemap: https://giglify.pages.dev/sitemap.xml

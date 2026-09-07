@@ -5,6 +5,7 @@ import {
   signUpWithEmail,
   signInWithEmail,
   signInWithGoogle,
+  resendSignupConfirmation,
 } from "../utils/supabase";
 import { Moon, Sun } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
@@ -14,7 +15,7 @@ import PasswordInput from "../components/ui/PasswordInput";
 export default function AuthPage() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const { setUser } = useAuthStore();
+  const { setUser, setVerificationEmail, verificationEmail } = useAuthStore();
   const [step, setStep] = useState<"choice" | "signup" | "signin">("choice");
   const [formData, setFormData] = useState({
     firstName: "",
@@ -25,6 +26,7 @@ export default function AuthPage() {
   });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState(Boolean(verificationEmail));
 
   const handleStepChange = (newStep: "choice" | "signup" | "signin") => {
     setError("");
@@ -52,7 +54,7 @@ export default function AuthPage() {
 
       if (authError) throw authError;
 
-      if (data?.user) {
+      if (data?.user && data.session && data.user.email_confirmed_at) {
         setUser({
           id: data.user.id,
           email: data.user.email || formData.email,
@@ -62,9 +64,12 @@ export default function AuthPage() {
           subscription: "free",
           balance: 0,
         });
+        setVerificationEmail(null);
+        navigate("/dashboard");
+        return;
       }
-
-      navigate("/dashboard");
+      setVerificationEmail(formData.email);
+      setEmailConfirmationSent(true);
     } catch (err: any) {
       setError(err.message || "Sign up failed");
     } finally {
@@ -86,6 +91,11 @@ export default function AuthPage() {
       if (authError) throw authError;
 
       if (data?.user) {
+        if (!data.user.email_confirmed_at) {
+          setVerificationEmail(data.user.email || formData.email);
+          setEmailConfirmationSent(true);
+          return;
+        }
         setUser({
           id: data.user.id,
           email: data.user.email || formData.email,
@@ -96,7 +106,7 @@ export default function AuthPage() {
           balance: 0,
         });
       }
-
+      setVerificationEmail(null);
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message || "Sign in failed");
@@ -113,6 +123,13 @@ export default function AuthPage() {
     } catch (err: any) {
       setError(err.message || "Google sign in failed");
     }
+  };
+
+  const handleResendConfirmation = async () => {
+    setError("");
+    const { error: resendError } = await resendSignupConfirmation(formData.email || verificationEmail || "");
+    if (resendError) setError(resendError.message || "Unable to resend confirmation email");
+    else setEmailConfirmationSent(true);
   };
 
   return (
@@ -143,6 +160,16 @@ export default function AuthPage() {
             Microtasking, Done Right.
           </p>
         </div>
+
+        {emailConfirmationSent && (
+          <div className="card mb-5 text-center">
+            <h1 className="font-display text-xl mb-2">Check your inbox</h1>
+            <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
+              We sent a confirmation link to <strong>{formData.email || verificationEmail}</strong>. Verify your email before accessing your dashboard.
+            </p>
+            <button type="button" onClick={handleResendConfirmation} className="btn-secondary text-sm">Resend confirmation email</button>
+          </div>
+        )}
 
         {/* Choice Screen */}
         {step === "choice" && (

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Giglify</title>
+  <desc id="desc">Microtasking, done right.</desc>
+  <rect width="1200" height="630" fill="#0f172a"/>
+  <circle cx="980" cy="90" r="300" fill="#1e293b"/>
+  <rect x="110" y="150" width="112" height="112" rx="24" fill="#f5a623"/>
+  <path fill="#0f172a" d="M138 178h20v20h-20zm28 0h20v20h-20zm-28 28h20v20h-20zm28 0h20v20h-20zm-28 28h20v20h-20zm28 0h20v20h-20z"/>
+  <text x="110" y="365" fill="#fff" font-family="Georgia,serif" font-size="76" font-weight="700">Giglify</text>
+  <text x="116" y="430" fill="#cbd5e1" font-family="Arial,sans-serif" font-size="30">Microtasking, done right.</text>
+  <text x="116" y="510" fill="#f5a623" font-family="Arial,sans-serif" font-size="28" font-weight="700">Small tasks. Clear rules. Fairer work.</text>
+</svg>

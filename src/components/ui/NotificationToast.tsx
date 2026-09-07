@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bell, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AppNotification, NOTIFICATION_EVENT } from '../../lib/notifications';
 
 export default function NotificationToast() {
   const navigate = useNavigate();
   const [notification, setNotification] = useState<AppNotification | null>(null);
+  const touchStartX = useRef<number | null>(null);
+  const swiped = useRef(false);
 
   useEffect(() => {
     const handleNotification = (event: Event) => {
@@ -15,16 +17,24 @@ export default function NotificationToast() {
     return () => window.removeEventListener(NOTIFICATION_EVENT, handleNotification);
   }, []);
 
+  useEffect(() => {
+    if (!notification) return;
+    const timeout = window.setTimeout(() => setNotification(null), 6000);
+    return () => window.clearTimeout(timeout);
+  }, [notification]);
+
   if (!notification) return null;
   return (
-    <button
-      type="button"
-      onClick={() => { setNotification(null); navigate('/notifications'); }}
-      className="fixed right-4 bottom-20 md:bottom-6 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-xl border p-4 text-left shadow-2xl animate-in"
+    <div
+      onClick={() => { if (swiped.current) { swiped.current = false; return; } setNotification(null); navigate('/notifications'); }}
+      onTouchStart={(event) => { touchStartX.current = event.changedTouches[0]?.clientX ?? null; swiped.current = false; }}
+      onTouchEnd={(event) => { const start = touchStartX.current; const end = event.changedTouches[0]?.clientX; if (start !== null && end !== undefined && Math.abs(end - start) > 60) { swiped.current = true; setNotification(null); } touchStartX.current = null; }}
+      className="fixed right-4 bottom-20 md:bottom-6 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-xl border p-4 text-left shadow-2xl animate-in cursor-pointer"
       style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)', color: 'var(--text)' }}
-      aria-label="Open notification"
+      role="status"
+      aria-live="polite"
     >
-      <span className="flex items-start gap-3"><span className="rounded-full bg-brand-100 dark:bg-brand-900/40 p-2 text-brand-700 dark:text-brand-300"><Bell size={16} /></span><span><strong className="block text-sm">{notification.title}</strong><span className="block text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{notification.detail}</span></span></span>
-    </button>
+      <span className="flex items-start gap-3"><span className="rounded-full bg-brand-100 dark:bg-brand-900/40 p-2 text-brand-700 dark:text-brand-300"><Bell size={16} /></span><span className="flex-1"><strong className="block text-sm">{notification.title}</strong><span className="block text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{notification.detail}</span></span><button type="button" onClick={(event) => { event.stopPropagation(); setNotification(null); }} className="btn-icon !h-7 !w-7 shrink-0" aria-label="Dismiss notification"><X size={15} /></button></span>
+    </div>
   );
 }

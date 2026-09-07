@@ -1,4 +1,4 @@
-import { Home, ListChecks, Wallet, Bell, User, Settings } from 'lucide-react';
+import { Home, ListChecks, Wallet, Bell, User, Settings, Info } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -16,6 +16,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Notifications', path: '/notifications', icon: Bell, primary: true },
   { label: 'Profile', path: '/profile', icon: User, primary: true },
   { label: 'Settings', path: '/settings', icon: Settings },
+  { label: 'About & Policies', path: '/about', icon: Info },
 ];
 
 export const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter((n) => n.primary);

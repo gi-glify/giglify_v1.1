@@ -31,6 +31,15 @@ yarn-error.log*
 # Misc
 .eslintcache
 
-/docs/
+# Local secrets and credentials
+.env*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+credentials*.json
+supabase/.temp/
 
-*.MD
+# Keep project documentation versioned

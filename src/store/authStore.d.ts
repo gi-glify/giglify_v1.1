@@ -3,9 +3,11 @@ interface AuthState {
     user: User | null;
     loading: boolean;
     error: string | null;
+    verificationEmail: string | null;
     setUser: (user: User | null) => void;
     setLoading: (loading: boolean) => void;
     setError: (error: string | null) => void;
+    setVerificationEmail: (email: string | null) => void;
     logout: () => void;
 }
 export declare const useAuthStore: import("zustand").UseBoundStore<import("zustand").StoreApi<AuthState>>;

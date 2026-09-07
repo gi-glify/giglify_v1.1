@@ -24,6 +24,12 @@ import AdminPaymentsPage from "./pages/AdminPayments";
 import ProfileCompletionPage from "./pages/ProfileCompletion";
 import NotificationsPage from "./pages/Notifications";
 import SettingsPage from "./pages/Settings";
+import AboutPage from "./pages/About";
+import ConsentGate from "./components/auth/ConsentGate";
+import NotFoundPage from "./pages/NotFound";
+import ThankYouPage from "./pages/ThankYou";
+import PageMeta from "./components/seo/PageMeta";
+import CookieBanner from "./components/privacy/CookieBanner";
 import { rememberRoute } from "./utils/routeMemory";
 
 function RouteMemory({ user }: { user: boolean }) {
@@ -43,7 +49,8 @@ function AuthLoadingScreen() {
 function AuthedRoutes() {
   return (
     <AppLayout>
-      <Routes>
+      <ConsentGate>
+        <Routes>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/tasks/:taskCode" element={<TaskRunnerPage />} />
@@ -54,19 +61,28 @@ function AuthedRoutes() {
         <Route path="/profile" element={<ProfileCompletionPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/privacy" element={<AboutPage />} />
+        <Route path="/terms" element={<AboutPage />} />
+        <Route path="/thank-you" element={<ThankYouPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </ConsentGate>
     </AppLayout>
   );
 }
 
 function App() {
-  const { setUser, setLoading, user, loading } = useAuthStore();
+  const { setUser, setLoading, user, loading, verificationEmail, setVerificationEmail } = useAuthStore();
 
   useEffect(() => {
     const initAuth = async () => {
       const { user } = await getCurrentUser();
-      if (user) {
+      if (user && !user.email_confirmed_at && user.app_metadata?.provider === "email") {
+        await supabase.auth.signOut();
+        setUser(null);
+        setVerificationEmail(user.email || null);
+      } else if (user) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("*")
@@ -95,6 +111,7 @@ function App() {
           payoutAccount: profile?.payout_account || "",
           proofOfPayment: profile?.proof_of_payment || "",
         });
+        setVerificationEmail(null);
       }
       setLoading(false);
     };
@@ -105,14 +122,20 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
+        <PageMeta />
         <RouteMemory user={Boolean(user)} />
+        <CookieBanner />
         {loading ? <Routes><Route path="*" element={<AuthLoadingScreen />} /></Routes> : (
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<AboutPage />} />
+            <Route path="/terms" element={<AboutPage />} />
+            <Route path="/thank-you" element={<ThankYouPage />} />
             {!user ? (
               <>
                 <Route path="/auth" element={<AuthPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={verificationEmail ? <Navigate to="/auth?verify=1" replace /> : <NotFoundPage />} />
               </>
             ) : (
               <Route path="/*" element={<AuthedRoutes />} />
