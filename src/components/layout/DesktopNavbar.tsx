@@ -159,6 +159,20 @@ export default function DesktopNavbar({ onLogout }: DesktopNavbarProps) {
               >
                 Settings
               </NavLink>
+              <NavLink
+                to="/contact"
+                onClick={() => setMenuOpen(false)}
+                className="block px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                Contact team
+              </NavLink>
+              <NavLink
+                to="/about#privacy"
+                onClick={() => setMenuOpen(false)}
+                className="block px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5"
+              >
+                Privacy & terms
+              </NavLink>
               <button
                 onClick={onLogout}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"

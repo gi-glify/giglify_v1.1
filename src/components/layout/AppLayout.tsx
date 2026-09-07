@@ -8,6 +8,7 @@ import NotificationToast from "../ui/NotificationToast";
 import { usePlatform } from "../../hooks/usePlatform";
 import { useAuthStore } from "../../store/authStore";
 import { signOut } from "../../utils/supabase";
+import HelpLinks from "./HelpLinks";
 
 /**
  * Wraps every authenticated page. Uses top navbar for desktop
@@ -41,6 +42,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         <MobileTopBar onLogout={handleLogout} />
         <main className="flex-1">{children}</main>
+        <HelpLinks />
         <div className="mobile-nav-spacer" />
         <MobileBottomNav />
         <AIChatWidget />
@@ -56,6 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     >
       <DesktopNavbar onLogout={handleLogout} />
       <main className="flex-1">{children}</main>
+      <HelpLinks />
       <AIChatWidget />
       <NotificationToast />
     </div>

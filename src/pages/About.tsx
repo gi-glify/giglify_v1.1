@@ -1,5 +1,5 @@
-import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { FormEvent, useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle2, Mail, ShieldCheck } from "lucide-react";
 import { supabase } from "../utils/supabase";
 import { useAuthStore } from "../store/authStore";
@@ -9,10 +9,17 @@ export const TEAM_EMAIL = import.meta.env.VITE_TEAM_EMAIL || "team@giglify.com";
 export default function AboutPage() {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
+  const location = useLocation();
   const [name, setName] = useState([user?.firstName, user?.lastName].filter(Boolean).join(" "));
   const [email, setEmail] = useState(user?.email || "");
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  useEffect(() => {
+    if (location.hash) {
+      window.setTimeout(() => document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: "smooth" }), 0);
+    }
+  }, [location.hash]);
 
   async function submitContact(event: FormEvent) {
     event.preventDefault();
@@ -57,7 +64,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="card max-w-2xl">
+        <section id="contact" className="card max-w-2xl scroll-mt-24">
           <div className="flex items-center gap-2 mb-1"><Mail className="text-brand-600 dark:text-brand-300" size={20} /><h2 className="font-display text-xl">Contact the team</h2></div>
           <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Email: <a className="text-brand-600 dark:text-brand-300 font-semibold" href={`mailto:${TEAM_EMAIL}`}>{TEAM_EMAIL}</a></p>
           <form onSubmit={submitContact} className="space-y-4">

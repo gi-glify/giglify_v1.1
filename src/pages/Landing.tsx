@@ -134,11 +134,13 @@ export default function Landing() {
               Stats
             </a>
             <a
-              href="/pricing"
+              href="/about"
               className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
             >
-              Pricing
+              About
             </a>
+            <a href="/about#privacy" className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition">Privacy</a>
+            <a href="/contact" className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition">Contact</a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -185,12 +187,14 @@ export default function Landing() {
                 Stats
               </a>
               <a
-                href="/pricing"
+                href="/about"
                 onClick={() => setIsMenuOpen(false)}
                 className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
               >
-                Pricing
+                About
               </a>
+              <a href="/about#privacy" onClick={() => setIsMenuOpen(false)} className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition">Privacy</a>
+              <a href="/contact" onClick={() => setIsMenuOpen(false)} className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition">Contact</a>
               <hr className="border-slate-100 dark:border-slate-800" />
               <button
                 onClick={() => {
@@ -492,21 +496,9 @@ export default function Landing() {
             <div>
               <h4 className="font-semibold mb-4">Legal</h4>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    Privacy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    Terms
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition">
-                    Contact
-                  </a>
-                </li>
+                <li><a href="/about#privacy" className="hover:text-white transition">Privacy</a></li>
+                <li><a href="/about#terms" className="hover:text-white transition">Terms</a></li>
+                <li><a href="/contact" className="hover:text-white transition">Contact</a></li>
               </ul>
             </div>
           </div>

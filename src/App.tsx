@@ -64,6 +64,8 @@ function AuthedRoutes() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/privacy" element={<AboutPage />} />
         <Route path="/terms" element={<AboutPage />} />
+        <Route path="/contact" element={<AboutPage />} />
+        <Route path="/data-policy" element={<AboutPage />} />
         <Route path="/thank-you" element={<ThankYouPage />} />
         <Route path="*" element={<NotFoundPage />} />
         </Routes>
@@ -131,6 +133,8 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/privacy" element={<AboutPage />} />
             <Route path="/terms" element={<AboutPage />} />
+            <Route path="/contact" element={<AboutPage />} />
+            <Route path="/data-policy" element={<AboutPage />} />
             <Route path="/thank-you" element={<ThankYouPage />} />
             {!user ? (
               <>

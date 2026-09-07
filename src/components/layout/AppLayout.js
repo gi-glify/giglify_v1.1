@@ -9,6 +9,7 @@ import NotificationToast from "../ui/NotificationToast";
 import { usePlatform } from "../../hooks/usePlatform";
 import { useAuthStore } from "../../store/authStore";
 import { signOut } from "../../utils/supabase";
+import HelpLinks from "./HelpLinks";
 /**
  * Wraps every authenticated page. Uses top navbar for desktop
  * and top bar + bottom navigation for mobile. Initializes AOS
@@ -30,8 +31,8 @@ export default function AppLayout({ children }) {
         navigate("/auth");
     };
     if (mode === "mobile") {
-        return (_jsxs("div", { className: "min-h-screen flex flex-col", style: { background: "var(--bg)", color: "var(--text)" }, children: [_jsx(MobileTopBar, { onLogout: handleLogout }), _jsx("main", { className: "flex-1", children: children }), _jsx("div", { className: "mobile-nav-spacer" }), _jsx(MobileBottomNav, {}), _jsx(AIChatWidget, {}), _jsx(NotificationToast, {})] }));
+        return (_jsxs("div", { className: "min-h-screen flex flex-col", style: { background: "var(--bg)", color: "var(--text)" }, children: [_jsx(MobileTopBar, { onLogout: handleLogout }), _jsx("main", { className: "flex-1", children: children }), _jsx(HelpLinks, {}), _jsx("div", { className: "mobile-nav-spacer" }), _jsx(MobileBottomNav, {}), _jsx(AIChatWidget, {}), _jsx(NotificationToast, {})] }));
     }
-    return (_jsxs("div", { className: "min-h-screen flex flex-col", style: { background: "var(--bg)", color: "var(--text)" }, children: [_jsx(DesktopNavbar, { onLogout: handleLogout }), _jsx("main", { className: "flex-1", children: children }), _jsx(AIChatWidget, {}), _jsx(NotificationToast, {})] }));
+    return (_jsxs("div", { className: "min-h-screen flex flex-col", style: { background: "var(--bg)", color: "var(--text)" }, children: [_jsx(DesktopNavbar, { onLogout: handleLogout }), _jsx("main", { className: "flex-1", children: children }), _jsx(HelpLinks, {}), _jsx(AIChatWidget, {}), _jsx(NotificationToast, {})] }));
 }
 //# sourceMappingURL=AppLayout.js.map

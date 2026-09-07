@@ -59,6 +59,27 @@ body {
     color 0.35s ease;
 }
 
+/* Keep the palette change cohesive without animating layout or motion. */
+html.theme-transition,
+html.theme-transition body,
+html.theme-transition body *,
+html.theme-transition body *::before,
+html.theme-transition body *::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition,
+  html.theme-transition body,
+  html.theme-transition body *,
+  html.theme-transition body *::before,
+  html.theme-transition body *::after {
+    transition-duration: 0.01ms;
+  }
+}
+
 h1,
 h2,
 h3,
