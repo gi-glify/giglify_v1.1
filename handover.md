@@ -23,6 +23,8 @@ The current branch contains the latest source changes and generated TypeScript b
 - Minimum worker withdrawal is `$50` and is enforced in frontend and Edge Function.
 - Dashboard now has a `Post a task` CTA linking to requester KYC.
 - Task filtering now includes normalized category matching and `MCQ`/`SAQ` question-type chips.
+- Task catalog reads now retry older schemas and the task/prompt RLS policies are reasserted in the question-bank migration.
+- Follow-up migration `20260908210000_fix_task_catalog_visibility.sql` re-applies those catalog read policies for already-deployed databases.
 
 ## Question Resources
 
