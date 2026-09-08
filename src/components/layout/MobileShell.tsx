@@ -15,6 +15,7 @@ export function MobileTopBar({ onLogout }: MobileTopBarProps) {
   const user = useAuthStore((state) => state.user);
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   useEffect(() => {
@@ -52,14 +53,36 @@ export function MobileTopBar({ onLogout }: MobileTopBarProps) {
             <button onClick={() => { setOpen(false); navigate('/notifications'); }} className="w-full border-t mt-1 pt-2 text-sm font-semibold text-brand-600 dark:text-brand-300">Show all</button>
           </div>}
         </div>
-        <button
-          onClick={onLogout}
-          className="btn-icon text-red-600 dark:text-red-400"
-          title="Log out"
-          aria-label="Log out"
-        >
-          <LogOut size={18} />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setProfileOpen((value) => !value)}
+            className="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center text-sm font-semibold overflow-hidden ring-2 ring-transparent hover:ring-brand-300 transition-all"
+            aria-label="Open profile menu"
+            aria-expanded={profileOpen}
+          >
+            {user?.profilePicture ? <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" /> : user?.firstName?.[0]?.toUpperCase() || <User size={17} />}
+          </button>
+          {profileOpen && (
+            <div className="absolute right-0 top-full mt-2 w-52 rounded-xl shadow-lg border p-2 z-40" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+              <div className="px-3 py-2 border-b mb-1" style={{ borderColor: "var(--border)" }}>
+                <p className="text-sm font-semibold truncate">{user?.firstName || "Your account"}</p>
+                <p className="text-xs truncate" style={{ color: "var(--text-muted)" }}>{user?.email}</p>
+              </div>
+              <NavLink to="/profile" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5">
+                <User size={16} /> My profile
+              </NavLink>
+              <NavLink to="/settings" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5">
+                <Settings size={16} /> Settings
+              </NavLink>
+              <NavLink to="/contact" onClick={() => setProfileOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5">
+                <Mail size={16} /> Contact team
+              </NavLink>
+              <button onClick={onLogout} className="w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30">
+                <LogOut size={16} /> Sign out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
