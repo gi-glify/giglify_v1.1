@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getEmailRedirectUrl } from './authFlows';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -10,6 +11,7 @@ export const signUpWithEmail = async (email: string, password: string, firstName
     email,
     password,
     options: {
+      emailRedirectTo: getEmailRedirectUrl(window.location.origin, '/dashboard'),
       data: {
         first_name: firstName,
         last_name: lastName,
@@ -20,7 +22,21 @@ export const signUpWithEmail = async (email: string, password: string, firstName
 };
 
 export const resendSignupConfirmation = async (email: string) => {
-  return supabase.auth.resend({ type: 'signup', email });
+  return supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: getEmailRedirectUrl(window.location.origin, '/dashboard') },
+  });
+};
+
+export const requestPasswordReset = async (email: string) => {
+  return supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: getEmailRedirectUrl(window.location.origin, '/auth?reset=1'),
+  });
+};
+
+export const updatePassword = async (password: string) => {
+  return supabase.auth.updateUser({ password });
 };
 
 export const signInWithEmail = async (email: string, password: string) => {

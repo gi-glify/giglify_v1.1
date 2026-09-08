@@ -6,4 +6,4 @@ Disallow: /profile
 Disallow: /financials
 Disallow: /notifications
 Disallow: /settings
-Sitemap: https://giglify.pages.dev/sitemap.xml
+Sitemap: https://giglify.co.ke/sitemap.xml

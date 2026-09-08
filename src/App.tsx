@@ -5,6 +5,7 @@ import {
   Route,
   Navigate,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { getCurrentUser, supabase } from "./utils/supabase";
@@ -33,6 +34,7 @@ import RequesterTasksPage from "./pages/RequesterTasks";
 import PageMeta from "./components/seo/PageMeta";
 import CookieBanner from "./components/privacy/CookieBanner";
 import { rememberRoute } from "./utils/routeMemory";
+import { getAuthCallbackPath } from "./utils/authFlows";
 
 function RouteMemory({ user }: { user: boolean }) {
   const { pathname } = useLocation();
@@ -48,11 +50,23 @@ function AuthLoadingScreen() {
   return <div className="min-h-screen" style={{ background: "var(--bg)" }} />;
 }
 
+function AuthCallbackRedirect() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const target = getAuthCallbackPath(window.location.search, window.location.hash);
+    if (target) navigate(target, { replace: true });
+  }, [navigate]);
+
+  return null;
+}
+
 function AuthedRoutes() {
   return (
     <AppLayout>
       <ConsentGate>
         <Routes>
+        <Route path="/auth" element={<AuthPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/tasks/:taskCode" element={<TaskRunnerPage />} />
@@ -128,6 +142,7 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
+        <AuthCallbackRedirect />
         <PageMeta />
         <RouteMemory user={Boolean(user)} />
         <CookieBanner />

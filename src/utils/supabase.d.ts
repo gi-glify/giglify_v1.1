@@ -10,6 +10,14 @@ export declare const signUpWithEmail: (email: string, password: string, firstNam
     error: import("@supabase/auth-js").AuthError | null;
 }>;
 export declare const resendSignupConfirmation: (email: string) => Promise<import("@supabase/auth-js").AuthOtpResponse>;
+export declare const requestPasswordReset: (email: string) => Promise<{
+    data: {};
+    error: null;
+} | {
+    data: null;
+    error: import("@supabase/auth-js").AuthError;
+}>;
+export declare const updatePassword: (password: string) => Promise<import("@supabase/auth-js").UserResponse>;
 export declare const signInWithEmail: (email: string, password: string) => Promise<{
     data: {
         user: import("@supabase/auth-js").User;

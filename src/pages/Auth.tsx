@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import {
   signUpWithEmail,
   signInWithEmail,
   signInWithGoogle,
   resendSignupConfirmation,
+  requestPasswordReset,
+  updatePassword,
 } from "../utils/supabase";
 import { Moon, Sun } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
@@ -15,8 +17,9 @@ import PasswordInput from "../components/ui/PasswordInput";
 export default function AuthPage() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser, setVerificationEmail, verificationEmail } = useAuthStore();
-  const [step, setStep] = useState<"choice" | "signup" | "signin">("choice");
+  const [step, setStep] = useState<"choice" | "signup" | "signin" | "reset">("choice");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -27,9 +30,20 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [emailConfirmationSent, setEmailConfirmationSent] = useState(Boolean(verificationEmail));
+  const [passwordResetSent, setPasswordResetSent] = useState(false);
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
 
-  const handleStepChange = (newStep: "choice" | "signup" | "signin") => {
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get("reset") === "1") {
+      setStep("reset");
+      setEmailConfirmationSent(false);
+    }
+  }, [location.search]);
+
+  const handleStepChange = (newStep: "choice" | "signup" | "signin" | "reset") => {
     setError("");
+    setPasswordUpdated(false);
+    setPasswordResetSent(false);
     setStep(newStep);
   };
 
@@ -132,6 +146,54 @@ export default function AuthPage() {
     else setEmailConfirmationSent(true);
   };
 
+  const handleBackToSignIn = () => {
+    setError("");
+    setEmailConfirmationSent(false);
+    setPasswordResetSent(false);
+    setVerificationEmail(null);
+    setFormData((current) => ({ ...current, password: "", confirmPassword: "" }));
+    setStep("signin");
+  };
+
+  const handlePasswordResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      const { error: resetError } = await requestPasswordReset(formData.email);
+      if (resetError) throw resetError;
+      setPasswordResetSent(true);
+    } catch (err: any) {
+      setError(err.message || "Unable to send password reset email");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (formData.password.length < 8) {
+      setError("Your new password must be at least 8 characters.");
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error: updateError } = await updatePassword(formData.password);
+      if (updateError) throw updateError;
+      setPasswordUpdated(true);
+      setFormData((current) => ({ ...current, password: "", confirmPassword: "" }));
+    } catch (err: any) {
+      setError(err.message || "Unable to update your password");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 transition-colors"
@@ -162,12 +224,17 @@ export default function AuthPage() {
         </div>
 
         {emailConfirmationSent && (
-          <div className="card mb-5 text-center">
-            <h1 className="font-display text-xl mb-2">Check your inbox</h1>
-            <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>
-              We sent a confirmation link to <strong>{formData.email || verificationEmail}</strong>. Verify your email before accessing your dashboard.
-            </p>
-            <button type="button" onClick={handleResendConfirmation} className="btn-secondary text-sm">Resend confirmation email</button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="email-verification-title">
+            <div className="card w-full max-w-md text-center shadow-2xl">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand-100 text-2xl dark:bg-brand-900/40">✉️</div>
+              <h1 id="email-verification-title" className="font-display text-2xl mb-2">Check your inbox</h1>
+              <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>
+                We sent a verification link to <strong>{formData.email || verificationEmail}</strong>. Verify your email before accessing your dashboard.
+              </p>
+              {error && <div className="alert alert-error text-sm mb-4">{error}</div>}
+              <button type="button" onClick={handleResendConfirmation} className="btn-primary w-full text-sm">Resend verification email</button>
+              <button type="button" onClick={handleBackToSignIn} className="mt-4 text-sm font-semibold text-brand-700 hover:underline dark:text-brand-300">Back to sign in</button>
+            </div>
           </div>
         )}
 
@@ -279,6 +346,9 @@ export default function AuthPage() {
               }
               required
             />
+            <button type="button" onClick={() => handleStepChange("reset")} className="text-left text-sm font-semibold text-brand-700 hover:underline dark:text-brand-300">
+              Forgot your password?
+            </button>
             {error && <div className="alert alert-error text-sm">{error}</div>}
             <button
               type="submit"
@@ -303,6 +373,43 @@ export default function AuthPage() {
               Back
             </button>
           </form>
+        )}
+
+        {step === "reset" && (
+          passwordUpdated ? (
+            <div className="card text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl dark:bg-green-900/30">✓</div>
+              <h1 className="font-display text-2xl mb-2">Password updated</h1>
+              <p className="text-sm mb-5" style={{ color: "var(--text-muted)" }}>Your Giglify password has been changed securely.</p>
+              <button type="button" onClick={() => navigate("/dashboard")} className="btn-primary w-full">Go to dashboard</button>
+            </div>
+          ) : location.search.includes("reset=1") ? (
+            <form onSubmit={handlePasswordUpdate} className="card space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-brand-700 dark:text-brand-300">Account recovery</p>
+                <h1 className="font-display text-2xl mt-1">Choose a new password</h1>
+                <p className="text-sm mt-2" style={{ color: "var(--text-muted)" }}>Use at least 8 characters. Your new password will protect your Giglify account immediately.</p>
+              </div>
+              <PasswordInput placeholder="New password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
+              <PasswordInput placeholder="Confirm new password" value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} required />
+              {error && <div className="alert alert-error text-sm">{error}</div>}
+              <button type="submit" disabled={submitting} className="w-full btn-primary py-3 disabled:opacity-50">{submitting ? "Updating password..." : "Update password"}</button>
+              <button type="button" onClick={handleBackToSignIn} className="w-full text-sm hover:underline">Back to sign in</button>
+            </form>
+          ) : (
+            <form onSubmit={handlePasswordResetRequest} className="card space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-brand-700 dark:text-brand-300">Account recovery</p>
+                <h1 className="font-display text-2xl mt-1">Forgot your password?</h1>
+                <p className="text-sm mt-2" style={{ color: "var(--text-muted)" }}>Enter your email and we’ll send you a secure password reset link.</p>
+              </div>
+              <input type="email" placeholder="Email" className="input-field" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required />
+              {passwordResetSent && <div className="alert alert-success text-sm">If an account exists for this email, a reset link has been sent.</div>}
+              {error && <div className="alert alert-error text-sm">{error}</div>}
+              <button type="submit" disabled={submitting} className="w-full btn-primary py-3 disabled:opacity-50">{submitting ? "Sending reset link..." : "Send reset link"}</button>
+              <button type="button" onClick={handleBackToSignIn} className="w-full text-sm hover:underline">Back to sign in</button>
+            </form>
+          )
         )}
       </div>
     </div>

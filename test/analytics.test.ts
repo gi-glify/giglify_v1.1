@@ -15,7 +15,7 @@ test('tracks the current SPA route as a Google Analytics page view', () => {
     assert.deepEqual(calls, [[
       'event',
       'page_view',
-      { page_path: '/tasks', page_location: 'https://giglify.pages.dev/tasks' },
+      { page_path: '/tasks', page_location: 'https://giglify.co.ke/tasks' },
     ]]);
   } finally {
     globalThis.window = originalWindow;

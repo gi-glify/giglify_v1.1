@@ -1,4 +1,4 @@
-const SITE_URL = 'https://giglify.pages.dev';
+const SITE_URL = 'https://giglify.co.ke';
 let lastTrackedPath = null;
 export function trackPageView(pathname) {
     if (typeof window === 'undefined' || !window.gtag || pathname === lastTrackedPath)

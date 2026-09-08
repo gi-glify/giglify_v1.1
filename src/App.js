@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
 import { getCurrentUser, supabase } from "./utils/supabase";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -27,6 +27,7 @@ import RequesterTasksPage from "./pages/RequesterTasks";
 import PageMeta from "./components/seo/PageMeta";
 import CookieBanner from "./components/privacy/CookieBanner";
 import { rememberRoute } from "./utils/routeMemory";
+import { getAuthCallbackPath } from "./utils/authFlows";
 function RouteMemory({ user }) {
     const { pathname } = useLocation();
     useEffect(() => {
@@ -38,8 +39,17 @@ function RouteMemory({ user }) {
 function AuthLoadingScreen() {
     return _jsx("div", { className: "min-h-screen", style: { background: "var(--bg)" } });
 }
+function AuthCallbackRedirect() {
+    const navigate = useNavigate();
+    useEffect(() => {
+        const target = getAuthCallbackPath(window.location.search, window.location.hash);
+        if (target)
+            navigate(target, { replace: true });
+    }, [navigate]);
+    return null;
+}
 function AuthedRoutes() {
-    return (_jsx(AppLayout, { children: _jsx(ConsentGate, { children: _jsxs(Routes, { children: [_jsx(Route, { path: "/dashboard", element: _jsx(DashboardPage, {}) }), _jsx(Route, { path: "/tasks", element: _jsx(TasksPage, {}) }), _jsx(Route, { path: "/tasks/:taskCode", element: _jsx(TaskRunnerPage, {}) }), _jsx(Route, { path: "/verify", element: _jsx(VerifyPage, {}) }), _jsx(Route, { path: "/deposit", element: _jsx(DepositPage, {}) }), _jsx(Route, { path: "/financials", element: _jsx(FinancialsPage, {}) }), _jsx(Route, { path: "/admin/payments", element: _jsx(AdminPaymentsPage, {}) }), _jsx(Route, { path: "/profile", element: _jsx(ProfileCompletionPage, {}) }), _jsx(Route, { path: "/notifications", element: _jsx(NotificationsPage, {}) }), _jsx(Route, { path: "/settings", element: _jsx(SettingsPage, {}) }), _jsx(Route, { path: "/about", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/privacy", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/terms", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/contact", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/data-policy", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/requester/apply", element: _jsx(RequesterKycPage, {}) }), _jsx(Route, { path: "/requester/tasks", element: _jsx(RequesterTasksPage, {}) }), _jsx(Route, { path: "/thank-you", element: _jsx(ThankYouPage, {}) }), _jsx(Route, { path: "*", element: _jsx(NotFoundPage, {}) })] }) }) }));
+    return (_jsx(AppLayout, { children: _jsx(ConsentGate, { children: _jsxs(Routes, { children: [_jsx(Route, { path: "/auth", element: _jsx(AuthPage, {}) }), _jsx(Route, { path: "/dashboard", element: _jsx(DashboardPage, {}) }), _jsx(Route, { path: "/tasks", element: _jsx(TasksPage, {}) }), _jsx(Route, { path: "/tasks/:taskCode", element: _jsx(TaskRunnerPage, {}) }), _jsx(Route, { path: "/verify", element: _jsx(VerifyPage, {}) }), _jsx(Route, { path: "/deposit", element: _jsx(DepositPage, {}) }), _jsx(Route, { path: "/financials", element: _jsx(FinancialsPage, {}) }), _jsx(Route, { path: "/admin/payments", element: _jsx(AdminPaymentsPage, {}) }), _jsx(Route, { path: "/profile", element: _jsx(ProfileCompletionPage, {}) }), _jsx(Route, { path: "/notifications", element: _jsx(NotificationsPage, {}) }), _jsx(Route, { path: "/settings", element: _jsx(SettingsPage, {}) }), _jsx(Route, { path: "/about", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/privacy", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/terms", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/contact", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/data-policy", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/requester/apply", element: _jsx(RequesterKycPage, {}) }), _jsx(Route, { path: "/requester/tasks", element: _jsx(RequesterTasksPage, {}) }), _jsx(Route, { path: "/thank-you", element: _jsx(ThankYouPage, {}) }), _jsx(Route, { path: "*", element: _jsx(NotFoundPage, {}) })] }) }) }));
 }
 function App() {
     const { setUser, setLoading, user, loading, verificationEmail, setVerificationEmail } = useAuthStore();
@@ -86,7 +96,7 @@ function App() {
         };
         initAuth();
     }, [setUser, setLoading]);
-    return (_jsx(ThemeProvider, { children: _jsxs(Router, { children: [_jsx(PageMeta, {}), _jsx(RouteMemory, { user: Boolean(user) }), _jsx(CookieBanner, {}), loading ? _jsx(Routes, { children: _jsx(Route, { path: "*", element: _jsx(AuthLoadingScreen, {}) }) }) : (_jsxs(Routes, { children: [_jsx(Route, { path: "/", element: _jsx(Landing, {}) }), _jsx(Route, { path: "/about", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/privacy", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/terms", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/contact", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/data-policy", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/requester/apply", element: _jsx(RequesterKycPage, {}) }), _jsx(Route, { path: "/requester/tasks", element: _jsx(RequesterTasksPage, {}) }), _jsx(Route, { path: "/thank-you", element: _jsx(ThankYouPage, {}) }), !user ? (_jsxs(_Fragment, { children: [_jsx(Route, { path: "/auth", element: _jsx(AuthPage, {}) }), _jsx(Route, { path: "*", element: verificationEmail ? _jsx(Navigate, { to: "/auth?verify=1", replace: true }) : _jsx(NotFoundPage, {}) })] })) : (_jsx(Route, { path: "/*", element: _jsx(AuthedRoutes, {}) }))] }))] }) }));
+    return (_jsx(ThemeProvider, { children: _jsxs(Router, { children: [_jsx(AuthCallbackRedirect, {}), _jsx(PageMeta, {}), _jsx(RouteMemory, { user: Boolean(user) }), _jsx(CookieBanner, {}), loading ? _jsx(Routes, { children: _jsx(Route, { path: "*", element: _jsx(AuthLoadingScreen, {}) }) }) : (_jsxs(Routes, { children: [_jsx(Route, { path: "/", element: _jsx(Landing, {}) }), _jsx(Route, { path: "/about", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/privacy", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/terms", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/contact", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/data-policy", element: _jsx(AboutPage, {}) }), _jsx(Route, { path: "/requester/apply", element: _jsx(RequesterKycPage, {}) }), _jsx(Route, { path: "/requester/tasks", element: _jsx(RequesterTasksPage, {}) }), _jsx(Route, { path: "/thank-you", element: _jsx(ThankYouPage, {}) }), !user ? (_jsxs(_Fragment, { children: [_jsx(Route, { path: "/auth", element: _jsx(AuthPage, {}) }), _jsx(Route, { path: "*", element: verificationEmail ? _jsx(Navigate, { to: "/auth?verify=1", replace: true }) : _jsx(NotFoundPage, {}) })] })) : (_jsx(Route, { path: "/*", element: _jsx(AuthedRoutes, {}) }))] }))] }) }));
 }
 export default App;
 //# sourceMappingURL=App.js.map

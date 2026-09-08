@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { trackPageView } from "../../utils/analytics";
-const SITE_URL = "https://giglify.pages.dev";
+const SITE_URL = "https://giglify.co.ke";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.svg`;
 const pages = {
     "/": { title: "Giglify | Microtasking, Done Right", description: "Complete focused microtasks, build your profile, and earn through Giglify." },

@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
   try {
     const { db } = await requireUser(req);
     const body = await req.json();
-    const taskCode = typeof body?.taskCode === "string" ? body.taskCode : "";
+    const taskCode = typeof body?.taskCode === "string" ? body.taskCode.trim().toUpperCase() : "";
     const questionNumber = Number(body?.questionNumber);
     const answer = typeof body?.answer === "string" ? body.answer.trim().toUpperCase() : "";
     if (!taskCode || !Number.isInteger(questionNumber) || !answer) return json({ error: "Invalid answer" }, 400);
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
       .eq("task_code", taskCode)
       .eq("question_number", questionNumber)
       .single();
-    if (error) throw error;
+    if (error) return json({ error: "This question could not be found for verification." }, 404);
     if (data.question_type !== "mcq" || !data.correct_option) return json({ error: "This question is not an MCQ" }, 400);
     const correct = answer === data.correct_option.toUpperCase();
     return json({ correct, feedback: correct ? "Correct answer." : "Not quite. Review the task context before continuing." });

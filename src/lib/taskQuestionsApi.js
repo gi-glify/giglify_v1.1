@@ -3,6 +3,7 @@
 // create a second client or duplicate auth logic.
 import { supabase } from '../utils/supabase';
 import { mapLegacyTaskRow, mapTaskRow } from './taskCatalog';
+import { normalizeMcqAnswer } from '../utils/authFlows';
 /** Fetch the active catalog tasks shown on the tasks page. */
 export async function fetchTasks() {
     const primary = await supabase
@@ -61,9 +62,26 @@ export async function fetchTaskQuestions(taskCode) {
     return data;
 }
 export async function validateMcqAnswer(input) {
-    const { data, error } = await supabase.functions.invoke('validate-mcq-answer', { body: input });
-    if (error)
-        throw new Error(error.message || 'Unable to validate answer');
+    const { data, error } = await supabase.functions.invoke('validate-mcq-answer', {
+        body: { ...input, answer: normalizeMcqAnswer(input.answer) },
+    });
+    if (error) {
+        let message = error.message || 'Unable to validate answer';
+        const context = error.context;
+        if (context) {
+            try {
+                const payload = await context.clone().json();
+                if (typeof payload?.error === 'string')
+                    message = payload.error;
+            }
+            catch {
+                // Keep the SDK error when the Edge Function did not return JSON.
+            }
+        }
+        throw new Error(message);
+    }
+    if (!data || typeof data.correct !== 'boolean')
+        throw new Error('The answer validator returned an invalid response.');
     return data;
 }
 /**

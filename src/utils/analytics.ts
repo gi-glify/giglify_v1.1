@@ -1,4 +1,4 @@
-const SITE_URL = 'https://giglify.pages.dev';
+const SITE_URL = 'https://giglify.co.ke';
 
 declare global {
   interface Window {
