@@ -17,6 +17,7 @@ import Landing from "./pages/Landing";
 import AuthPage from "./pages/Auth";
 import DashboardPage from "./pages/Dashboard";
 import TasksPage from "./pages/Tasks";
+import TaskTrackingPage from "./pages/TaskTracking";
 import TaskRunnerPage from "./pages/TaskRunner";
 import VerifyPage from "./pages/Verify";
 import DepositPage from "./pages/Deposit";
@@ -69,6 +70,7 @@ function AuthedRoutes() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/task-tracking" element={<TaskTrackingPage />} />
         <Route path="/tasks/:taskCode" element={<TaskRunnerPage />} />
         <Route path="/verify" element={<VerifyPage />} />
         <Route path="/deposit" element={<DepositPage />} />

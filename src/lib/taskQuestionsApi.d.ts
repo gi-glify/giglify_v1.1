@@ -1,4 +1,5 @@
 import { type TaskCatalogItem } from './taskCatalog';
+import type { TaskSubmissionProgress } from './taskTracking';
 import type { TaskQuestion, TaskWithCode, QuestionRunAnswer } from '../types/taskQuestions';
 /** Fetch the active catalog tasks shown on the tasks page. */
 export declare function fetchTasks(): Promise<{
@@ -32,4 +33,9 @@ export declare function getOrCreateSubmission(userId: string, taskId: string, ta
 export declare function saveAnswerProgress(submissionId: string, taskCode: string, currentAnswers: QuestionRunAnswer[], answer: QuestionRunAnswer): Promise<QuestionRunAnswer[]>;
 /** Mark the submission as submitted for review — this is what makes it show up for admin approval / payout. */
 export declare function finalizeSubmission(submissionId: string): Promise<boolean>;
+/** Fetch the signed-in user's task history for the task tracking page. */
+export declare function fetchTaskSubmissionProgress(userId: string): Promise<{
+    submissions: TaskSubmissionProgress[];
+    error: Error | null;
+}>;
 //# sourceMappingURL=taskQuestionsApi.d.ts.map

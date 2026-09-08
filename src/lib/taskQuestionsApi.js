@@ -157,4 +157,49 @@ export async function finalizeSubmission(submissionId) {
         console.error('grading queue error:', queueError.message);
     return true;
 }
+/** Fetch the signed-in user's task history for the task tracking page. */
+export async function fetchTaskSubmissionProgress(userId) {
+    const { data: submissionRows, error: submissionError } = await supabase
+        .from('task_submissions')
+        .select('id, task_id, status, reward_paid, reward_approved, submitted_content, started_at, completed_at')
+        .eq('user_id', userId)
+        .order('started_at', { ascending: false });
+    if (submissionError) {
+        console.error('fetchTaskSubmissionProgress submissions error:', submissionError.message);
+        return { submissions: [], error: new Error(submissionError.message) };
+    }
+    const rows = (submissionRows ?? []);
+    if (!rows.length)
+        return { submissions: [], error: null };
+    const taskIds = [...new Set(rows.map((row) => String(row.task_id)))];
+    const { data: taskRows, error: taskError } = await supabase
+        .from('tasks')
+        .select('id, task_code, title, category, reward')
+        .in('id', taskIds);
+    if (taskError) {
+        console.error('fetchTaskSubmissionProgress tasks error:', taskError.message);
+        return { submissions: [], error: new Error(taskError.message) };
+    }
+    const taskById = new Map((taskRows ?? []).map((task) => [String(task.id), task]));
+    const submissions = rows.map((row) => {
+        const task = taskById.get(String(row.task_id));
+        return {
+            id: String(row.id),
+            taskId: String(row.task_id),
+            status: String(row.status),
+            startedAt: String(row.started_at),
+            completedAt: row.completed_at ? String(row.completed_at) : null,
+            submittedContent: row.submitted_content,
+            rewardPaid: row.reward_paid == null ? null : Number(row.reward_paid),
+            rewardApproved: row.reward_approved == null ? null : Number(row.reward_approved),
+            task: task ? {
+                taskCode: task.task_code ?? null,
+                title: String(task.title),
+                category: String(task.category),
+                reward: Number(task.reward),
+            } : null,
+        };
+    });
+    return { submissions, error: null };
+}
 //# sourceMappingURL=taskQuestionsApi.js.map

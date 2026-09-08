@@ -13,6 +13,7 @@ const pages = {
     "/data-policy": { title: "Data policy | Giglify", description: "Learn how Giglify stores and uses account, task, and payment data." },
     "/dashboard": { title: "Dashboard | Giglify", description: "View your Giglify earnings, progress, and available tasks.", private: true },
     "/tasks": { title: "Available tasks | Giglify", description: "Browse available Giglify microtasks and start earning.", private: true },
+    "/task-tracking": { title: "My task progress | Giglify", description: "Track your Giglify tasks from started to completed.", private: true },
     "/profile": { title: "Your profile | Giglify", description: "Manage your Giglify profile and verification information.", private: true },
     "/financials": { title: "Wallet and payouts | Giglify", description: "Review your Giglify balance and payout activity.", private: true },
     "/notifications": { title: "Notifications | Giglify", description: "Review your latest Giglify notifications.", private: true },
