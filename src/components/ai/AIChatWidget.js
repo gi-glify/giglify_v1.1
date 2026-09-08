@@ -38,7 +38,7 @@ function FormattedAssistantMessage({ content }) {
 /**
  * Floating AI assistant. The panel and message list work out of the box;
  * `sendToAssistant` is the one function to wire up to a real backend —
- * see AI_CHAT_SETUP.md at the project root for the recommended
+ * see docs/AI_CHAT_SETUP.md for the recommended
  * (Supabase Edge Function) setup.
  */
 async function sendToAssistant(message, history) {

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { trackPageView } from "../../utils/analytics";
 
 const SITE_URL = "https://giglify.pages.dev";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.svg`;
@@ -41,6 +42,7 @@ export default function PageMeta() {
     setMeta('meta[name="twitter:description"]', "name", page.description);
     setMeta('meta[name="twitter:image"]', "name", DEFAULT_IMAGE);
     setMeta('meta[name="robots"]', "name", page.private ? "noindex, nofollow" : "index, follow");
+    trackPageView(pathname);
   }, [pathname]);
   return null;
 }
