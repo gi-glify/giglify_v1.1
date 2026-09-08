@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 export default function HelpLinks() {
   return (
     <section
-      className="container max-w-6xl px-4 md:px-6 py-5 border-t"
+      className="hidden md:block container max-w-6xl px-4 md:px-6 py-5 border-t"
       data-aos="fade-up"
       style={{ borderColor: "var(--border)" }}
       aria-label="Help and policies"
