@@ -43,6 +43,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        <div className="card mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-brand-500/40 bg-brand-50/60 dark:bg-brand-950/20" data-aos="fade-up" data-aos-delay="40">
+          <div>
+            <h2 className="font-display text-xl mb-1">Have work that needs doing?</h2>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Apply to become a requester and post tasks for our vetted worker community.</p>
+          </div>
+          <Link to="/requester/apply" className="btn-primary inline-flex items-center gap-2 shrink-0">
+            Post a task <ArrowRight size={16} />
+          </Link>
+        </div>
+
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {loading ? (

@@ -104,6 +104,24 @@ export async function readResources() {
   return tasks;
 }
 
+function assertPrivilegedKey(key) {
+  // Legacy Supabase service-role keys are JWTs with role=service_role. A
+  // publishable/anon key will reach Postgres but cannot seed protected tables.
+  if (key.startsWith("eyJ")) {
+    try {
+      const payload = JSON.parse(Buffer.from(key.split(".")[1], "base64url").toString("utf8"));
+      if (payload.role !== "service_role") {
+        throw new Error("SUPABASE_SERVICE_ROLE_KEY is not a service-role key (its JWT role is not service_role).");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("not a service-role key")) throw error;
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY is not a valid Supabase service-role key.");
+    }
+  } else if (!key.startsWith("sb_secret_")) {
+    throw new Error("Use the Supabase service_role secret, not the anon/publishable key. Copy it from Project Settings > API.");
+  }
+}
+
 async function main() {
   const tasks = await readResources();
   console.log(`Parsed ${tasks.length} tasks and ${tasks.reduce((count, task) => count + task.questions.length, 0)} questions.`);
@@ -114,6 +132,7 @@ async function main() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or use --dry-run.");
+  assertPrivilegedKey(key);
   const db = createClient(url, key, { auth: { persistSession: false } });
   for (const task of tasks) {
     const { data: taskRow, error: taskError } = await db.from("tasks").upsert({

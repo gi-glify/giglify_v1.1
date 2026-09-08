@@ -10,6 +10,10 @@ import type { TaskCatalogItem } from '../lib/taskCatalog';
 type TaskDevice = 'any' | 'mobile' | 'desktop';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard', 'expert'] as const;
+const QUESTION_TYPES = [
+  { value: 'mcq', label: 'MCQ' },
+  { value: 'saq', label: 'SAQ' },
+] as const;
 const CATEGORIES = [
   { value: 'academic', label: 'Academic' },
   { value: 'ai-training', label: 'AI training' },
@@ -39,6 +43,7 @@ export default function TasksPage() {
   const [search, setSearch] = useState('');
   const [difficulty, setDifficulty] = useState<Set<string>>(new Set());
   const [category, setCategory] = useState<Set<string>>(new Set());
+  const [questionType, setQuestionType] = useState<Set<string>>(new Set());
   const [device, setDevice] = useState<Set<TaskDevice>>(new Set());
   const [payBand, setPayBand] = useState<Set<string>>(new Set());
 
@@ -66,17 +71,21 @@ export default function TasksPage() {
     setSearch('');
     setDifficulty(new Set());
     setCategory(new Set());
+    setQuestionType(new Set());
     setDevice(new Set());
     setPayBand(new Set());
   };
 
-  const hasFilters = Boolean(search.trim()) || category.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
+  const hasFilters = Boolean(search.trim()) || category.size > 0 || questionType.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
 
   const filtered = useMemo(() => {
     return tasks.filter((task) => {
       const q = search.trim().toLowerCase();
       if (q && !task.title.toLowerCase().includes(q) && !task.description.toLowerCase().includes(q)) return false;
-      if (category.size && !category.has(task.category)) return false;
+      const normalizedCategory = task.category.toLowerCase().replace(/[_\s]+/g, '-');
+      const normalizedQuestionType = (task.taskType || 'saq').toLowerCase();
+      if (category.size && !category.has(normalizedCategory)) return false;
+      if (questionType.size && !questionType.has(normalizedQuestionType)) return false;
       if (difficulty.size && !difficulty.has(task.difficulty)) return false;
       // "Any device" is an unrestricted option, not a task device value.
       if (device.size && !device.has('any') && !device.has(task.device)) return false;
@@ -86,7 +95,7 @@ export default function TasksPage() {
       }
       return true;
     });
-  }, [tasks, search, difficulty, device, payBand]);
+  }, [tasks, search, category, questionType, difficulty, device, payBand]);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
@@ -140,6 +149,22 @@ export default function TasksPage() {
                   key={item.value}
                   onClick={() => toggle(category, item.value, setCategory)}
                   className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${category.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Question type</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {QUESTION_TYPES.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => toggle(questionType, item.value, setQuestionType)}
+                  className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${questionType.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`}
                 >
                   {item.label}
                 </button>

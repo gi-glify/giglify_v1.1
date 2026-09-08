@@ -7,6 +7,10 @@ import { useAuthStore } from '../store/authStore';
 import { getProfileCompletion, PROFILE_TASK_LIMIT_THRESHOLD, DAILY_TASK_LIMIT_BELOW_THRESHOLD } from '../utils/profileCompletion';
 import { fetchTasks } from '../lib/taskQuestionsApi';
 const DIFFICULTIES = ['easy', 'medium', 'hard', 'expert'];
+const QUESTION_TYPES = [
+    { value: 'mcq', label: 'MCQ' },
+    { value: 'saq', label: 'SAQ' },
+];
 const CATEGORIES = [
     { value: 'academic', label: 'Academic' },
     { value: 'ai-training', label: 'AI training' },
@@ -35,6 +39,7 @@ export default function TasksPage() {
     const [search, setSearch] = useState('');
     const [difficulty, setDifficulty] = useState(new Set());
     const [category, setCategory] = useState(new Set());
+    const [questionType, setQuestionType] = useState(new Set());
     const [device, setDevice] = useState(new Set());
     const [payBand, setPayBand] = useState(new Set());
     useEffect(() => {
@@ -59,16 +64,21 @@ export default function TasksPage() {
         setSearch('');
         setDifficulty(new Set());
         setCategory(new Set());
+        setQuestionType(new Set());
         setDevice(new Set());
         setPayBand(new Set());
     };
-    const hasFilters = Boolean(search.trim()) || category.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
+    const hasFilters = Boolean(search.trim()) || category.size > 0 || questionType.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
     const filtered = useMemo(() => {
         return tasks.filter((task) => {
             const q = search.trim().toLowerCase();
             if (q && !task.title.toLowerCase().includes(q) && !task.description.toLowerCase().includes(q))
                 return false;
-            if (category.size && !category.has(task.category))
+            const normalizedCategory = task.category.toLowerCase().replace(/[_\s]+/g, '-');
+            const normalizedQuestionType = (task.taskType || 'saq').toLowerCase();
+            if (category.size && !category.has(normalizedCategory))
+                return false;
+            if (questionType.size && !questionType.has(normalizedQuestionType))
                 return false;
             if (difficulty.size && !difficulty.has(task.difficulty))
                 return false;
@@ -82,10 +92,10 @@ export default function TasksPage() {
             }
             return true;
         });
-    }, [tasks, search, difficulty, device, payBand]);
+    }, [tasks, search, category, questionType, difficulty, device, payBand]);
     return (_jsx("div", { className: "min-h-screen", style: { background: 'var(--bg)', color: 'var(--text)' }, children: _jsxs("main", { className: "container py-8", children: [_jsx("h1", { className: "font-display text-2xl mb-1", "data-aos": "fade-down", children: "Available Tasks" }), _jsxs("p", { className: "text-sm mb-6", style: { color: 'var(--text-muted)' }, children: [tasks.length, " task", tasks.length === 1 ? '' : 's', " available"] }), gated && (_jsxs("div", { className: "alert alert-info text-sm flex flex-wrap items-center justify-between gap-2", "data-aos": "fade-in", children: [_jsxs("span", { children: ["Your profile is ", completion, "% complete. Below ", PROFILE_TASK_LIMIT_THRESHOLD, "%, you're limited to", ' ', DAILY_TASK_LIMIT_BELOW_THRESHOLD, " task", DAILY_TASK_LIMIT_BELOW_THRESHOLD === 1 ? '' : 's', "/day."] }), _jsx(Link, { to: "/profile", className: "btn-secondary text-xs px-3 py-1.5 whitespace-nowrap", children: "Complete profile" })] })), _jsxs("div", { className: "relative mb-4", "data-aos": "fade-up", children: [_jsx(Search, { size: 18, className: "absolute left-3 top-1/2 -translate-y-1/2", style: { color: 'var(--text-muted)' } }), _jsx("input", { value: search, onChange: (e) => setSearch(e.target.value), placeholder: "Search tasks by title or description\u2026", className: "input-field pl-10" })] }), _jsxs("div", { className: "flex flex-wrap items-end gap-4 mb-6", "data-aos": "fade-up", "data-aos-delay": "60", children: [_jsx("button", { type: "button", onClick: clearFilters, disabled: !hasFilters, className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${!hasFilters
                                 ? 'bg-brand-600 text-white border-brand-600'
-                                : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'} disabled:cursor-default disabled:opacity-100`, children: "All tasks" }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Category" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: CATEGORIES.map((item) => (_jsx("button", { onClick: () => toggle(category, item.value, setCategory), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${category.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: item.label }, item.value))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Difficulty" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: DIFFICULTIES.map((d) => (_jsx("button", { onClick: () => toggle(difficulty, d, setDifficulty), className: `text-xs px-3 py-1.5 rounded-full border font-semibold capitalize transition-colors ${difficulty.has(d) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: d }, d))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Pay" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: PAY_BANDS.map((b) => (_jsx("button", { onClick: () => toggle(payBand, b.label, setPayBand), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${payBand.has(b.label) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: b.label }, b.label))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Device" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: DEVICES.map((d) => (_jsxs("button", { onClick: () => {
+                                : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'} disabled:cursor-default disabled:opacity-100`, children: "All tasks" }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Category" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: CATEGORIES.map((item) => (_jsx("button", { onClick: () => toggle(category, item.value, setCategory), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${category.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: item.label }, item.value))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Question type" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: QUESTION_TYPES.map((item) => (_jsx("button", { type: "button", onClick: () => toggle(questionType, item.value, setQuestionType), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${questionType.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: item.label }, item.value))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Difficulty" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: DIFFICULTIES.map((d) => (_jsx("button", { onClick: () => toggle(difficulty, d, setDifficulty), className: `text-xs px-3 py-1.5 rounded-full border font-semibold capitalize transition-colors ${difficulty.has(d) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: d }, d))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Pay" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: PAY_BANDS.map((b) => (_jsx("button", { onClick: () => toggle(payBand, b.label, setPayBand), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${payBand.has(b.label) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: b.label }, b.label))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Device" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: DEVICES.map((d) => (_jsxs("button", { onClick: () => {
                                             if (d.value === 'any') {
                                                 setDevice(device.has('any') ? new Set() : new Set(['any']));
                                                 return;

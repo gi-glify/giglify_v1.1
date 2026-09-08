@@ -25,7 +25,7 @@ export async function fetchTasks(): Promise<{ tasks: TaskCatalogItem[]; error: E
     if (error.code === '42703' && /task_code/.test(error.message)) {
       const legacy = await supabase
         .from('tasks')
-        .select('id, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active, task_type')
+        .select('id, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
