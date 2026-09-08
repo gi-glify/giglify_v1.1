@@ -32,7 +32,7 @@ export default function AppLayout({ children }) {
         navigate("/auth");
     };
     if (mode === "mobile") {
-        return (_jsxs("div", { className: "min-h-screen flex flex-col", style: { background: "var(--bg)", color: "var(--text)" }, children: [_jsx(MobileTopBar, { onLogout: handleLogout }), _jsx("main", { className: "flex-1", children: children }), _jsx(HelpLinks, {}), _jsx("div", { className: "mobile-nav-spacer" }), _jsx(MobileBottomNav, {}), _jsx(AIChatWidget, {}), _jsx(NotificationToast, {})] }));
+        return (_jsxs("div", { className: "min-h-screen flex flex-col", style: { background: "var(--bg)", color: "var(--text)" }, children: [_jsx(MobileTopBar, { onLogout: handleLogout }), _jsx("main", { className: "flex-1", children: children }), _jsx(HelpLinks, {}), _jsx("div", { className: "mobile-nav-spacer" }), _jsx(MobileBottomNav, { onLogout: handleLogout }), _jsx(AIChatWidget, {}), _jsx(NotificationToast, {})] }));
     }
     return (_jsxs("div", { className: "min-h-screen flex flex-col", style: { background: "var(--bg)", color: "var(--text)" }, children: [_jsx(DesktopNavbar, { onLogout: handleLogout }), _jsx("main", { className: "flex-1", children: children }), _jsx(HelpLinks, {}), _jsx(AIChatWidget, {}), _jsx(NotificationToast, {})] }));
 }
