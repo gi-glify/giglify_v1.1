@@ -4,7 +4,10 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
-const RESOURCE_DIR = path.resolve(process.cwd(), "docs/resources");
+const RESOURCE_DIRS = [
+  path.resolve(process.cwd(), "docs/resources"),
+  path.resolve(process.cwd(), "docs/Resources"),
+];
 const CATEGORY_BY_FILE = {
   AI_Training: "ai-training",
   Coding: "coding",
@@ -98,9 +101,14 @@ export function parseResourceFile(fileName, markdown) {
 }
 
 export async function readResources() {
-  const files = (await fs.readdir(RESOURCE_DIR)).filter((file) => file.endsWith(".md")).sort();
+  let resourceDir;
+  for (const candidate of RESOURCE_DIRS) {
+    try { await fs.access(candidate); resourceDir = candidate; break; } catch { /* try the other casing */ }
+  }
+  if (!resourceDir) throw new Error("Could not find docs/resources or docs/Resources.");
+  const files = (await fs.readdir(resourceDir)).filter((file) => file.endsWith(".md")).sort();
   const tasks = [];
-  for (const file of files) tasks.push(...parseResourceFile(file, await fs.readFile(path.join(RESOURCE_DIR, file), "utf8")));
+  for (const file of files) tasks.push(...parseResourceFile(file, await fs.readFile(path.join(resourceDir, file), "utf8")));
   return tasks;
 }
 

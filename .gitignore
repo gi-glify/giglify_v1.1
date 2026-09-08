@@ -42,5 +42,9 @@ service-account*.json
 credentials*.json
 supabase/.temp/
 
-# Keep project documentation versioned
+# Documentation is kept locally and must not be pushed.
+*.md
+*.markdown
+*.doc
+*.docx
 docs/
