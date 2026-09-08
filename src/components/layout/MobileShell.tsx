@@ -1,6 +1,6 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Bell, Moon, Sun, LogOut, Menu, X, User, Settings, Mail, ShieldCheck, FileText, ExternalLink, ClipboardCheck, ChevronRight } from "lucide-react";
+import { Bell, Moon, Sun, LogOut, Menu, User, Settings, Mail, ShieldCheck, FileText, ExternalLink, ClipboardCheck } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 import { PRIMARY_NAV_ITEMS } from "../../config/navigation";
 import { useAuthStore } from "../../store/authStore";
@@ -106,52 +106,71 @@ const DRAWER_LINKS = [
 
 export function MobileBottomNav({ onLogout }: MobileBottomNavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMounted, setDrawerMounted] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    if (drawerOpen) {
+      setDrawerMounted(true);
+      return;
+    }
+    if (!drawerMounted) return;
+    const unmount = window.setTimeout(() => setDrawerMounted(false), 300);
+    return () => window.clearTimeout(unmount);
+  }, [drawerOpen]);
 
   useEffect(() => {
     if (!drawerOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawerOpen(false);
+      if (event.key === "Escape") closeDrawer();
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [drawerOpen]);
 
   useEffect(() => {
-    setDrawerOpen(false);
+    closeDrawer();
   }, [location.pathname, location.hash]);
+
+  const openDrawer = () => {
+    setDrawerMounted(true);
+    requestAnimationFrame(() => setDrawerOpen(true));
+  };
+
+  const closeDrawer = () => setDrawerOpen(false);
 
   return (
     <>
-      {drawerOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/40" role="presentation" onClick={() => setDrawerOpen(false)}>
+      {drawerMounted && (
+        <div className={`md:hidden fixed inset-0 z-40 flex items-end bg-black/40 transition-opacity duration-300 ${drawerOpen ? "opacity-100" : "opacity-0"}`} role="presentation" onClick={closeDrawer}>
           <aside
-            className="absolute right-0 top-0 bottom-0 w-[min(88vw,360px)] p-5 overflow-y-auto shadow-2xl animate-in"
+            className={`w-full max-h-[84vh] overflow-y-auto rounded-t-[28px] px-5 pb-8 pt-3 shadow-2xl transform transition-transform duration-300 ease-out ${drawerOpen ? "translate-y-0" : "translate-y-full"}`}
             style={{ background: "var(--bg-elevated)", color: "var(--text)" }}
             role="dialog"
             aria-modal="true"
-            aria-label="More Giglify pages"
+            aria-label="Giglify tools and account"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6">
+            <div className="mx-auto mb-5 h-1.5 w-11 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
+            <div className="flex items-start justify-between mb-5 px-1">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-300">Giglify</p>
-                <h2 className="font-display text-xl">More options</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em]" style={{ color: "var(--text-muted)" }}>More workspace</p>
+                <h2 className="font-display text-2xl mt-1">Tools and account</h2>
               </div>
-              <button type="button" className="btn-icon" onClick={() => setDrawerOpen(false)} aria-label="Close menu"><X size={20} /></button>
+              <button type="button" className="rounded-full px-4 py-2 text-sm font-semibold bg-black/5 dark:bg-white/10" onClick={closeDrawer} aria-label="Close menu">Close</button>
             </div>
-            <nav className="space-y-1" aria-label="More pages">
+            <nav className="grid grid-cols-2 gap-3" aria-label="More pages">
               {DRAWER_LINKS.map((item) => {
                 const Icon = item.icon;
                 return (
                   <NavLink
                     key={item.path}
                     to={item.path}
-                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5"
+                    className="flex items-center gap-3 rounded-full border px-4 py-4 text-sm font-semibold hover:bg-black/5 dark:hover:bg-white/5"
+                    style={{ borderColor: "var(--border)" }}
                   >
-                    <Icon size={18} className="text-brand-600 dark:text-brand-300" />
-                    <span className="flex-1">{item.label}</span>
-                    <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+                    <Icon size={19} className="shrink-0 text-brand-600 dark:text-brand-300" />
+                    <span>{item.label}</span>
                   </NavLink>
                 );
               })}
@@ -159,9 +178,10 @@ export function MobileBottomNav({ onLogout }: MobileBottomNavProps) {
             <button
               type="button"
               onClick={onLogout}
-              className="w-full flex items-center gap-3 rounded-xl px-3 py-3 mt-5 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+              className="w-full flex items-center justify-center gap-2 rounded-full border px-4 py-3 mt-3 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+              style={{ borderColor: "var(--border)" }}
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
               Sign out
             </button>
           </aside>
@@ -182,7 +202,7 @@ export function MobileBottomNav({ onLogout }: MobileBottomNavProps) {
               <button
                 key="mobile-menu"
                 type="button"
-                onClick={() => setDrawerOpen(true)}
+                onClick={openDrawer}
                 className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-xs font-semibold transition-colors ${drawerOpen ? "text-brand-600 dark:text-brand-300" : "text-stone-500 dark:text-stone-400"}`}
                 aria-label="Open menu"
                 aria-expanded={drawerOpen}
