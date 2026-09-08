@@ -9,6 +9,15 @@ export declare function fetchTasks(): Promise<{
 export declare function fetchTaskByCode(taskCode: string): Promise<TaskWithCode | null>;
 /** Fetch the 10 (or fewer) questions for a task, in order. */
 export declare function fetchTaskQuestions(taskCode: string): Promise<TaskQuestion[]>;
+export declare function validateMcqAnswer(input: {
+    taskCode: string;
+    questionNumber: number;
+    answer: string;
+}): Promise<{
+    correct: boolean;
+    correctAnswer?: string;
+    feedback: string;
+}>;
 /**
  * Get the user's existing in-progress submission for this task, or create
  * a new one. Returns the submission id + whatever content has been saved

@@ -43,3 +43,4 @@ credentials*.json
 supabase/.temp/
 
 # Keep project documentation versioned
+docs/

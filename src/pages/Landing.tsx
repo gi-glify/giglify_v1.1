@@ -216,26 +216,27 @@ export default function Landing() {
         <div data-aos="fade-right">
           <div className="inline-block mb-6">
             <span className="text-sm font-medium text-accent-green uppercase tracking-wide">
-              Microtasking, Done Right
+              Work and task posting, done right
             </span>
           </div>
           <h1 className="text-5xl md:text-6xl font-bold text-navy-900 dark:text-white mb-6 leading-tight">
-            Break Big Work Into Small Wins
+            Complete work. Post work. Grow faster.
           </h1>
           <p className="text-xl text-slate-text dark:text-slate-300 mb-8 leading-relaxed">
-            Post tasks, get results. Giglify connects your project with
-            thousands of vetted workers ready to help you scale faster.
+            Giglify is a two-sided workspace for earning through focused tasks
+            and posting high-quality work to a vetted community. Turn projects
+            into measurable progress, one task at a time.
           </p>
           <div className="flex gap-4">
             <button
               onClick={() => navigate("/auth")}
               className="inline-flex items-center gap-2 px-8 py-3 text-base font-semibold text-navy-900 bg-primary-amber rounded-lg hover:bg-primary-amber-dark transition shadow-md"
             >
-              Get started
+              Find tasks
               <ArrowRight size={18} />
             </button>
-            <button className="inline-flex items-center gap-2 px-8 py-3 text-base font-semibold text-navy-900 dark:text-white bg-white dark:bg-slate-800 border-2 border-slate-border dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-              Learn more
+            <button onClick={() => navigate("/auth")} className="inline-flex items-center gap-2 px-8 py-3 text-base font-semibold text-navy-900 dark:text-white bg-white dark:bg-slate-800 border-2 border-slate-border dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+              Post a task
             </button>
           </div>
         </div>

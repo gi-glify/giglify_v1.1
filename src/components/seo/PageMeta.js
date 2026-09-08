@@ -17,6 +17,8 @@ const pages = {
     "/notifications": { title: "Notifications | Giglify", description: "Review your latest Giglify notifications.", private: true },
     "/settings": { title: "Settings | Giglify", description: "Manage your Giglify account settings.", private: true },
     "/thank-you": { title: "Thank you | Giglify", description: "Your message has been sent to the Giglify team." },
+    "/requester/apply": { title: "Requester KYC | Giglify", description: "Submit requester identity and task details for Giglify review." },
+    "/requester/tasks": { title: "Post a task | Giglify", description: "Submit a task draft for Giglify requester review." },
 };
 export default function PageMeta() {
     const { pathname } = useLocation();

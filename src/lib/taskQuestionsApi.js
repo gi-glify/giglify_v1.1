@@ -7,7 +7,7 @@ import { mapLegacyTaskRow, mapTaskRow } from './taskCatalog';
 export async function fetchTasks() {
     const { data, error } = await supabase
         .from('tasks')
-        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
+        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active, task_type')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
     if (error) {
@@ -16,7 +16,7 @@ export async function fetchTasks() {
         if (error.code === '42703' && /task_code/.test(error.message)) {
             const legacy = await supabase
                 .from('tasks')
-                .select('id, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
+                .select('id, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active, task_type')
                 .eq('is_active', true)
                 .order('created_at', { ascending: false });
             if (!legacy.error) {
@@ -34,7 +34,7 @@ export async function fetchTasks() {
 export async function fetchTaskByCode(taskCode) {
     const { data, error } = await supabase
         .from('tasks')
-        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, field, device, is_active')
+        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, field, device, is_active, task_type, context')
         .eq('task_code', taskCode)
         .single();
     if (error) {
@@ -47,13 +47,19 @@ export async function fetchTaskByCode(taskCode) {
 export async function fetchTaskQuestions(taskCode) {
     const { data, error } = await supabase
         .from('task_question_prompts')
-        .select('id, task_code, question_number, question_text')
+        .select('id, task_code, question_number, question_text, question_type, context, options')
         .eq('task_code', taskCode)
         .order('question_number', { ascending: true });
     if (error) {
         console.error('fetchTaskQuestions error:', error.message);
         return [];
     }
+    return data;
+}
+export async function validateMcqAnswer(input) {
+    const { data, error } = await supabase.functions.invoke('validate-mcq-answer', { body: input });
+    if (error)
+        throw new Error(error.message || 'Unable to validate answer');
     return data;
 }
 /**

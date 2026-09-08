@@ -15,7 +15,7 @@ import type {
 export async function fetchTasks(): Promise<{ tasks: TaskCatalogItem[]; error: Error | null }> {
   const { data, error } = await supabase
     .from('tasks')
-    .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
+    .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active, task_type')
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
@@ -25,7 +25,7 @@ export async function fetchTasks(): Promise<{ tasks: TaskCatalogItem[]; error: E
     if (error.code === '42703' && /task_code/.test(error.message)) {
       const legacy = await supabase
         .from('tasks')
-        .select('id, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
+        .select('id, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active, task_type')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -46,7 +46,7 @@ export async function fetchTasks(): Promise<{ tasks: TaskCatalogItem[]; error: E
 export async function fetchTaskByCode(taskCode: string): Promise<TaskWithCode | null> {
   const { data, error } = await supabase
     .from('tasks')
-    .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, field, device, is_active')
+    .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, field, device, is_active, task_type, context')
     .eq('task_code', taskCode)
     .single();
 
@@ -61,7 +61,7 @@ export async function fetchTaskByCode(taskCode: string): Promise<TaskWithCode | 
 export async function fetchTaskQuestions(taskCode: string): Promise<TaskQuestion[]> {
   const { data, error } = await supabase
     .from('task_question_prompts')
-    .select('id, task_code, question_number, question_text')
+    .select('id, task_code, question_number, question_text, question_type, context, options')
     .eq('task_code', taskCode)
     .order('question_number', { ascending: true });
 
@@ -70,6 +70,12 @@ export async function fetchTaskQuestions(taskCode: string): Promise<TaskQuestion
     return [];
   }
   return data as TaskQuestion[];
+}
+
+export async function validateMcqAnswer(input: { taskCode: string; questionNumber: number; answer: string }) {
+  const { data, error } = await supabase.functions.invoke('validate-mcq-answer', { body: input });
+  if (error) throw new Error(error.message || 'Unable to validate answer');
+  return data as { correct: boolean; correctAnswer?: string; feedback: string };
 }
 
 /**

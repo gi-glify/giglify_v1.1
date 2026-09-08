@@ -8,6 +8,7 @@ export function mapTaskRow(row) {
         reward: Number(row.reward),
         estimatedTime: row.estimated_time_minutes,
         difficulty: row.difficulty,
+        ...(row.task_type ? { taskType: row.task_type } : {}),
         device: row.device,
         requiresDesktop: row.requires_desktop,
         status: 'available',

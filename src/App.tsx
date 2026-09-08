@@ -28,6 +28,8 @@ import AboutPage from "./pages/About";
 import ConsentGate from "./components/auth/ConsentGate";
 import NotFoundPage from "./pages/NotFound";
 import ThankYouPage from "./pages/ThankYou";
+import RequesterKycPage from "./pages/RequesterKyc";
+import RequesterTasksPage from "./pages/RequesterTasks";
 import PageMeta from "./components/seo/PageMeta";
 import CookieBanner from "./components/privacy/CookieBanner";
 import { rememberRoute } from "./utils/routeMemory";
@@ -66,6 +68,8 @@ function AuthedRoutes() {
         <Route path="/terms" element={<AboutPage />} />
         <Route path="/contact" element={<AboutPage />} />
         <Route path="/data-policy" element={<AboutPage />} />
+        <Route path="/requester/apply" element={<RequesterKycPage />} />
+        <Route path="/requester/tasks" element={<RequesterTasksPage />} />
         <Route path="/thank-you" element={<ThankYouPage />} />
         <Route path="*" element={<NotFoundPage />} />
         </Routes>
@@ -135,6 +139,8 @@ function App() {
             <Route path="/terms" element={<AboutPage />} />
             <Route path="/contact" element={<AboutPage />} />
             <Route path="/data-policy" element={<AboutPage />} />
+            <Route path="/requester/apply" element={<RequesterKycPage />} />
+            <Route path="/requester/tasks" element={<RequesterTasksPage />} />
             <Route path="/thank-you" element={<ThankYouPage />} />
             {!user ? (
               <>

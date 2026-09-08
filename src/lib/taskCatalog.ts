@@ -2,8 +2,9 @@ import type { Task } from '../types';
 
 export interface TaskCatalogItem extends Omit<Task, 'category' | 'difficulty'> {
   taskCode: string | null;
-  category: 'academic' | 'rlhf' | 'data-verification';
+  category: 'academic' | 'ai-training' | 'coding' | 'data-labeling' | 'design' | 'research' | 'translation' | 'writing' | 'rlhf' | 'data-verification';
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  taskType?: 'mcq' | 'saq';
   device: 'any' | 'mobile' | 'desktop';
 }
 
@@ -19,6 +20,7 @@ export interface TaskRow {
   device: TaskCatalogItem['device'];
   requires_desktop: boolean;
   is_active: boolean;
+  task_type?: 'mcq' | 'saq';
 }
 
 export type LegacyTaskRow = Omit<TaskRow, 'task_code' | 'field'>;
@@ -33,6 +35,7 @@ export function mapTaskRow(row: TaskRow): TaskCatalogItem {
     reward: Number(row.reward),
     estimatedTime: row.estimated_time_minutes,
     difficulty: row.difficulty,
+    ...(row.task_type ? { taskType: row.task_type } : {}),
     device: row.device,
     requiresDesktop: row.requires_desktop,
     status: 'available',

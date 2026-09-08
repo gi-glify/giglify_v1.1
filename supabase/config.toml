@@ -19,6 +19,9 @@ verify_jwt = false
 [functions.contact-team]
 verify_jwt = false
 
+[functions.process-requester-applications]
+verify_jwt = false
+
 [functions.create-verification-payment]
 verify_jwt = true
 

@@ -29,7 +29,7 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  category: 'academic' | 'rlhf';
+  category: 'academic' | 'ai-training' | 'coding' | 'data-labeling' | 'design' | 'research' | 'translation' | 'writing' | 'rlhf' | 'data-verification';
   reward: number;
   estimatedTime: number;
   difficulty: 'easy' | 'medium' | 'hard';

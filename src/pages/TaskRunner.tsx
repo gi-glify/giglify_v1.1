@@ -13,6 +13,7 @@ import {
   getOrCreateSubmission,
   saveAnswerProgress,
   finalizeSubmission,
+  validateMcqAnswer,
 } from "../lib/taskQuestionsApi";
 import type {
   TaskQuestion,
@@ -37,6 +38,7 @@ export default function TaskRunnerPage() {
   const [index, setIndex] = useState(0);
   const [response, setResponse] = useState("");
   const [done, setDone] = useState(false);
+  const [validation, setValidation] = useState<{ correct: boolean; feedback: string } | null>(null);
 
   useEffect(() => {
     if (!taskCode || !user) return;
@@ -92,7 +94,8 @@ export default function TaskRunnerPage() {
     const existing = answers.find(
       (a) => a.question_number === q.question_number,
     );
-    setResponse(existing?.response ?? "");
+      setResponse(existing?.response ?? "");
+    setValidation(null);
   }, [index, questions, answers]);
 
   if (!user) {
@@ -213,6 +216,10 @@ export default function TaskRunnerPage() {
         <h1 className="font-display text-xl">{task.title}</h1>
         <span className="badge badge-blue">{task.task_code}</span>
       </div>
+      <div className="card mb-4" data-aos="fade-up">
+        <p className="text-sm font-semibold mb-2">Task context</p>
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>{task.context || task.description}</p>
+      </div>
       <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>
         Question {index + 1} of {questions.length} · {answeredCount} saved so
         far
@@ -240,17 +247,29 @@ export default function TaskRunnerPage() {
         })}
       </div>
 
-      <div className="card mb-4">
+      <div className="card mb-4" data-aos="fade-up" data-aos-delay="80">
         <p className="text-sm font-semibold mb-3">{q.question_text}</p>
+        {q.question_type === "mcq" ? (
+          <div className="space-y-2">
+            {q.options.map((option) => (
+              <label key={option.key} className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${response === option.key ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20" : "border-[var(--border)]"}`}>
+                <input type="radio" name={`question-${q.question_number}`} value={option.key} checked={response === option.key} onChange={(event) => setResponse(event.target.value)} className="mt-1" />
+                <span><strong>{option.key}.</strong> {option.label}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <textarea
+            value={response}
+            onChange={(e) => setResponse(e.target.value)}
+            onBlur={() => persist()}
+            placeholder="Write your answer here…"
+            rows={5}
+            className="input-field w-full resize-none"
+          />
+        )}
 
-        <textarea
-          value={response}
-          onChange={(e) => setResponse(e.target.value)}
-          onBlur={() => persist()}
-          placeholder="Write your answer here…"
-          rows={5}
-          className="input-field w-full resize-none"
-        />
+        {validation && <div className={`alert ${validation.correct ? "alert-success" : "alert-warning"} mt-4`}>{validation.feedback}</div>}
 
         <p className="text-xs mt-3" style={{ color: "var(--text-muted)" }}>
           Your response will be compared with the task rubric after submission.
@@ -266,7 +285,19 @@ export default function TaskRunnerPage() {
           Previous
         </button>
         <button
-          onClick={goNext}
+          onClick={async () => {
+            if (q.question_type === "mcq") {
+              try {
+                const result = await validateMcqAnswer({ taskCode: task.task_code, questionNumber: q.question_number, answer: response });
+                setValidation(result);
+                if (!result.correct) return;
+              } catch (error) {
+                setValidation({ correct: false, feedback: error instanceof Error ? error.message : "Unable to validate this answer." });
+                return;
+              }
+            }
+            await goNext();
+          }}
           disabled={!response.trim()}
           className="btn-primary text-sm flex items-center gap-1 disabled:opacity-40"
         >

@@ -10,6 +10,16 @@ import type { TaskCatalogItem } from '../lib/taskCatalog';
 type TaskDevice = 'any' | 'mobile' | 'desktop';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard', 'expert'] as const;
+const CATEGORIES = [
+  { value: 'academic', label: 'Academic' },
+  { value: 'ai-training', label: 'AI training' },
+  { value: 'coding', label: 'Coding' },
+  { value: 'data-labeling', label: 'Data labeling' },
+  { value: 'design', label: 'Design' },
+  { value: 'research', label: 'Research' },
+  { value: 'translation', label: 'Translation' },
+  { value: 'writing', label: 'Writing' },
+] as const;
 const DEVICES: { value: TaskDevice; label: string; icon: typeof Globe2 }[] = [
   { value: 'any', label: 'Any device', icon: Globe2 },
   { value: 'mobile', label: 'Mobile', icon: Smartphone },
@@ -28,6 +38,7 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [difficulty, setDifficulty] = useState<Set<string>>(new Set());
+  const [category, setCategory] = useState<Set<string>>(new Set());
   const [device, setDevice] = useState<Set<TaskDevice>>(new Set());
   const [payBand, setPayBand] = useState<Set<string>>(new Set());
 
@@ -54,16 +65,18 @@ export default function TasksPage() {
   const clearFilters = () => {
     setSearch('');
     setDifficulty(new Set());
+    setCategory(new Set());
     setDevice(new Set());
     setPayBand(new Set());
   };
 
-  const hasFilters = Boolean(search.trim()) || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
+  const hasFilters = Boolean(search.trim()) || category.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
 
   const filtered = useMemo(() => {
     return tasks.filter((task) => {
       const q = search.trim().toLowerCase();
       if (q && !task.title.toLowerCase().includes(q) && !task.description.toLowerCase().includes(q)) return false;
+      if (category.size && !category.has(task.category)) return false;
       if (difficulty.size && !difficulty.has(task.difficulty)) return false;
       // "Any device" is an unrestricted option, not a task device value.
       if (device.size && !device.has('any') && !device.has(task.device)) return false;
@@ -118,6 +131,21 @@ export default function TasksPage() {
           >
             All tasks
           </button>
+
+          <div>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Category</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {CATEGORIES.map((item) => (
+                <button
+                  key={item.value}
+                  onClick={() => toggle(category, item.value, setCategory)}
+                  className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${category.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div>
             <p className="text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Difficulty</p>
@@ -201,7 +229,8 @@ export default function TasksPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h3 className="font-semibold">{task.title}</h3>
-                      <span className={`badge ${task.category === 'academic' ? 'badge-blue' : 'badge-purple'}`}>{task.category}</span>
+                      <span className={`badge ${task.category === 'academic' || task.category === 'research' ? 'badge-blue' : 'badge-purple'}`}>{task.category.replace('-', ' ')}</span>
+                      <span className="badge badge-yellow">{task.taskType?.toUpperCase() || 'SAQ'}</span>
                       <span className={`badge ${task.difficulty === 'easy' ? 'badge-green' : task.difficulty === 'medium' ? 'badge-yellow' : 'badge-red'}`}>
                         {task.difficulty}
                       </span>

@@ -3,19 +3,27 @@ export interface TaskQuestion {
     task_code: string;
     question_number: number;
     question_text: string;
+    question_type: 'mcq' | 'saq';
+    context: string;
+    options: Array<{
+        key: string;
+        label: string;
+    }>;
 }
 export interface TaskWithCode {
     id: string;
     task_code: string;
     title: string;
     description: string;
-    category: 'academic' | 'rlhf' | 'data-verification';
+    category: 'academic' | 'ai-training' | 'coding' | 'data-labeling' | 'design' | 'research' | 'translation' | 'writing' | 'rlhf' | 'data-verification';
     reward: number;
     estimated_time_minutes: number;
     difficulty: 'easy' | 'medium' | 'hard' | 'expert';
     field: string | null;
     device: 'any' | 'mobile' | 'desktop';
     is_active: boolean;
+    task_type: 'mcq' | 'saq';
+    context: string;
 }
 export interface QuestionRunAnswer {
     question_number: number;
