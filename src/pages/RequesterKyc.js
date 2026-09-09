@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { supabase } from "../utils/supabase";
 import { useAuthStore } from "../store/authStore";
+import AOS from "aos";
+import "aos/dist/aos.css";
 export default function RequesterKycPage() {
     const user = useAuthStore((state) => state.user);
     const [application, setApplication] = useState(null);
@@ -11,6 +13,10 @@ export default function RequesterKycPage() {
     const [document, setDocument] = useState(null);
     const [state, setState] = useState("idle");
     const [error, setError] = useState("");
+    useEffect(() => {
+        AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
+        AOS.refreshHard();
+    }, []);
     useEffect(() => {
         if (!user)
             return;

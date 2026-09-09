@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../utils/supabase";
 import { useAuthStore } from "../store/authStore";
+import AOS from "aos";
+import "aos/dist/aos.css";
 const CATEGORIES = ["academic", "ai-training", "coding", "data-labeling", "design", "research", "translation", "writing"];
 export default function RequesterTasksPage() {
     const user = useAuthStore((state) => state.user);
@@ -21,6 +23,10 @@ export default function RequesterTasksPage() {
         setEligible(["review-ready", "approved"].includes(application?.status || ""));
         setDrafts(existing || []);
     }
+    useEffect(() => {
+        AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
+        AOS.refreshHard();
+    }, []);
     useEffect(() => { load(); }, [user?.id]);
     async function submit(event) {
         event.preventDefault();

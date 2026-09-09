@@ -42,6 +42,9 @@ service-account*.json
 credentials*.json
 supabase/.temp/
 
+# Separate admin application repository
+/giglify-admin/
+
 # Documentation is kept locally and must not be pushed.
 *.md
 *.markdown

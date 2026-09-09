@@ -1,4 +1,4 @@
-export type SocialProviderId = 'google' | 'facebook' | 'twitter';
+export type SocialProviderId = 'google' | 'facebook' | 'github';
 export interface SocialProvider {
     id: SocialProviderId;
     label: string;

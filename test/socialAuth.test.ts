@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { SOCIAL_PROVIDERS, getSocialProvider } from '../src/utils/socialAuth.ts';
 
 test('defines the three supported social login providers', () => {
-  assert.deepEqual(SOCIAL_PROVIDERS.map((provider) => provider.id), ['google', 'facebook', 'twitter']);
-  assert.equal(getSocialProvider('twitter')?.label, 'X');
+  assert.deepEqual(SOCIAL_PROVIDERS.map((provider) => provider.id), ['google', 'facebook', 'github']);
+  assert.equal(getSocialProvider('github')?.label, 'GitHub');
   assert.equal(getSocialProvider('facebook')?.label, 'Facebook');
 });
 
