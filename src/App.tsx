@@ -68,28 +68,28 @@ function AuthedRoutes() {
     <AppLayout>
       <ConsentGate>
         <Routes>
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/tasks" element={<TasksPage />} />
-        <Route path="/task-tracking" element={<TaskTrackingPage />} />
-        <Route path="/tasks/:taskCode" element={<TaskRunnerPage />} />
-        <Route path="/verify" element={<VerifyPage />} />
-        <Route path="/deposit" element={<DepositPage />} />
-        <Route path="/financials" element={<FinancialsPage />} />
-        <Route path="/admin/payments" element={<AdminPaymentsPage />} />
-        <Route path="/profile" element={<ProfileCompletionPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/privacy" element={<AboutPage />} />
-        <Route path="/terms" element={<TermsOfUsePage />} />
-        <Route path="/terms-of-use" element={<TermsOfUsePage />} />
-        <Route path="/contact" element={<AboutPage />} />
-        <Route path="/data-policy" element={<AboutPage />} />
-        <Route path="/requester/apply" element={<RequesterKycPage />} />
-        <Route path="/requester/tasks" element={<RequesterTasksPage />} />
-        <Route path="/thank-you" element={<ThankYouPage />} />
-        <Route path="*" element={<NotFoundPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/task-tracking" element={<TaskTrackingPage />} />
+          <Route path="/tasks/:taskCode" element={<TaskRunnerPage />} />
+          <Route path="/verify" element={<VerifyPage />} />
+          <Route path="/deposit" element={<DepositPage />} />
+          <Route path="/financials" element={<FinancialsPage />} />
+          <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+          <Route path="/profile" element={<ProfileCompletionPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/privacy" element={<AboutPage />} />
+          <Route path="/terms" element={<TermsOfUsePage />} />
+          <Route path="/terms-of-use" element={<TermsOfUsePage />} />
+          <Route path="/contact" element={<AboutPage />} />
+          <Route path="/data-policy" element={<AboutPage />} />
+          <Route path="/requester/apply" element={<RequesterKycPage />} />
+          <Route path="/requester/tasks" element={<RequesterTasksPage />} />
+          <Route path="/thank-you" element={<ThankYouPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </ConsentGate>
     </AppLayout>
@@ -150,8 +150,13 @@ function App() {
         <PageMeta />
         <RouteMemory user={Boolean(user)} />
         <CookieBanner />
-        {loading ? <Routes><Route path="*" element={<AuthLoadingScreen />} /></Routes> : (
+        {loading ? (
           <Routes>
+            <Route path="*" element={<AuthLoadingScreen />} />
+          </Routes>
+        ) : (
+          <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/privacy" element={<AboutPage />} />
@@ -162,13 +167,13 @@ function App() {
             <Route path="/requester/apply" element={<RequesterKycPage />} />
             <Route path="/requester/tasks" element={<RequesterTasksPage />} />
             <Route path="/thank-you" element={<ThankYouPage />} />
-            {!user ? (
-              <>
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="*" element={verificationEmail ? <Navigate to="/auth?verify=1" replace /> : <NotFoundPage />} />
-              </>
-            ) : (
+            <Route path="/auth" element={<AuthPage />} />
+
+            {/* Protected Routes */}
+            {user ? (
               <Route path="/*" element={<AuthedRoutes />} />
+            ) : (
+              <Route path="*" element={verificationEmail ? <Navigate to="/auth?verify=1" replace /> : <NotFoundPage />} />
             )}
           </Routes>
         )}
