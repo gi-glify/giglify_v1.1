@@ -20,7 +20,7 @@ export default function HelpLinks() {
         <Link to="/about#data-policy" className="inline-flex items-center gap-1.5 hover:underline">
           <FileText size={14} /> Data policy
         </Link>
-        <Link to="/about#terms" className="inline-flex items-center gap-1.5 hover:underline">
+        <Link to="/terms-of-use" className="inline-flex items-center gap-1.5 hover:underline">
           <ExternalLink size={14} /> Terms
         </Link>
       </div>

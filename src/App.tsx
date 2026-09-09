@@ -27,6 +27,7 @@ import ProfileCompletionPage from "./pages/ProfileCompletion";
 import NotificationsPage from "./pages/Notifications";
 import SettingsPage from "./pages/Settings";
 import AboutPage from "./pages/About";
+import TermsOfUsePage from "./pages/TermsOfUse";
 import ConsentGate from "./components/auth/ConsentGate";
 import NotFoundPage from "./pages/NotFound";
 import ThankYouPage from "./pages/ThankYou";
@@ -81,7 +82,8 @@ function AuthedRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/privacy" element={<AboutPage />} />
-        <Route path="/terms" element={<AboutPage />} />
+        <Route path="/terms" element={<TermsOfUsePage />} />
+        <Route path="/terms-of-use" element={<TermsOfUsePage />} />
         <Route path="/contact" element={<AboutPage />} />
         <Route path="/data-policy" element={<AboutPage />} />
         <Route path="/requester/apply" element={<RequesterKycPage />} />
@@ -153,7 +155,8 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/privacy" element={<AboutPage />} />
-            <Route path="/terms" element={<AboutPage />} />
+            <Route path="/terms" element={<TermsOfUsePage />} />
+            <Route path="/terms-of-use" element={<TermsOfUsePage />} />
             <Route path="/contact" element={<AboutPage />} />
             <Route path="/data-policy" element={<AboutPage />} />
             <Route path="/requester/apply" element={<RequesterKycPage />} />

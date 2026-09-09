@@ -10,6 +10,7 @@ const pages: Record<string, { title: string; description: string; private?: bool
   "/about": { title: "About, privacy and terms | Giglify", description: "Learn how Giglify handles privacy, data, terms, and support." },
   "/privacy": { title: "Privacy policy | Giglify", description: "Read the Giglify privacy policy and learn how account and task data is handled." },
   "/terms": { title: "Terms of use | Giglify", description: "Read the Giglify terms of use for accounts, tasks, grading, and payments." },
+  "/terms-of-use": { title: "Terms of use | Giglify", description: "Read the public Giglify terms of use for workers, requesters, accounts, tasks, grading, and payments." },
   "/contact": { title: "Contact Giglify | Giglify", description: "Contact the Giglify team for account, task, payment, or privacy support." },
   "/data-policy": { title: "Data policy | Giglify", description: "Learn how Giglify stores and uses account, task, and payment data." },
   "/dashboard": { title: "Dashboard | Giglify", description: "View your Giglify earnings, progress, and available tasks.", private: true },

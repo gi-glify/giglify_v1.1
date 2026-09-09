@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { supabase } from "../../utils/supabase";
 
-export const TERMS_VERSION = "2026-09-06";
+export const TERMS_VERSION = "2026-09-09";
 
 export default function ConsentGate({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
@@ -52,7 +52,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
       <section className="card max-w-lg w-full shadow-2xl" data-aos="zoom-in" role="dialog" aria-modal="true" aria-labelledby="consent-title">
         <h1 id="consent-title" className="font-display text-2xl mb-3">Before you continue</h1>
         <p className="text-sm mb-4" style={{ color: "var(--text-muted)" }}>By using Giglify, you agree to our Terms of Use, Privacy Policy, and Data Policy. Your consent is saved to your account with the current policy version.</p>
-        <Link to="/about" target="_blank" className="text-sm text-brand-600 dark:text-brand-300 font-semibold">Read the full policies</Link>
+        <Link to="/terms-of-use" target="_blank" className="text-sm text-brand-600 dark:text-brand-300 font-semibold">Read the full terms and policies</Link>
         <label className="flex items-start gap-3 mt-5 text-sm">
           <input type="checkbox" checked={checked} onChange={(event) => setChecked(event.target.checked)} className="mt-1" />
           <span>I agree to the Giglify terms and policies.</span>

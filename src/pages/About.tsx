@@ -73,6 +73,7 @@ export default function AboutPage() {
         <section className="card" data-aos="fade-up">
           <h2 id="terms" className="font-display text-xl mb-2 scroll-mt-24">Terms of use</h2>
           <div className="text-sm space-y-2" style={{ color: "var(--text-muted)" }}>
+            <p>Read the complete, public <a href="/terms-of-use" className="text-brand-600 dark:text-brand-300 font-semibold hover:underline">Giglify Terms of Use</a> before creating an account or using the service.</p>
             <p>Use one honest account, provide accurate information, submit original work, and follow each task's instructions.</p>
             <p>Giglify may review, reject, or hold submissions and payments when work is incomplete, duplicated, abusive, fraudulent, or requires manual review.</p>
             <p>Payments are governed by the published grading thresholds, verification requirements, payout rules, and applicable provider terms.</p>
