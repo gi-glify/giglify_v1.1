@@ -25,7 +25,9 @@ Deno.serve(async (req) => {
       const status = action === "approve" ? "verified" : "rejected";
       const { data: deposit, error } = await db.from("verification_deposits").select("id, user_id, payout_account_id, status, verified_at").eq("id", entityId).single();
       if (error) throw error;
-      const { error: depositUpdateError } = await db.from("verification_deposits").update({ status, verified_at: status === "verified" ? new Date().toISOString() : null }).eq("id", entityId);
+      if (!['pending', 'held', 'created'].includes(deposit.status)) throw new HttpError("Verification deposit is already resolved", 409, "stale_record");
+      if (action === "reject" && !note) throw new HttpError("A rejection reason is required", 400, "reason_required");
+      const { error: depositUpdateError } = await db.from("verification_deposits").update({ status, verified_at: status === "verified" ? new Date().toISOString() : null }).eq("id", entityId).eq("status", deposit.status);
       if (depositUpdateError) throw depositUpdateError;
       const { error: profileUpdateError } = await db.from("profiles").update({ payment_verification_status: status === "verified" ? "verified" : "rejected", payment_verified_at: status === "verified" ? new Date().toISOString() : null }).eq("id", deposit.user_id);
       if (profileUpdateError) throw profileUpdateError;
@@ -66,10 +68,21 @@ Deno.serve(async (req) => {
     }
 
     if (action !== "approve" && action !== "reject" && action !== "mark_paid") throw new HttpError("Invalid payout action", 400, "validation_error");
+    if (action === "reject" && !note) throw new HttpError("A rejection reason is required", 400, "reason_required");
     const nextStatus = action === "approve" ? "approved" : action === "mark_paid" ? "paid" : "rejected";
-    const { data: payout, error: payoutError } = await db.from("payout_requests").select("id, user_id, status, admin_note, reviewed_by, reviewed_at, paid_at").eq("id", entityId).single();
+    const { data: payout, error: payoutError } = await db.from("payout_requests").select("id, user_id, payout_account_id, amount, status, admin_note, reviewed_by, reviewed_at, paid_at, provider_event_id, reconciled_at").eq("id", entityId).single();
     if (payoutError) throw payoutError;
-    const { error: updateError } = await db.from("payout_requests").update({ status: nextStatus, admin_note: note || null, reviewed_by: user.id, reviewed_at: new Date().toISOString(), paid_at: nextStatus === "paid" ? new Date().toISOString() : null }).eq("id", entityId);
+    if (action === "approve" && !['requested', 'under_review'].includes(payout.status)) throw new HttpError("Payout is not awaiting approval", 409, "stale_record");
+    if (action === "reject" && ['paid', 'rejected', 'cancelled'].includes(payout.status)) throw new HttpError("Payout is already resolved", 409, "stale_record");
+    const providerEventId = typeof body?.providerEventId === "string" ? body.providerEventId.trim() : "";
+    if (action === "mark_paid") {
+      if (payout.status !== "approved") throw new HttpError("Only approved payouts can be marked paid", 409, "stale_record");
+      if (!providerEventId) throw new HttpError("A reconciled provider event is required", 400, "provider_confirmation_required");
+      const { data: providerEvent, error: providerEventError } = await db.from("payment_provider_events").select("id, event_id, event_type, processed_at").eq("event_id", providerEventId).not("processed_at", "is", null).maybeSingle();
+      if (providerEventError) throw providerEventError;
+      if (!providerEvent) throw new HttpError("Provider event has not been reconciled", 409, "provider_confirmation_required");
+    }
+    const { error: updateError } = await db.from("payout_requests").update({ status: nextStatus, admin_note: note || null, reviewed_by: user.id, reviewed_at: new Date().toISOString(), paid_at: nextStatus === "paid" ? new Date().toISOString() : null, provider_event_id: action === "mark_paid" ? providerEventId : payout.provider_event_id, reconciled_at: action === "mark_paid" ? new Date().toISOString() : payout.reconciled_at }).eq("id", entityId).eq("status", payout.status);
     if (updateError) throw updateError;
     await audit(db, {
       eventType: action === "mark_paid" ? "payout_paid" : `payout_${action}d`,
