@@ -376,11 +376,11 @@ export default function AuthPage() {
             </button>
             <button
               type="button"
-              onClick={() => handleSocialSignIn("facebook", "Facebook")}
-              className="w-full btn-secondary py-3 rounded-lg font-semibold hover:shadow-lg flex items-center justify-center gap-3"
+              disabled
+              className="w-full btn-secondary py-3 rounded-lg font-semibold hover:shadow-lg flex items-center justify-center gap-3 disabled:opacity-50 cursor-not-allowed"
             >
               <FaFacebookF className="w-5 h-5 shrink-0 text-[#1877F2]" />
-              <span>Sign in with Facebook</span>
+              <span>Coming soon</span>
             </button>
             <button
               type="button"
