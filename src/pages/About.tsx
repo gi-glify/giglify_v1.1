@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { CheckCircle2, Mail, ShieldCheck } from "lucide-react";
 import { supabase } from "../utils/supabase";
 import { useAuthStore } from "../store/authStore";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 export const TEAM_EMAIL = import.meta.env.VITE_TEAM_EMAIL || "team@giglify.com";
 
@@ -14,6 +16,11 @@ export default function AboutPage() {
   const [email, setEmail] = useState(user?.email || "");
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  useEffect(() => {
+    AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
+    AOS.refreshHard();
+  }, []);
 
   useEffect(() => {
     if (location.hash) {
