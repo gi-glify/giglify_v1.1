@@ -1,3 +1,4 @@
+import type { SocialProviderId } from './socialAuth';
 export declare const supabase: import("@supabase/supabase-js").SupabaseClient<any, "public", "public", any, any>;
 export declare const signUpWithEmail: (email: string, password: string, firstName: string, lastName: string) => Promise<{
     data: {
@@ -27,6 +28,18 @@ export declare const signInWithEmail: (email: string, password: string) => Promi
         user: null;
         session: null;
         weakPassword?: null | undefined;
+    };
+    error: import("@supabase/auth-js").AuthError | null;
+}>;
+export declare const signInWithSocial: (provider: SocialProviderId) => Promise<{
+    data: {
+        provider: import("@supabase/auth-js").Provider;
+        url: string;
+        flowId?: string | null;
+    } | {
+        provider: import("@supabase/auth-js").Provider;
+        url: null;
+        flowId?: string | null;
     };
     error: import("@supabase/auth-js").AuthError | null;
 }>;

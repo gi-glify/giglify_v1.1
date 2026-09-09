@@ -4,13 +4,15 @@ import { useAuthStore } from "../store/authStore";
 import {
   signUpWithEmail,
   signInWithEmail,
-  signInWithGoogle,
+  signInWithSocial,
   resendSignupConfirmation,
   requestPasswordReset,
   updatePassword,
 } from "../utils/supabase";
 import { Moon, Sun } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
+import { FaFacebookF, FaXTwitter } from "react-icons/fa6";
+import type { SocialProviderId } from "../utils/socialAuth";
 import { useTheme } from "../context/ThemeContext";
 import PasswordInput from "../components/ui/PasswordInput";
 
@@ -129,13 +131,13 @@ export default function AuthPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleSocialSignIn = async (provider: SocialProviderId, label: string) => {
     setError("");
     try {
-      const { error: authError } = await signInWithGoogle();
+      const { error: authError } = await signInWithSocial(provider);
       if (authError) throw authError;
     } catch (err: any) {
-      setError(err.message || "Google sign in failed");
+      setError(err.message || `${label} sign in failed`);
     }
   };
 
@@ -359,11 +361,27 @@ export default function AuthPage() {
             </button>
             <button
               type="button"
-              onClick={handleGoogleSignIn}
+              onClick={() => handleSocialSignIn("google", "Google")}
               className="w-full btn-secondary py-3 rounded-lg font-semibold hover:shadow-lg flex items-center justify-center gap-3"
             >
              <FcGoogle className="w-5 h-5 shrink-0 text-xl" style={{ display: 'inline-block' }} />
               <span>Sign in with Google</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSocialSignIn("facebook", "Facebook")}
+              className="w-full btn-secondary py-3 rounded-lg font-semibold hover:shadow-lg flex items-center justify-center gap-3"
+            >
+              <FaFacebookF className="w-5 h-5 shrink-0 text-[#1877F2]" />
+              <span>Sign in with Facebook</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSocialSignIn("twitter", "X")}
+              className="w-full btn-secondary py-3 rounded-lg font-semibold hover:shadow-lg flex items-center justify-center gap-3"
+            >
+              <FaXTwitter className="w-5 h-5 shrink-0" />
+              <span>Continue with X</span>
             </button>
             <button
               type="button"

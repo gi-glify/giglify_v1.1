@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getEmailRedirectUrl } from './authFlows';
+import type { SocialProviderId } from './socialAuth';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -47,15 +48,17 @@ export const signInWithEmail = async (email: string, password: string) => {
   return { data, error };
 };
 
-export const signInWithGoogle = async () => {
+export const signInWithSocial = async (provider: SocialProviderId) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider,
     options: {
       redirectTo: `${window.location.origin}/auth/callback`
     }
   });
   return { data, error };
 };
+
+export const signInWithGoogle = () => signInWithSocial('google');
 
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut();

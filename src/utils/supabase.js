@@ -39,15 +39,16 @@ export const signInWithEmail = async (email, password) => {
     });
     return { data, error };
 };
-export const signInWithGoogle = async () => {
+export const signInWithSocial = async (provider) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider,
         options: {
             redirectTo: `${window.location.origin}/auth/callback`
         }
     });
     return { data, error };
 };
+export const signInWithGoogle = () => signInWithSocial('google');
 export const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     return { error };

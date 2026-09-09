@@ -1,8 +1,3 @@
-// New file — drop at: src/pages/TaskRunner.tsx
-// Does not modify Tasks.tsx, App.tsx, or any existing file. See the
-// integration section of docs/QUESTION_BANK_GUIDE.md for the one route + one
-// link you add by hand to wire this in.
-
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CheckCircle2, Circle } from "lucide-react";

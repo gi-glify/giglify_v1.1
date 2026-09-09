@@ -46,10 +46,10 @@ export default function DashboardPage() {
         <div className="card mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-brand-500/40 bg-brand-50/60 dark:bg-brand-950/20" data-aos="fade-up" data-aos-delay="40">
           <div>
             <h2 className="font-display text-xl mb-1">Have work that needs doing?</h2>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Apply to become a requester and post tasks for our vetted worker community.</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Turn your questions, research, and business workflows into paid tasks completed by Giglify’s vetted worker community.</p>
           </div>
           <Link to="/requester/apply" className="btn-primary inline-flex items-center gap-2 shrink-0">
-            Post a task <ArrowRight size={16} />
+            Create a task <ArrowRight size={16} />
           </Link>
         </div>
 
