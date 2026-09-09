@@ -250,6 +250,25 @@ create table if not exists public.payment_audit_logs (
   created_at timestamptz not null default now()
 );
 
+-- Append-only audit trail for privileged admin operations.
+create table if not exists public.admin_audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  actor_user_id uuid not null references auth.users(id) on delete restrict,
+  action text not null check (char_length(trim(action)) between 2 and 120),
+  entity_type text not null check (char_length(trim(entity_type)) between 2 and 120),
+  entity_id uuid,
+  before_json jsonb,
+  after_json jsonb,
+  reason text,
+  request_id text not null check (char_length(trim(request_id)) between 1 and 200),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists admin_audit_logs_actor_idx on public.admin_audit_logs(actor_user_id, created_at desc);
+create index if not exists admin_audit_logs_entity_idx on public.admin_audit_logs(entity_type, entity_id, created_at desc);
+create index if not exists admin_audit_logs_action_idx on public.admin_audit_logs(action, created_at desc);
+create index if not exists admin_audit_logs_created_idx on public.admin_audit_logs(created_at desc);
+
 create table if not exists public.payment_provider_events (
   id uuid primary key default uuid_generate_v4(),
   provider text not null check (provider in ('mpesa', 'paypal', 'stripe')),
@@ -485,6 +504,7 @@ alter table public.payout_accounts enable row level security;
 alter table public.verification_deposits enable row level security;
 alter table public.payout_requests enable row level security;
 alter table public.payment_audit_logs enable row level security;
+alter table public.admin_audit_logs enable row level security;
 alter table public.payment_provider_events enable row level security;
 alter table public.profile_edit_appeals enable row level security;
 alter table public.contact_messages enable row level security;
@@ -526,6 +546,7 @@ create policy "payout_accounts: read own" on public.payout_accounts for select u
 create policy "verification_deposits: read own" on public.verification_deposits for select using (auth.uid() = user_id);
 create policy "payout_requests: read own" on public.payout_requests for select using (auth.uid() = user_id);
 create policy "payment_audit_logs: read own" on public.payment_audit_logs for select using (auth.uid() = user_id);
+revoke all on public.admin_audit_logs from anon, authenticated;
 create policy "payment_provider_events: admin read" on public.payment_provider_events
   for select using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
 create policy "profile_edit_appeals: read own" on public.profile_edit_appeals for select using (auth.uid() = user_id or exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
