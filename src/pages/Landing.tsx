@@ -504,7 +504,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t border-navy-800 dark:border-slate-800 pt-8 flex md:flex-row flex-col justify-between items-center text-sm text-slate-400">
-            <p>&copy; 2024 Giglify. All rights reserved.</p>
+            <p>&copy; 2026 Giglify. All rights reserved.</p>
             <div className="flex gap-6 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition">
                 GitHub

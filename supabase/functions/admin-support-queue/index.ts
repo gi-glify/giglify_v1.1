@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
       if (!["users", "appeals", "messages"].includes(queue)) throw new HttpError("Invalid support queue", 400, "validation_error");
       const limit = bounded(body?.limit); const offset = Math.max(Number(body?.offset) || 0, 0); const search = typeof body?.search === "string" ? body.search.trim() : ""; const status = typeof body?.status === "string" ? body.status : "";
       if (queue === "users") {
-        let query = db.from("profiles").select("id, first_name, last_name, email, country, subscription, profile_completion_pct, payment_verification_status, is_admin, created_at, updated_at", { count: "exact" }).order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+        let query = db.from("profiles").select("id, first_name, last_name, email, country, subscription, payment_verification_status, is_admin, created_at, updated_at", { count: "exact" }).order("created_at", { ascending: false }).range(offset, offset + limit - 1);
         if (search) query = query.or(`email.ilike.%${search.replaceAll(',', '')}%,first_name.ilike.%${search.replaceAll(',', '')}%,last_name.ilike.%${search.replaceAll(',', '')}%`);
         const { data, error, count } = await query; if (error) throw error; return json({ queue, items: data ?? [], count: count ?? 0, limit, offset });
       }
