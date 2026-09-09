@@ -45,7 +45,23 @@ export default function AboutPage() {
           <article id="privacy" className="card scroll-mt-24" data-aos="fade-right">
             <ShieldCheck className="text-brand-600 dark:text-brand-300 mb-3" size={24} />
             <h2 className="font-display text-xl mb-2">Privacy policy</h2>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>We use account, profile, task, payment, and support data to provide Giglify services, protect accounts, review work, process payouts, and improve reliability. We do not sell personal data. Payment credentials are handled by the relevant payment provider.</p>
+            <div className="text-sm space-y-3" style={{ color: "var(--text-muted)" }}>
+              <p><strong style={{ color: "var(--text)" }}>Current policy:</strong> This Giglify privacy policy is published at <a className="text-brand-600 dark:text-brand-300 font-semibold hover:underline" href="https://giglify.co.ke/privacy">giglify.co.ke/privacy</a>, linked from the public homepage and displayed inside the app. It is the current policy for this application, not a template or sample.</p>
+              <p>We use account, profile, task, payment, and support data to provide Giglify services, protect accounts, review work, process payouts, and improve reliability. We do not sell personal data. Payment credentials are handled by the relevant payment provider.</p>
+              <section id="google-user-data" className="border-t pt-3 scroll-mt-24" style={{ borderColor: "var(--border)" }}>
+                <h3 className="font-semibold mb-2" style={{ color: "var(--text)" }}>Google user data</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong style={{ color: "var(--text)" }}>What we access:</strong> when you choose Google sign-in, Giglify receives the basic account information Google makes available, such as your email address, name, profile image, provider account identifier, and authentication status.</li>
+                  <li><strong style={{ color: "var(--text)" }}>How we use it:</strong> to create or sign you into your Giglify account, identify your profile, protect account access, support account recovery, and display your name or profile image within your account.</li>
+                  <li><strong style={{ color: "var(--text)" }}>How we store it:</strong> authentication records are stored by Supabase Auth and the associated Giglify profile data is stored in our Supabase database. Access is protected by authentication, row-level security, and administrative controls.</li>
+                  <li><strong style={{ color: "var(--text)" }}>How we share it:</strong> we do not sell Google user data or share it with advertisers. It may be processed by Supabase as our authentication/database provider and by other service providers only where necessary to operate Giglify, protect users, provide support, or meet legal obligations.</li>
+                  <li><strong style={{ color: "var(--text)" }}>What we do not do:</strong> Giglify does not use Google user data for unrelated advertising, credit decisions, or sale to third parties. Google user data is not used to infer sensitive characteristics.</li>
+                  <li><strong style={{ color: "var(--text)" }}>Retention and deletion:</strong> we retain account data while your account is active and for limited legal, security, fraud-prevention, dispute, and financial-record periods where required. You may request access, correction, or deletion by contacting <a className="text-brand-600 dark:text-brand-300 font-semibold hover:underline" href={`mailto:${TEAM_EMAIL}`}>{TEAM_EMAIL}</a>.</li>
+                </ul>
+              </section>
+              <p><strong style={{ color: "var(--text)" }}>Policy changes:</strong> if we change how Giglify accesses, uses, stores, or shares Google user data, we will update this policy, show an in-product notice, and request renewed consent where the change or applicable law requires it.</p>
+              <p className="text-xs">Last reviewed: September 9, 2026.</p>
+            </div>
           </article>
           <article id="data-policy" className="card scroll-mt-24" data-aos="fade-left">
             <CheckCircle2 className="text-brand-600 dark:text-brand-300 mb-3" size={24} />
