@@ -10,7 +10,7 @@ export default function TermsOfUsePage() {
         <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 dark:text-brand-300 hover:underline mb-8">
           <ArrowLeft size={16} /> Back to Giglify
         </Link>
-        <header className="card mb-6" data-aos="fade-down">
+        <header className="card mb-6">
           <div className="flex items-start gap-3">
             <FileText className="text-brand-600 dark:text-brand-300 shrink-0" size={26} />
             <div>
@@ -23,8 +23,8 @@ export default function TermsOfUsePage() {
         </header>
 
         <div className="space-y-5">
-          {TERMS_OF_USE_SECTIONS.map((section, index) => (
-            <section className="card" key={section.title} data-aos="fade-up" data-aos-delay={Math.min(index * 20, 120)}>
+          {TERMS_OF_USE_SECTIONS.map((section) => (
+            <section className="card" key={section.title}>
               <h2 className="font-display text-xl mb-3">{section.title}</h2>
               <div className="text-sm space-y-3" style={{ color: "var(--text-muted)" }}>
                 {section.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
