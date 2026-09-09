@@ -31,7 +31,18 @@ Deno.serve(async (req) => {
       if (search) query = query.ilike("id", `%${search}%`);
       const { data, error, count } = await query;
       if (error) throw error;
-      return json({ submissions: data ?? [], count: count ?? 0, limit, offset });
+      const rows = data ?? [];
+      const userIds = [...new Set(rows.map((row) => row.user_id))];
+      const taskIds = [...new Set(rows.map((row) => row.task_id))];
+      const [{ data: profiles, error: profilesError }, { data: tasks, error: tasksError }] = await Promise.all([
+        db.from("profiles").select("id, first_name, last_name").in("id", userIds),
+        db.from("tasks").select("id, title, task_code").in("id", taskIds),
+      ]);
+      if (profilesError) throw profilesError;
+      if (tasksError) throw tasksError;
+      const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+      const taskMap = new Map((tasks ?? []).map((task) => [task.id, task]));
+      return json({ submissions: rows.map((row) => ({ ...row, worker_name: [profileMap.get(row.user_id)?.first_name, profileMap.get(row.user_id)?.last_name].filter(Boolean).join(" ") || "Unnamed worker", task_name: taskMap.get(row.task_id)?.title || "Unavailable task", task_code: taskMap.get(row.task_id)?.task_code || null })), count: count ?? 0, limit, offset });
     }
     if (!allowedActions.includes(action)) throw new HttpError("Invalid submission action", 400, "validation_error");
     const submissionId = typeof body?.submissionId === "string" ? body.submissionId : "";

@@ -12,6 +12,10 @@ Deno.serve(async (req) => {
     if (typeof body?.entityType === "string" && body.entityType) query = query.eq("entity_type", body.entityType);
     if (typeof body?.entityId === "string" && body.entityId) query = query.eq("entity_id", body.entityId);
     if (typeof body?.requestId === "string" && body.requestId) query = query.eq("request_id", body.requestId);
-    const { data, error, count } = await query; if (error) throw error; return json({ entries: data ?? [], count: count ?? 0, limit, offset });
+    const { data, error, count } = await query; if (error) throw error;
+    const rows = data ?? []; const actorIds = [...new Set(rows.map((entry) => entry.actor_user_id))];
+    const { data: actors, error: actorsError } = await db.from("profiles").select("id, first_name, last_name, email").in("id", actorIds); if (actorsError) throw actorsError;
+    const actorMap = new Map((actors ?? []).map((actor) => [actor.id, actor]));
+    return json({ entries: rows.map((entry) => ({ ...entry, actor_email: actorMap.get(entry.actor_user_id)?.email || null, actor_name: [actorMap.get(entry.actor_user_id)?.first_name, actorMap.get(entry.actor_user_id)?.last_name].filter(Boolean).join(" ") || null })), count: count ?? 0, limit, offset });
   } catch (error) { return error instanceof SyntaxError ? errorResponse({ message: "Invalid JSON body", status: 400, code: "invalid_json" } as never) : errorResponse(error); }
 });
