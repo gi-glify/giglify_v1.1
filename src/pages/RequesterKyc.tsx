@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { supabase } from "../utils/supabase";
 import { useAuthStore } from "../store/authStore";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 type Application = { status: string; review_available_at: string; admin_note: string | null };
 
@@ -13,6 +15,11 @@ export default function RequesterKycPage() {
   const [document, setDocument] = useState<File | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
+    AOS.refreshHard();
+  }, []);
 
   useEffect(() => {
     if (!user) return;

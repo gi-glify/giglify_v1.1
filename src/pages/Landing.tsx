@@ -507,7 +507,7 @@ export default function Landing() {
             <p>&copy; 2024 Giglify. All rights reserved.</p>
             <div className="flex gap-6 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition">
-                Twitter
+                GitHub
               </a>
               <a href="#" className="hover:text-white transition">
                 LinkedIn

@@ -2,8 +2,16 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, FileText } from "lucide-react";
 import { TEAM_EMAIL } from "./About";
 import { TERMS_EFFECTIVE_DATE, TERMS_OF_USE_SECTIONS } from "./termsOfUseContent";
+import { useEffect } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 export default function TermsOfUsePage() {
+  useEffect(() => {
+    AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
+    AOS.refreshHard();
+  }, []);
+
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
       <main className="container max-w-4xl py-10">

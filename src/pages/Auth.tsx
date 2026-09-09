@@ -11,10 +11,12 @@ import {
 } from "../utils/supabase";
 import { Moon, Sun } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebookF, FaXTwitter } from "react-icons/fa6";
+import { FaFacebookF, FaGithub } from "react-icons/fa6";
 import type { SocialProviderId } from "../utils/socialAuth";
 import { useTheme } from "../context/ThemeContext";
 import PasswordInput from "../components/ui/PasswordInput";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 export default function AuthPage() {
   const { theme, toggleTheme } = useTheme();
@@ -34,6 +36,11 @@ export default function AuthPage() {
   const [emailConfirmationSent, setEmailConfirmationSent] = useState(Boolean(verificationEmail));
   const [passwordResetSent, setPasswordResetSent] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
+
+  useEffect(() => {
+    AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
+    AOS.refreshHard();
+  }, []);
 
   useEffect(() => {
     if (new URLSearchParams(location.search).get("reset") === "1") {
@@ -377,11 +384,11 @@ export default function AuthPage() {
             </button>
             <button
               type="button"
-              onClick={() => handleSocialSignIn("twitter", "X")}
+              onClick={() => handleSocialSignIn("github", "GitHub")}
               className="w-full btn-secondary py-3 rounded-lg font-semibold hover:shadow-lg flex items-center justify-center gap-3"
             >
-              <FaXTwitter className="w-5 h-5 shrink-0" />
-              <span>Continue with X</span>
+              <FaGithub className="w-5 h-5 shrink-0" />
+              <span>Continue with GitHub</span>
             </button>
             <button
               type="button"

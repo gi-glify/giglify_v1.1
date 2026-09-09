@@ -1,4 +1,4 @@
-export type SocialProviderId = 'google' | 'facebook' | 'twitter';
+export type SocialProviderId = 'google' | 'facebook' | 'github';
 
 export interface SocialProvider {
   id: SocialProviderId;
@@ -8,8 +8,7 @@ export interface SocialProvider {
 export const SOCIAL_PROVIDERS: SocialProvider[] = [
   { id: 'google', label: 'Google' },
   { id: 'facebook', label: 'Facebook' },
-  // Supabase keeps the provider key as "twitter" for the X OAuth integration.
-  { id: 'twitter', label: 'X' },
+  { id: 'github', label: 'GitHub' },
 ];
 
 export function getSocialProvider(id: string) {
