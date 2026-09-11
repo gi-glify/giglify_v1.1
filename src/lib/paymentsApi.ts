@@ -45,6 +45,7 @@ export function createVerificationPayment(input: {
   method: PaymentMethod;
   accountLabel: string;
   accountValue: string;
+  phone?: string;
 }) {
   return invoke<{ depositId: string; payoutAccountId: string; amountUsd: number; amountKes: number; status: string; checkoutUrl?: string; clientSecret?: string }>(
     'create-verification-payment',

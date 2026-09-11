@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { buildPackageProviderRequest, type ProviderName } from "./provider-requests.ts";
+import { normalizeProviderResponse } from "./provider-responses.ts";
 
-export const PAYMENT_METHODS = ["mpesa", "paypal", "stripe"] as const;
+export const PAYMENT_METHODS = ["palpluss", "paystack", "paypal"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const VERIFICATION_USD = 3;
@@ -18,75 +20,35 @@ export type ProviderPayment = {
   clientSecret?: string;
 };
 
-async function formRequest(url: string, body: URLSearchParams, headers: Record<string, string>) {
-  const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", ...headers }, body });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || data?.error_description || data?.message || "Payment provider request failed");
-  return data;
-}
-
-export async function createProviderPayment(method: PaymentMethod, input: { depositId: string; userId: string; accountValue: string }): Promise<ProviderPayment> {
-  if (method === "stripe") {
-    const secret = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!secret) throw new Error("Stripe is not configured");
-    const data = await formRequest("https://api.stripe.com/v1/payment_intents", new URLSearchParams({
-      amount: "300",
-      currency: "usd",
-      "metadata[deposit_id]": input.depositId,
-      "metadata[user_id]": input.userId,
-      description: "Giglify payout account verification",
-    }), { Authorization: `Bearer ${secret}` });
-    return { reference: data.id, status: data.status, clientSecret: data.client_secret };
-  }
-
-  if (method === "paypal") {
-    const client = Deno.env.get("PAYPAL_CLIENT_ID");
-    const secret = Deno.env.get("PAYPAL_CLIENT_SECRET");
-    if (!client || !secret) throw new Error("PayPal is not configured");
-    const tokenData = await formRequest(`${Deno.env.get("PAYPAL_BASE_URL") || "https://api-m.sandbox.paypal.com"}/v1/oauth2/token`, new URLSearchParams({ grant_type: "client_credentials" }), {
-      Authorization: `Basic ${btoa(`${client}:${secret}`)}`,
-    });
-    const response = await fetch(`${Deno.env.get("PAYPAL_BASE_URL") || "https://api-m.sandbox.paypal.com"}/v2/checkout/orders`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenData.access_token}` },
-      body: JSON.stringify({ intent: "CAPTURE", purchase_units: [{ reference_id: input.depositId, description: "Giglify payout account verification", amount: { currency_code: "USD", value: "3.00" } }] }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data?.message || "PayPal order creation failed");
-    return { reference: data.id, status: data.status, checkoutUrl: data.links?.find((link: { rel: string }) => link.rel === "approve")?.href };
-  }
-
-  const consumerKey = Deno.env.get("MPESA_CONSUMER_KEY");
-  const consumerSecret = Deno.env.get("MPESA_CONSUMER_SECRET");
-  const shortcode = Deno.env.get("MPESA_SHORTCODE");
-  const passkey = Deno.env.get("MPESA_PASSKEY");
-  const callbackUrl = Deno.env.get("MPESA_CALLBACK_URL");
-  if (!consumerKey || !consumerSecret || !shortcode || !passkey || !callbackUrl) throw new Error("M-Pesa is not configured");
-  const baseUrl = Deno.env.get("MPESA_BASE_URL") || "https://sandbox.safaricom.co.ke";
-  const tokenResponse = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, { headers: { Authorization: `Basic ${btoa(`${consumerKey}:${consumerSecret}`)}` } });
-  const tokenData = await tokenResponse.json();
-  if (!tokenResponse.ok) throw new Error(tokenData?.errorMessage || "M-Pesa authentication failed");
-  const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
-  const stkResponse = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenData.access_token}` },
-    body: JSON.stringify({
-      BusinessShortCode: shortcode,
-      Password: btoa(`${shortcode}${passkey}${timestamp}`),
-      Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
-      Amount: 374,
-      PartyA: input.accountValue.replace(/\D/g, ""),
-      PartyB: shortcode,
-      PhoneNumber: input.accountValue.replace(/\D/g, ""),
-      CallBackURL: callbackUrl,
-      AccountReference: input.depositId,
-      TransactionDesc: "Giglify payout account verification",
-    }),
-  });
-  const data = await stkResponse.json();
-  if (!stkResponse.ok || data.ResponseCode !== "0") throw new Error(data?.errorMessage || data?.ResponseDescription || "M-Pesa payment request failed");
-  return { reference: data.CheckoutRequestID, status: "pending" };
+export async function createProviderPayment(method: PaymentMethod, input: { depositId: string; userId: string; accountValue: string; email: string }): Promise<ProviderPayment> {
+  const provider = method as ProviderName;
+  const callbackUrl = Deno.env.get("VERIFICATION_PAYMENT_CALLBACK_URL");
+  if (!callbackUrl) throw new Error("VERIFICATION_PAYMENT_CALLBACK_URL is not configured");
+  const credentials = method === "paystack"
+    ? { secret: Deno.env.get("PAYSTACK_SECRET_KEY") }
+    : method === "paypal"
+      ? { accessToken: Deno.env.get("PAYPAL_ACCESS_TOKEN"), baseUrl: Deno.env.get("PAYPAL_BASE_URL") || undefined }
+      : { secret: Deno.env.get("PALPLUSS_API_KEY"), baseUrl: Deno.env.get("PALPLUSS_BASE_URL") || undefined };
+  const phone = method === "palpluss" ? input.accountValue : undefined;
+  const amountKes = method === "palpluss" ? Number(Deno.env.get("PALPLUSS_VERIFICATION_AMOUNT_KES") || VERIFICATION_KES) : undefined;
+  const request = buildPackageProviderRequest({
+    provider,
+    tuid: input.depositId,
+    amountUsd: VERIFICATION_USD,
+    amountKes,
+    email: input.email,
+    phone,
+    idempotencyKey: input.depositId,
+    callbackUrl,
+    returnUrl: method === "paypal" ? Deno.env.get("VERIFICATION_PAYMENT_RETURN_URL") : undefined,
+    cancelUrl: method === "paypal" ? Deno.env.get("VERIFICATION_PAYMENT_CANCEL_URL") : undefined,
+    purpose: "verification",
+  }, credentials);
+  const response = await fetch(request.url, { method: "POST", headers: request.headers, body: request.body });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload?.message || payload?.error?.message || "Payment provider request failed");
+  const normalized = normalizeProviderResponse(provider, payload);
+  return { reference: normalized.providerRequestId, status: "pending", checkoutUrl: normalized.checkoutUrl, clientSecret: normalized.clientSecret };
 }
 
 export async function fingerprint(value: string): Promise<string> {

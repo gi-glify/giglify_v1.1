@@ -8,6 +8,7 @@ import {
 } from "../utils/profileCompletion";
 import { toProfilePayload, type ProfileForm } from "../utils/profilePayload";
 import { createNotification } from "../lib/notifications";
+import PaymentProviderTabs, { PaymentProviderId } from "../components/ui/PaymentProviderTabs";
 
 const PROFILE_PENDING_MS = 60 * 1000;
 const pendingProfileKey = (userId: string) => `giglify:pending-profile:${userId}`;
@@ -538,31 +539,24 @@ export default function ProfileCompletionPage() {
           >
             <h3 className="text-sm font-semibold mb-4">Proof of Payment (POP)</h3>
 
+            <div className="mb-4">
+              <label className="block text-sm font-semibold mb-3">
+                Payout Method
+              </label>
+              <PaymentProviderTabs
+                selectedValue={form.payoutMethod as PaymentProviderId}
+                onChange={(method) => setForm({ ...form, payoutMethod: method, payoutMethodAdded: true })}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Payout Method
-                </label>
-                <select
-                  className="input-field"
-                  value={form.payoutMethod}
-                  onChange={(e) => setForm({ ...form, payoutMethod: e.target.value })}
-                >
-                  <option value="">Select method</option>
-                  <option value="mpesa">M-Pesa</option>
-                  <option value="bank">Bank Transfer</option>
-                  <option value="paypal">PayPal</option>
-                </select>
-              </div>
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-semibold mb-2">
                   Account / Phone Number
                 </label>
                 <input
                   className="input-field"
-                  placeholder="Enter details"
-                  inputMode={form.payoutMethod === "mpesa" ? "tel" : "email"}
-                  autoComplete="off"
+                  placeholder={form.payoutMethod === 'palpluss' ? 'Phone number (+254...)' : form.payoutMethod === 'paypal' ? 'PayPal email' : 'Paystack email'}
                   value={form.payoutAccount}
                   onChange={(e) =>
                     setForm({ ...form, payoutAccount: e.target.value })

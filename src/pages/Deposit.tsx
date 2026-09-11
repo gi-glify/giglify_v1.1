@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '../utils/currency';
-import { FaCcStripe, FaPaypal, FaMobileScreenButton } from 'react-icons/fa6';
-import { ChevronDown, CreditCard, ShieldCheck } from 'lucide-react';
+import { FaPaypal } from 'react-icons/fa6';
+import { ChevronDown, CreditCard, ShieldCheck, Smartphone } from 'lucide-react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { useTheme } from '../context/ThemeContext';
@@ -10,6 +10,7 @@ import { createPackagePayment, createVerificationPayment, startPackagePayment, t
 import { createPackageIdempotencyKey, type PaidPackageTier } from '../lib/packageCheckout';
 import { VERIFICATION_KES, VERIFICATION_USD } from '../lib/paymentConstants';
 import { PaymentMethod } from '../lib/paymentTypes';
+import PaymentProviderTabs, { PaymentProviderId } from '../components/ui/PaymentProviderTabs';
 
 const TIERS = [
   {
@@ -37,15 +38,15 @@ const TIERS = [
 ];
 
 const PAYMENT_BRANDS = {
-  stripe: { label: 'Card', Icon: FaCcStripe, className: 'text-indigo-500' },
+  paystack: { label: 'Paystack', Icon: CreditCard, className: 'text-brand-600 dark:text-brand-300' },
   paypal: { label: 'PayPal', Icon: FaPaypal, className: 'text-blue-600' },
-  mpesa: { label: 'M-Pesa', Icon: FaMobileScreenButton, className: 'text-green-600' },
+  palpluss: { label: 'PalPluss', Icon: Smartphone, className: 'text-brand-600 dark:text-brand-300' },
 } as const;
 
 export default function DepositPage() {
   const { theme } = useTheme();
   const user = useAuthStore((state) => state.user);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentProviderId>('paystack');
   const [accountValue, setAccountValue] = useState('');
   const [accountLabel, setAccountLabel] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -54,8 +55,9 @@ export default function DepositPage() {
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [selectedTier, setSelectedTier] = useState('Free');
   const [packageMessage, setPackageMessage] = useState('');
-  const [packageProvider, setPackageProvider] = useState<PackagePaymentProvider>('paystack');
+  const [packageProvider, setPackageProvider] = useState<PaymentProviderId>('paystack');
   const [packagePhone, setPackagePhone] = useState('');
+  const [packageEmail, setPackageEmail] = useState('');
   const [packageSubmitting, setPackageSubmitting] = useState(false);
   const [packageError, setPackageError] = useState('');
   const [packageCheckoutUrl, setPackageCheckoutUrl] = useState('');
@@ -70,11 +72,11 @@ export default function DepositPage() {
     return () => window.clearTimeout(refreshTimer);
   }, [packageOpen, verificationOpen]);
 
-  const accountPlaceholder = paymentMethod === 'mpesa'
+  const accountPlaceholder = paymentMethod === 'palpluss'
     ? '+254 7XX XXX XXX'
     : paymentMethod === 'paypal'
       ? 'PayPal email address'
-      : 'Stripe customer email';
+      : 'Paystack email address';
 
   function handleTierSelect(tierName: string, price: number) {
     setSelectedTier(tierName);
@@ -101,18 +103,29 @@ export default function DepositPage() {
       setPackageError('Choose Pro or Elite before starting a package payment.');
       return;
     }
+
+    // Provider-specific validation
     if (packageProvider === 'palpluss' && !packagePhone.trim()) {
       setPackageError('Enter the phone number that should receive the PalPluss STK prompt.');
       return;
     }
+    if (packageProvider === 'paystack' && !packageEmail.trim()) {
+      setPackageError('Enter your email address for Paystack checkout.');
+      return;
+    }
+
     setPackageSubmitting(true);
     try {
       const created = await createPackagePayment({
         tier: tier as PaidPackageTier,
-        provider: packageProvider,
+        provider: packageProvider as any,
         idempotencyKey: createPackageIdempotencyKey(tier as PaidPackageTier),
       });
-      const started = await startPackagePayment({ transactionId: created.transactionId, phone: packagePhone.trim() || undefined });
+      const started = await startPackagePayment({
+        transactionId: created.transactionId,
+        phone: packagePhone.trim() || undefined,
+        email: packageEmail.trim() || undefined
+      });
       setPackageCheckoutUrl(started.checkoutUrl || '');
       setPackageMessage(packageProvider === 'palpluss'
         ? 'STK prompt started. Complete it on your phone; your package activates after verified provider confirmation.'
@@ -137,9 +150,13 @@ export default function DepositPage() {
       setError('Add a label and the account or phone number used for payout.');
       return;
     }
+    if (paymentMethod === 'palpluss' && !/^\+?[0-9 ()-]{8,24}$/.test(accountValue.trim())) {
+      setError('Enter a valid phone number for PalPluss.');
+      return;
+    }
     setSubmitting(true);
     try {
-      const result = await createVerificationPayment({ method: paymentMethod, accountLabel: accountLabel.trim(), accountValue: accountValue.trim() });
+      const result = await createVerificationPayment({ method: paymentMethod, accountLabel: accountLabel.trim(), accountValue: accountValue.trim(), phone: paymentMethod === 'palpluss' ? accountValue.trim() : undefined });
       setMessage('Verification payment created. Complete the provider payment, then wait for admin approval.');
       setCheckoutUrl(result.checkoutUrl || '');
       setAccountValue('');
@@ -219,24 +236,23 @@ export default function DepositPage() {
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-semibold mb-3">Payment provider</label>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {([
-                  ['paystack', 'Paystack'],
-                  ['paypal', 'PayPal'],
-                  ['palpluss', 'PalPluss'],
-                ] as const).map(([provider, label]) => (
-                  <label key={provider} className={`flex items-center gap-2 cursor-pointer rounded-lg border p-3 ${packageProvider === provider ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-[var(--border)]'}`}>
-                    <input type="radio" name="package-provider" value={provider} checked={packageProvider === provider} onChange={() => setPackageProvider(provider)} />
-                    <span className="text-sm font-semibold">{label}</span>
-                  </label>
-                ))}
-              </div>
+              <PaymentProviderTabs
+                selectedValue={packageProvider}
+                onChange={setPackageProvider}
+              />
             </div>
 
             {packageProvider === 'palpluss' && (
               <label className="block text-sm font-semibold">
                 M-Pesa phone number
                 <input className="input-field w-full mt-2" value={packagePhone} onChange={(e) => setPackagePhone(e.target.value)} placeholder="+254 7XX XXX XXX" autoComplete="tel" />
+              </label>
+            )}
+
+            {packageProvider === 'paystack' && (
+              <label className="block text-sm font-semibold">
+                Email address
+                <input className="input-field w-full mt-2" value={packageEmail} onChange={(e) => setPackageEmail(e.target.value)} placeholder="email@example.com" autoComplete="email" />
               </label>
             )}
 
@@ -283,25 +299,10 @@ export default function DepositPage() {
               <label className={`block text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-stone-300' : ''}`}>
                 Payment Method
               </label>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {(['stripe', 'paypal', 'mpesa'] as PaymentMethod[]).map((method) => {
-                  const brand = PAYMENT_BRANDS[method];
-                  return <label key={method} className={`flex items-center gap-3 cursor-pointer rounded-lg border p-3 transition-colors ${paymentMethod === method ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-[var(--border)]'}`}>
-                    <input
-                      type="radio"
-                      name="payment"
-                      value={method}
-                      checked={paymentMethod === method}
-                      onChange={() => setPaymentMethod(method)}
-                      className="w-4 h-4"
-                    />
-                    <div className="flex items-center gap-2">
-                      <brand.Icon aria-hidden="true" size={24} className={brand.className} />
-                      <span className="text-sm font-semibold">{brand.label}</span>
-                    </div>
-                  </label>;
-                })}
-              </div>
+              <PaymentProviderTabs
+                selectedValue={paymentMethod}
+                onChange={setPaymentMethod}
+              />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
@@ -311,7 +312,13 @@ export default function DepositPage() {
               </label>
               <label className="text-sm font-semibold">
                 Account or phone
-                <input className="input-field w-full mt-2" value={accountValue} onChange={(e) => setAccountValue(e.target.value)} placeholder={accountPlaceholder} autoComplete="off" />
+                <input
+                  className="input-field w-full mt-2"
+                  value={accountValue}
+                  onChange={(e) => setAccountValue(e.target.value)}
+                  placeholder={paymentMethod === 'palpluss' ? '+254 7XX XXX XXX' : paymentMethod === 'paypal' ? 'PayPal email address' : 'Paystack email address'}
+                  autoComplete="off"
+                />
               </label>
             </div>
 

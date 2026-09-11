@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
     let providerPayment;
     try {
-      providerPayment = await createProviderPayment(method, { depositId: deposit.id, userId: user.id, accountValue });
+      providerPayment = await createProviderPayment(method, { depositId: deposit.id, userId: user.id, accountValue, email: user.email ?? "" });
     } catch (providerError) {
       await db.from("verification_deposits").update({ status: "failed" }).eq("id", deposit.id);
       throw providerError;

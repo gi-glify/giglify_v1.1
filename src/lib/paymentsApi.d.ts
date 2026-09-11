@@ -34,6 +34,7 @@ export declare function createVerificationPayment(input: {
     method: PaymentMethod;
     accountLabel: string;
     accountValue: string;
+    phone?: string;
 }): Promise<{
     depositId: string;
     payoutAccountId: string;

@@ -11,6 +11,7 @@ export interface ProviderRequestInput {
   callbackUrl: string;
   returnUrl?: string;
   cancelUrl?: string;
+  purpose?: "package" | "verification";
 }
 
 export interface ProviderCredentials {
@@ -54,6 +55,7 @@ export function buildPackageProviderRequest(
 ): ProviderRequest {
   const amountUsd = requireAmount(input.amountUsd);
   const callbackUrl = requireUrl(input.callbackUrl, "callbackUrl");
+  const purpose = input.purpose ?? "package";
 
   if (input.provider === "paystack") {
     if (!credentials.secret) throw new Error("Paystack secret is required");
@@ -67,7 +69,7 @@ export function buildPackageProviderRequest(
         email: input.email,
         reference: input.tuid,
         callback_url: callbackUrl,
-        metadata: JSON.stringify({ tuid: input.tuid }),
+        metadata: JSON.stringify(purpose === "verification" ? { tuid: input.tuid, purpose } : { tuid: input.tuid }),
       }),
     };
   }
@@ -82,6 +84,7 @@ export function buildPackageProviderRequest(
         purchase_units: [{
           reference_id: input.tuid,
           custom_id: input.tuid,
+          ...(purpose === "verification" ? { description: "Giglify payout account verification" } : {}),
           amount: { currency_code: "USD", value: amountUsd.toFixed(2) },
         }],
         application_context: {

@@ -1,4 +1,4 @@
-export type PaymentMethod = 'mpesa' | 'paypal' | 'stripe';
+export type PaymentMethod = 'palpluss' | 'paystack' | 'paypal';
 
 export type PaymentVerificationStatus =
   | 'unverified'

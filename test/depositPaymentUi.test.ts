@@ -28,3 +28,12 @@ test("notification toast uses the requested motion and danger behavior", async (
   assert.match(source, /notification\.kind === 'danger'/);
   assert.match(source, /onTouchEnd/);
 });
+
+test("Deposit uses the approved provider tabs for both payment flows", async () => {
+  const source = await readFile("src/pages/Deposit.tsx", "utf8");
+  assert.match(source, /role="tablist"/g);
+  assert.match(source, /role="tab"/g);
+  assert.match(source, /Paystack/);
+  assert.match(source, /PalPluss/);
+  assert.doesNotMatch(source, /FaCcStripe/);
+});
