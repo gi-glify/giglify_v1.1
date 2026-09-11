@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatCurrency } from '../utils/currency';
 import { FaCcStripe, FaPaypal, FaMobileScreenButton } from 'react-icons/fa6';
+import { ChevronDown, CreditCard, ShieldCheck } from 'lucide-react';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/authStore';
 import { createPackagePayment, createVerificationPayment, startPackagePayment, type PackagePaymentProvider } from '../lib/paymentsApi';
@@ -56,6 +59,18 @@ export default function DepositPage() {
   const [packageSubmitting, setPackageSubmitting] = useState(false);
   const [packageError, setPackageError] = useState('');
   const [packageCheckoutUrl, setPackageCheckoutUrl] = useState('');
+  const [packageOpen, setPackageOpen] = useState(true);
+  const [verificationOpen, setVerificationOpen] = useState(false);
+
+  useEffect(() => {
+    AOS.init({ duration: 600, once: true, easing: 'ease-out', offset: 40 });
+    AOS.refreshHard();
+  }, []);
+
+  useEffect(() => {
+    const refreshTimer = window.setTimeout(() => AOS.refreshHard(), 40);
+    return () => window.clearTimeout(refreshTimer);
+  }, [packageOpen, verificationOpen]);
 
   const accountPlaceholder = paymentMethod === 'mpesa'
     ? '+254 7XX XXX XXX'
@@ -65,6 +80,7 @@ export default function DepositPage() {
 
   function handleTierSelect(tierName: string, price: number) {
     setSelectedTier(tierName);
+    setPackageOpen(true);
     if (price === 0) {
       setPackageMessage('You are already on the Free plan. Choose a paid tier to begin an upgrade flow.');
       return;
@@ -183,8 +199,23 @@ export default function DepositPage() {
           {packageMessage && <div className="alert alert-info mt-6" data-aos="fade-in">{packageMessage}</div>}
         </div>
 
-        <form id="package-payment-form" onSubmit={handlePackagePayment} className={`card max-w-2xl mx-auto mb-10 scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">
-          <h2 className="font-display text-2xl mb-2">Pay for your package</h2>
+        <section className={`card max-w-2xl mx-auto mb-10 scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">
+          <button
+            id="package-payment-toggle"
+            type="button"
+            aria-expanded={packageOpen}
+            aria-controls="package-payment-form"
+            onClick={() => setPackageOpen((open) => !open)}
+            className="w-full flex items-center justify-between gap-4 text-left"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><CreditCard size={20} aria-hidden="true" /></span>
+              <span><span className="block font-display text-2xl">Pay for your package</span><span className="block text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Upgrade from Free to Pro or Elite</span></span>
+            </span>
+            <ChevronDown size={20} aria-hidden="true" className={`shrink-0 transition-transform duration-300 ${packageOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {packageOpen && <form id="package-payment-form" onSubmit={handlePackagePayment} className="mt-6" data-aos="fade-down">
           <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Package changes are available from Free tier only. Payment remains pending until the provider callback is verified.</p>
 
           <div className="space-y-5">
@@ -221,11 +252,28 @@ export default function DepositPage() {
               {packageSubmitting ? 'Starting package payment...' : selectedTier === 'Free' ? 'Choose a paid tier first' : `Pay $${TIERS.find((tier) => tier.name === selectedTier)?.price}`}
             </button>
           </div>
-        </form>
+          </form>}
+        </section>
 
         {/* Deposit Section */}
-        <form id="payment-form" onSubmit={handleVerification} className={`card max-w-2xl mx-auto animate-in scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">
-          <h2 className="font-display text-2xl mb-2">Verify Your Payout Account</h2>
+        <section className={`card max-w-2xl mx-auto animate-in scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">
+          <button
+            id="verification-payment-toggle"
+            type="button"
+            aria-expanded={verificationOpen}
+            aria-controls="payment-form"
+            onClick={() => setVerificationOpen((open) => !open)}
+            className="w-full flex items-center justify-between gap-4 text-left"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><ShieldCheck size={20} aria-hidden="true" /></span>
+              <span><span className="block font-display text-2xl">Verify payout account</span><span className="block text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Required before requesting withdrawals</span></span>
+            </span>
+            <ChevronDown size={20} aria-hidden="true" className={`shrink-0 transition-transform duration-300 ${verificationOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {verificationOpen && <form id="payment-form" onSubmit={handleVerification} className="mt-6" data-aos="fade-down">
+          <h2 className="sr-only">Verify Your Payout Account</h2>
           <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-stone-300' : 'text-stone-600'}`}>
             Pay exactly {formatCurrency(VERIFICATION_USD, 'USD')} ({formatCurrency(VERIFICATION_KES, 'KES')}) to verify ownership. The payment is held for admin review.
           </p>
@@ -286,7 +334,8 @@ export default function DepositPage() {
               Your payment is secured and encrypted. No additional fees.
             </p>
           </div>
-        </form>
+          </form>}
+        </section>
       </main>
     </div>
   );

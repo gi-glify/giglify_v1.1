@@ -390,7 +390,7 @@ grant execute on function public.settle_package_payment(uuid, text, text, jsonb)
 insert into public.package_entitlements (
   user_id,
   tier,
-  activation_at,
+  activation_at,f
   renewal_at,
   status,
   tasks_allowed,
