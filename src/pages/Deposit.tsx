@@ -63,12 +63,10 @@ export default function DepositPage() {
   const [verificationOpen, setVerificationOpen] = useState(false);
 
   useEffect(() => {
-    AOS.init({ duration: 600, once: true, easing: 'ease-out', offset: 40 });
-    AOS.refreshHard();
-  }, []);
-
-  useEffect(() => {
-    const refreshTimer = window.setTimeout(() => AOS.refreshHard(), 40);
+    const refreshTimer = window.setTimeout(() => {
+      AOS.refreshHard();
+      window.requestAnimationFrame(() => AOS.refresh());
+    }, 80);
     return () => window.clearTimeout(refreshTimer);
   }, [packageOpen, verificationOpen]);
 
@@ -212,10 +210,10 @@ export default function DepositPage() {
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><CreditCard size={20} aria-hidden="true" /></span>
               <span><span className="block font-display text-2xl">Pay for your package</span><span className="block text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Upgrade from Free to Pro or Elite</span></span>
             </span>
-            <ChevronDown size={20} aria-hidden="true" className={`shrink-0 transition-transform duration-300 ${packageOpen ? 'rotate-180' : ''}`} />
+            <span className="flex items-center gap-2 shrink-0 text-sm font-semibold text-brand-700 dark:text-brand-300"><span className="hidden sm:inline">{packageOpen ? 'Hide' : 'Show'}</span><ChevronDown size={20} aria-hidden="true" className={`transition-transform duration-300 ${packageOpen ? 'rotate-180' : ''}`} /></span>
           </button>
 
-          {packageOpen && <form id="package-payment-form" onSubmit={handlePackagePayment} className="mt-6" data-aos="fade-down">
+          <form id="package-payment-form" aria-hidden={!packageOpen} onSubmit={handlePackagePayment} className={`mt-6 overflow-hidden transition-[max-height,opacity,transform] duration-500 ease-out ${packageOpen ? 'max-h-[1200px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'}`}>
           <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Package changes are available from Free tier only. Payment remains pending until the provider callback is verified.</p>
 
           <div className="space-y-5">
@@ -252,7 +250,7 @@ export default function DepositPage() {
               {packageSubmitting ? 'Starting package payment...' : selectedTier === 'Free' ? 'Choose a paid tier first' : `Pay $${TIERS.find((tier) => tier.name === selectedTier)?.price}`}
             </button>
           </div>
-          </form>}
+          </form>
         </section>
 
         {/* Deposit Section */}
@@ -269,10 +267,10 @@ export default function DepositPage() {
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><ShieldCheck size={20} aria-hidden="true" /></span>
               <span><span className="block font-display text-2xl">Verify payout account</span><span className="block text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Required before requesting withdrawals</span></span>
             </span>
-            <ChevronDown size={20} aria-hidden="true" className={`shrink-0 transition-transform duration-300 ${verificationOpen ? 'rotate-180' : ''}`} />
+            <span className="flex items-center gap-2 shrink-0 text-sm font-semibold text-brand-700 dark:text-brand-300"><span className="hidden sm:inline">{verificationOpen ? 'Hide' : 'Show'}</span><ChevronDown size={20} aria-hidden="true" className={`transition-transform duration-300 ${verificationOpen ? 'rotate-180' : ''}`} /></span>
           </button>
 
-          {verificationOpen && <form id="payment-form" onSubmit={handleVerification} className="mt-6" data-aos="fade-down">
+          <form id="payment-form" aria-hidden={!verificationOpen} onSubmit={handleVerification} className={`mt-6 overflow-hidden transition-[max-height,opacity,transform] duration-500 ease-out ${verificationOpen ? 'max-h-[1600px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'}`}>
           <h2 className="sr-only">Verify Your Payout Account</h2>
           <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-stone-300' : 'text-stone-600'}`}>
             Pay exactly {formatCurrency(VERIFICATION_USD, 'USD')} ({formatCurrency(VERIFICATION_KES, 'KES')}) to verify ownership. The payment is held for admin review.
@@ -286,9 +284,9 @@ export default function DepositPage() {
                 Payment Method
               </label>
               <div className="grid gap-3 sm:grid-cols-3">
-                {(['stripe', 'paypal', 'mpesa'] as PaymentMethod[]).map((method, index) => {
+                {(['stripe', 'paypal', 'mpesa'] as PaymentMethod[]).map((method) => {
                   const brand = PAYMENT_BRANDS[method];
-                  return <label key={method} className={`flex items-center gap-3 cursor-pointer rounded-lg border p-3 transition-colors ${paymentMethod === method ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-[var(--border)]'}`} data-aos="fade-up" data-aos-delay={index * 70}>
+                  return <label key={method} className={`flex items-center gap-3 cursor-pointer rounded-lg border p-3 transition-colors ${paymentMethod === method ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-[var(--border)]'}`}>
                     <input
                       type="radio"
                       name="payment"
@@ -334,7 +332,7 @@ export default function DepositPage() {
               Your payment is secured and encrypted. No additional fees.
             </p>
           </div>
-          </form>}
+          </form>
         </section>
       </main>
     </div>

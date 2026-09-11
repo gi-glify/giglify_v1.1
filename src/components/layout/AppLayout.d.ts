@@ -1,7 +1,7 @@
 /**
  * Wraps every authenticated page. Uses top navbar for desktop
- * and top bar + bottom navigation for mobile. Initializes AOS
- * scroll animations once per mount.
+ * and top bar + bottom navigation for mobile. Owns the single AOS
+ * instance used by authenticated routes.
  */
 export default function AppLayout({ children }: {
     children: React.ReactNode;

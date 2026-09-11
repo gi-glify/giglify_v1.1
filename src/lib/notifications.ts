@@ -6,12 +6,22 @@ export type AppNotification = {
   detail: string;
   read: boolean;
   createdAt: string;
+  kind: 'info' | 'success' | 'warning' | 'danger';
 };
 
 export const NOTIFICATION_EVENT = 'giglify:notification';
 
+function inferNotificationKind(title: string, detail: string): AppNotification['kind'] {
+  const text = `${title} ${detail}`.toLowerCase();
+  if (/(error|danger|failed|failure|rejected|rejected|blocked|critical)/.test(text)) return 'danger';
+  if (/(warning|attention|pending|review)/.test(text)) return 'warning';
+  if (/(success|approved|completed|updated|saved|verified)/.test(text)) return 'success';
+  return 'info';
+}
+
 function mapNotification(row: { id: string; title: string; detail: string | null; read: boolean; created_at: string }): AppNotification {
-  return { id: row.id, title: row.title, detail: row.detail || '', read: row.read, createdAt: row.created_at };
+  const detail = row.detail || '';
+  return { id: row.id, title: row.title, detail, read: row.read, createdAt: row.created_at, kind: inferNotificationKind(row.title, detail) };
 }
 
 export async function fetchNotifications(userId: string, limit = 20) {
@@ -20,10 +30,10 @@ export async function fetchNotifications(userId: string, limit = 20) {
   return (data || []).map(mapNotification);
 }
 
-export async function createNotification(userId: string, title: string, detail: string) {
+export async function createNotification(userId: string, title: string, detail: string, kind?: AppNotification['kind']) {
   const { data, error } = await supabase.from('notifications').insert({ user_id: userId, title, detail }).select('id, title, detail, read, created_at').single();
   if (error) throw error;
-  const notification = mapNotification(data);
+  const notification = { ...mapNotification(data), ...(kind ? { kind } : {}) };
   window.dispatchEvent(new CustomEvent(NOTIFICATION_EVENT, { detail: notification }));
   return notification;
 }

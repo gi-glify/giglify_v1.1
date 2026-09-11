@@ -24,8 +24,8 @@ export default function RequesterTasksPage() {
         setDrafts(existing || []);
     }
     useEffect(() => {
-        AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
-        AOS.refreshHard();
+        const refreshTimer = window.setTimeout(() => AOS.refreshHard(), 0);
+        return () => window.clearTimeout(refreshTimer);
     }, []);
     useEffect(() => { load(); }, [user?.id]);
     async function submit(event) {

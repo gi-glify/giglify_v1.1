@@ -1,7 +1,18 @@
 import { supabase } from '../utils/supabase';
 export const NOTIFICATION_EVENT = 'giglify:notification';
+function inferNotificationKind(title, detail) {
+    const text = `${title} ${detail}`.toLowerCase();
+    if (/(error|danger|failed|failure|rejected|rejected|blocked|critical)/.test(text))
+        return 'danger';
+    if (/(warning|attention|pending|review)/.test(text))
+        return 'warning';
+    if (/(success|approved|completed|updated|saved|verified)/.test(text))
+        return 'success';
+    return 'info';
+}
 function mapNotification(row) {
-    return { id: row.id, title: row.title, detail: row.detail || '', read: row.read, createdAt: row.created_at };
+    const detail = row.detail || '';
+    return { id: row.id, title: row.title, detail, read: row.read, createdAt: row.created_at, kind: inferNotificationKind(row.title, detail) };
 }
 export async function fetchNotifications(userId, limit = 20) {
     const { data, error } = await supabase.from('notifications').select('id, title, detail, read, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(limit);
@@ -9,11 +20,11 @@ export async function fetchNotifications(userId, limit = 20) {
         throw error;
     return (data || []).map(mapNotification);
 }
-export async function createNotification(userId, title, detail) {
+export async function createNotification(userId, title, detail, kind) {
     const { data, error } = await supabase.from('notifications').insert({ user_id: userId, title, detail }).select('id, title, detail, read, created_at').single();
     if (error)
         throw error;
-    const notification = mapNotification(data);
+    const notification = { ...mapNotification(data), ...(kind ? { kind } : {}) };
     window.dispatchEvent(new CustomEvent(NOTIFICATION_EVENT, { detail: notification }));
     return notification;
 }

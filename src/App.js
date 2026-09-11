@@ -30,6 +30,7 @@ import PageMeta from "./components/seo/PageMeta";
 import CookieBanner from "./components/privacy/CookieBanner";
 import { rememberRoute } from "./utils/routeMemory";
 import { getAuthCallbackPath } from "./utils/authFlows";
+import AOS from "aos";
 function RouteMemory({ user }) {
     const { pathname } = useLocation();
     useEffect(() => {
@@ -55,6 +56,10 @@ function AuthedRoutes() {
 }
 function App() {
     const { setUser, setLoading, user, loading, verificationEmail, setVerificationEmail } = useAuthStore();
+    useEffect(() => {
+        AOS.init({ duration: 600, once: false, easing: "ease-out", offset: 40 });
+        AOS.refreshHard();
+    }, []);
     useEffect(() => {
         const initAuth = async () => {
             const { user } = await getCurrentUser();

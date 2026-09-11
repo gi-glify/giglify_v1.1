@@ -16,8 +16,8 @@ export default function AboutPage() {
     const [message, setMessage] = useState("");
     const [state, setState] = useState("idle");
     useEffect(() => {
-        AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
-        AOS.refreshHard();
+        const refreshTimer = window.setTimeout(() => AOS.refreshHard(), 0);
+        return () => window.clearTimeout(refreshTimer);
     }, []);
     useEffect(() => {
         if (location.hash) {

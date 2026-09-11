@@ -12,8 +12,8 @@ import { signOut } from "../../utils/supabase";
 import HelpLinks from "./HelpLinks";
 /**
  * Wraps every authenticated page. Uses top navbar for desktop
- * and top bar + bottom navigation for mobile. Initializes AOS
- * scroll animations once per mount.
+ * and top bar + bottom navigation for mobile. Owns the single AOS
+ * instance used by authenticated routes.
  */
 export default function AppLayout({ children }) {
     const { mode } = usePlatform();
@@ -21,10 +21,23 @@ export default function AppLayout({ children }) {
     const navigate = useNavigate();
     const location = useLocation();
     useEffect(() => {
-        AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
+        const refresh = () => {
+            window.requestAnimationFrame(() => {
+                AOS.refreshHard();
+                window.requestAnimationFrame(() => AOS.refresh());
+            });
+        };
+        refresh();
+        window.addEventListener("resize", refresh);
+        return () => window.removeEventListener("resize", refresh);
     }, []);
     useEffect(() => {
-        AOS.refreshHard();
+        const firstRefresh = window.setTimeout(() => AOS.refreshHard(), 0);
+        const secondRefresh = window.setTimeout(() => AOS.refresh(), 80);
+        return () => {
+            window.clearTimeout(firstRefresh);
+            window.clearTimeout(secondRefresh);
+        };
     }, [mode, location.pathname]);
     const handleLogout = async () => {
         await signOut();

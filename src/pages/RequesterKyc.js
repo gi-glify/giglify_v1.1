@@ -14,8 +14,8 @@ export default function RequesterKycPage() {
     const [state, setState] = useState("idle");
     const [error, setError] = useState("");
     useEffect(() => {
-        AOS.init({ duration: 600, once: true, easing: "ease-out", offset: 40 });
-        AOS.refreshHard();
+        const refreshTimer = window.setTimeout(() => AOS.refreshHard(), 0);
+        return () => window.clearTimeout(refreshTimer);
     }, []);
     useEffect(() => {
         if (!user)
