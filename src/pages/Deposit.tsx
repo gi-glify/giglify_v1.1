@@ -233,10 +233,11 @@ export default function DepositPage() {
               <PaymentProviderTabs
                 selectedValue={packageProvider}
                 onChange={setPackageProvider}
+                idPrefix="package-payment-provider"
               />
             </div>
 
-            <div id={`payment-provider-panel-${packageProvider}`} role="tabpanel" aria-labelledby={`payment-provider-tab-${packageProvider}`}>
+            <div id={`package-payment-provider-panel-${packageProvider}`} role="tabpanel" aria-labelledby={`package-payment-provider-tab-${packageProvider}`}>
               <label className="block text-sm font-semibold">
                 {getProviderField(packageProvider).label}
                 <input
@@ -296,6 +297,7 @@ export default function DepositPage() {
               <PaymentProviderTabs
                 selectedValue={paymentMethod}
                 onChange={setPaymentMethod}
+                idPrefix="verification-payment-provider"
               />
             </div>
 
@@ -304,7 +306,7 @@ export default function DepositPage() {
                 Account label
                 <input className="input-field w-full mt-2" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder="My primary account" />
               </label>
-              <div id={`payment-provider-panel-${paymentMethod}`} role="tabpanel" aria-labelledby={`payment-provider-tab-${paymentMethod}`}>
+              <div id={`verification-payment-provider-panel-${paymentMethod}`} role="tabpanel" aria-labelledby={`verification-payment-provider-tab-${paymentMethod}`}>
                 <label className="text-sm font-semibold">
                   {getProviderField(paymentMethod).label}
                   <input

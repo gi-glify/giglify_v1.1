@@ -52,4 +52,8 @@ test("provider tabs expose keyboard and selection semantics", async () => {
   assert.match(source, /aria-controls=/);
   assert.match(source, /onKeyDown=/);
   assert.match(source, /tabIndex=/);
+  assert.match(source, /FaPaypal/);
+  assert.match(source, /CreditCard/);
+  assert.match(source, /Smartphone/);
+  assert.match(source, /idPrefix/);
 });

@@ -4,6 +4,7 @@ export type { PaymentProviderId } from '../../lib/paymentProviders';
 interface PaymentProviderTabsProps {
     selectedValue: PaymentProviderId | string;
     onChange: (value: PaymentProviderId) => void;
+    idPrefix?: string;
 }
-export default function PaymentProviderTabs({ selectedValue, onChange }: PaymentProviderTabsProps): React.JSX.Element;
+export default function PaymentProviderTabs({ selectedValue, onChange, idPrefix }: PaymentProviderTabsProps): React.JSX.Element;
 //# sourceMappingURL=PaymentProviderTabs.d.ts.map
