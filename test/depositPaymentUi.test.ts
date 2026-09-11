@@ -46,6 +46,18 @@ test("Deposit uses the approved provider tabs for both payment flows", async () 
   assert.doesNotMatch(source, /FaCcStripe/);
 });
 
+test("Deposit renders shared payment progress and refreshes both payment records", async () => {
+  const source = await readFile("src/pages/Deposit.tsx", "utf8");
+  const api = await readFile("src/lib/paymentsApi.ts", "utf8");
+  assert.match(source, /<PaymentProgress kind="package"/);
+  assert.match(source, /<PaymentProgress kind="verification"/);
+  assert.match(source, /fetchPackagePaymentStatus/);
+  assert.match(source, /fetchVerificationPaymentStatus/);
+  assert.match(source, /setInterval\(refresh, 4000\)/);
+  assert.match(api, /from\('transactions'\)/);
+  assert.match(api, /from\('verification_deposits'\)/);
+});
+
 test("provider tabs expose keyboard and selection semantics", async () => {
   const source = await readFile("src/components/ui/PaymentProviderTabs.tsx", "utf8");
   assert.match(source, /aria-label=/);

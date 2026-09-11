@@ -14,6 +14,26 @@ export function createPackagePayment(input) {
 export function startPackagePayment(input) {
     return invoke('start-package-payment', input);
 }
+export async function fetchPackagePaymentStatus(transactionId) {
+    const { data, error } = await supabase
+        .from('transactions')
+        .select('status, provider')
+        .eq('id', transactionId)
+        .single();
+    if (error)
+        throw error;
+    return { status: String(data.status), provider: data.provider };
+}
+export async function fetchVerificationPaymentStatus(depositId) {
+    const { data, error } = await supabase
+        .from('verification_deposits')
+        .select('status, method')
+        .eq('id', depositId)
+        .single();
+    if (error)
+        throw error;
+    return { status: String(data.status), provider: data.method };
+}
 export function createPayoutRequest(input) {
     return invoke('create-payout-request', input);
 }

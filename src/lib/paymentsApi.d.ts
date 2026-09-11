@@ -55,6 +55,14 @@ export declare function startPackagePayment(input: {
     email?: string;
     phone?: string;
 }): Promise<PackagePaymentStart>;
+export declare function fetchPackagePaymentStatus(transactionId: string): Promise<{
+    status: string;
+    provider: PackagePaymentProvider;
+}>;
+export declare function fetchVerificationPaymentStatus(depositId: string): Promise<{
+    status: string;
+    provider: PaymentMethod;
+}>;
 export declare function createPayoutRequest(input: {
     amount: number;
     payoutAccountId: string;

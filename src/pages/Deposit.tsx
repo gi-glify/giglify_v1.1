@@ -5,12 +5,14 @@ import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/authStore';
-import { createPackagePayment, createVerificationPayment, startPackagePayment, type PackagePaymentProvider } from '../lib/paymentsApi';
+import { createPackagePayment, createVerificationPayment, fetchPackagePaymentStatus, fetchVerificationPaymentStatus, startPackagePayment, type PackagePaymentProvider } from '../lib/paymentsApi';
 import { createPackageIdempotencyKey, type PaidPackageTier } from '../lib/packageCheckout';
 import { VERIFICATION_KES, VERIFICATION_USD } from '../lib/paymentConstants';
 import { PaymentMethod } from '../lib/paymentTypes';
 import PaymentProviderTabs, { PaymentProviderId } from '../components/ui/PaymentProviderTabs';
+import PaymentProgress from '../components/ui/PaymentProgress';
 import { getCheckoutLabel, getProviderField, validateProviderInput } from '../lib/paymentProviders';
+import { isPaymentProgressTerminal } from '../lib/paymentProgress';
 
 const TIERS = [
   {
@@ -55,8 +57,12 @@ export default function DepositPage() {
   const [packageSubmitting, setPackageSubmitting] = useState(false);
   const [packageError, setPackageError] = useState('');
   const [packageCheckoutUrl, setPackageCheckoutUrl] = useState('');
+  const [packagePaymentId, setPackagePaymentId] = useState('');
+  const [packagePaymentStatus, setPackagePaymentStatus] = useState('');
   const [packageOpen, setPackageOpen] = useState(true);
   const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verificationPaymentId, setVerificationPaymentId] = useState('');
+  const [verificationPaymentStatus, setVerificationPaymentStatus] = useState('');
 
   useEffect(() => {
     const refreshTimer = window.setTimeout(() => {
@@ -65,6 +71,44 @@ export default function DepositPage() {
     }, 80);
     return () => window.clearTimeout(refreshTimer);
   }, [packageOpen, verificationOpen]);
+
+  useEffect(() => {
+    if (!packagePaymentId || !user || isPaymentProgressTerminal(packagePaymentStatus)) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const result = await fetchPackagePaymentStatus(packagePaymentId);
+        if (!cancelled) setPackagePaymentStatus(result.status);
+      } catch {
+        // The progress panel remains actionable while a transient read fails.
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [packagePaymentId, packagePaymentStatus, user]);
+
+  useEffect(() => {
+    if (!verificationPaymentId || !user || isPaymentProgressTerminal(verificationPaymentStatus)) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const result = await fetchVerificationPaymentStatus(verificationPaymentId);
+        if (!cancelled) setVerificationPaymentStatus(result.status);
+      } catch {
+        // The progress panel remains actionable while a transient read fails.
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [verificationPaymentId, verificationPaymentStatus, user]);
 
   function handleTierSelect(tierName: string, price: number) {
     setSelectedTier(tierName);
@@ -82,6 +126,8 @@ export default function DepositPage() {
     setPackageError('');
     setPackageCheckoutUrl('');
     setPackageMessage('');
+    setPackagePaymentId('');
+    setPackagePaymentStatus('');
     if (!user) {
       setPackageError('Sign in before starting a package payment.');
       return;
@@ -105,16 +151,20 @@ export default function DepositPage() {
         provider: packageProvider as any,
         idempotencyKey: createPackageIdempotencyKey(tier as PaidPackageTier),
       });
+      setPackagePaymentId(created.transactionId);
+      setPackagePaymentStatus('created');
       const started = await startPackagePayment({
         transactionId: created.transactionId,
         phone: packagePhone.trim() || undefined,
         email: packageEmail.trim() || undefined,
       });
+      setPackagePaymentStatus(started.status || 'pending');
       setPackageCheckoutUrl(started.checkoutUrl || '');
       setPackageMessage(packageProvider === 'mpesa'
         ? 'STK prompt started. Complete it on your phone; your package activates after verified provider confirmation.'
         : 'Payment started. Complete checkout; your package activates after verified provider confirmation.');
     } catch (err) {
+      setPackagePaymentStatus('failed');
       setPackageError(err instanceof Error ? err.message : 'Unable to start package payment.');
     } finally {
       setPackageSubmitting(false);
@@ -126,6 +176,8 @@ export default function DepositPage() {
     setError('');
     setMessage('');
     setCheckoutUrl('');
+    setVerificationPaymentId('');
+    setVerificationPaymentStatus('');
     if (!user) {
       setError('Sign in before starting payment verification.');
       return;
@@ -151,10 +203,13 @@ export default function DepositPage() {
         email: paymentMethod === 'mpesa' ? undefined : accountValue.trim(),
         phone: paymentMethod === 'mpesa' ? accountValue.trim() : undefined,
       });
+      setVerificationPaymentId(result.depositId);
+      setVerificationPaymentStatus(result.status || 'pending');
       setMessage('Verification payment created. Complete the provider payment, then wait for admin approval.');
       setCheckoutUrl(result.checkoutUrl || '');
       setAccountValue('');
     } catch (err) {
+      setVerificationPaymentStatus('failed');
       setError(err instanceof Error ? err.message : 'Unable to start verification payment.');
     } finally {
       setSubmitting(false);
@@ -256,6 +311,7 @@ export default function DepositPage() {
                 {getCheckoutLabel(packageProvider)}
               </a>
             )}
+            {packagePaymentId && packagePaymentStatus && <PaymentProgress kind="package" provider={packageProvider} status={packagePaymentStatus} />}
             {packageError && <div className="alert alert-error">{packageError}</div>}
             <button disabled={packageSubmitting || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">
               {packageSubmitting ? 'Starting package payment...' : selectedTier === 'Free' ? 'Choose a paid tier first' : `Pay $${TIERS.find((tier) => tier.name === selectedTier)?.price}`}
@@ -327,6 +383,7 @@ export default function DepositPage() {
                 {getCheckoutLabel(paymentMethod)}
               </a>
             )}
+            {verificationPaymentId && verificationPaymentStatus && <PaymentProgress kind="verification" provider={paymentMethod} status={verificationPaymentStatus} />}
             {error && <div className="alert alert-error">{error}</div>}
 
             {/* Submit */}
