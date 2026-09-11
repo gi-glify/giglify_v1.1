@@ -1,4 +1,4 @@
-export const APPROVED_PAYMENT_PROVIDERS = ["palpluss", "paystack", "paypal"];
+export const APPROVED_PAYMENT_PROVIDERS = ["mpesa", "paystack", "paypal"];
 export const TRANSACTION_STATUSES = [
     "created",
     "pending",

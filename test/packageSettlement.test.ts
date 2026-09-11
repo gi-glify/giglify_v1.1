@@ -45,20 +45,17 @@ test("normalizes a completed PayPal capture", () => {
   });
 });
 
-test("normalizes a Palpluss transaction event", () => {
-  assert.deepEqual(normalizePackagePaymentEvent("palpluss", {
-    event: "transaction.updated",
-    event_type: "transaction.success",
-    transaction: {
-      id: "PL-123",
-      status: "SUCCESS",
-      external_reference: "GIG-ABC",
-      provider_request_id: "PAL-REQ-123",
-    },
+test("normalizes an M-Pesa STK callback", () => {
+  assert.deepEqual(normalizePackagePaymentEvent("mpesa", {
+    Body: { stkCallback: {
+      MerchantRequestID: "mr-3",
+      CheckoutRequestID: "ws_CO_123",
+      ResultCode: 0,
+    }},
   }), {
-    eventId: "PL-123",
-    providerRequestId: "PAL-REQ-123",
-    tuid: "GIG-ABC",
+    eventId: "ws_CO_123",
+    providerRequestId: "ws_CO_123",
+    tuid: "ws_CO_123",
     status: "success",
   });
 });

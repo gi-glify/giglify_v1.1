@@ -14,10 +14,10 @@ test('uses the fixed Kenya verification deposit amount', () => {
 });
 
 test('accepts only supported payment methods', () => {
-  assert.equal(isPaymentMethod('palpluss'), true);
+  assert.equal(isPaymentMethod('mpesa'), true);
   assert.equal(isPaymentMethod('paystack'), true);
   assert.equal(isPaymentMethod('paypal'), true);
-  assert.equal(isPaymentMethod('mpesa'), false);
+  assert.equal(isPaymentMethod('palpluss'), false);
   assert.equal(isPaymentMethod('stripe'), false);
   assert.equal(isPaymentMethod('cash'), false);
 });

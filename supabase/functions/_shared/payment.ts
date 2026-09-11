@@ -2,7 +2,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { buildPackageProviderRequest, type ProviderName } from "./provider-requests.ts";
 import { normalizeProviderResponse } from "./provider-responses.ts";
 
-export const PAYMENT_METHODS = ["palpluss", "paystack", "paypal"] as const;
+export const PAYMENT_METHODS = ["mpesa", "paystack", "paypal"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const VERIFICATION_USD = 3;
@@ -28,9 +28,9 @@ export async function createProviderPayment(method: PaymentMethod, input: { depo
     ? { secret: Deno.env.get("PAYSTACK_SECRET_KEY") }
     : method === "paypal"
       ? { accessToken: Deno.env.get("PAYPAL_ACCESS_TOKEN"), baseUrl: Deno.env.get("PAYPAL_BASE_URL") || undefined }
-      : { secret: Deno.env.get("PALPLUSS_API_KEY"), baseUrl: Deno.env.get("PALPLUSS_BASE_URL") || undefined };
-  const phone = method === "palpluss" ? input.accountValue : undefined;
-  const amountKes = method === "palpluss" ? Number(Deno.env.get("PALPLUSS_VERIFICATION_AMOUNT_KES") || VERIFICATION_KES) : undefined;
+      : { accessToken: Deno.env.get("MPESA_ACCESS_TOKEN"), baseUrl: Deno.env.get("MPESA_BASE_URL") || undefined, shortCode: Deno.env.get("MPESA_SHORTCODE"), passkey: Deno.env.get("MPESA_PASSKEY") };
+  const phone = method === "mpesa" ? input.accountValue : undefined;
+  const amountKes = method === "mpesa" ? Number(Deno.env.get("MPESA_VERIFICATION_AMOUNT_KES") || VERIFICATION_KES) : undefined;
   const request = buildPackageProviderRequest({
     provider,
     tuid: input.depositId,

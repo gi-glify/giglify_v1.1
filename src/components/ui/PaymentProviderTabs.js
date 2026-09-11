@@ -5,7 +5,7 @@ import { PAYMENT_PROVIDERS } from '../../lib/paymentProviders';
 const PAYMENT_BRANDS = {
     paystack: { Icon: CreditCard, className: 'text-brand-600 dark:text-brand-300' },
     paypal: { Icon: FaPaypal, className: 'text-blue-600' },
-    palpluss: { Icon: Smartphone, className: 'text-brand-600 dark:text-brand-300' },
+    mpesa: { Icon: Smartphone, className: 'text-brand-600 dark:text-brand-300' },
 };
 export default function PaymentProviderTabs({ selectedValue, onChange, idPrefix = 'payment-provider' }) {
     function handleKeyDown(event, index) {

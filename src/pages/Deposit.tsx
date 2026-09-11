@@ -111,7 +111,7 @@ export default function DepositPage() {
         email: packageEmail.trim() || undefined,
       });
       setPackageCheckoutUrl(started.checkoutUrl || '');
-      setPackageMessage(packageProvider === 'palpluss'
+      setPackageMessage(packageProvider === 'mpesa'
         ? 'STK prompt started. Complete it on your phone; your package activates after verified provider confirmation.'
         : 'Payment started. Complete checkout; your package activates after verified provider confirmation.');
     } catch (err) {
@@ -135,8 +135,8 @@ export default function DepositPage() {
       return;
     }
     const verificationProviderError = validateProviderInput(paymentMethod, {
-      email: paymentMethod === 'palpluss' ? undefined : accountValue,
-      phone: paymentMethod === 'palpluss' ? accountValue : undefined,
+      email: paymentMethod === 'mpesa' ? undefined : accountValue,
+      phone: paymentMethod === 'mpesa' ? accountValue : undefined,
     });
     if (verificationProviderError) {
       setError(verificationProviderError);
@@ -148,8 +148,8 @@ export default function DepositPage() {
         method: paymentMethod,
         accountLabel: accountLabel.trim(),
         accountValue: accountValue.trim(),
-        email: paymentMethod === 'palpluss' ? undefined : accountValue.trim(),
-        phone: paymentMethod === 'palpluss' ? accountValue.trim() : undefined,
+        email: paymentMethod === 'mpesa' ? undefined : accountValue.trim(),
+        phone: paymentMethod === 'mpesa' ? accountValue.trim() : undefined,
       });
       setMessage('Verification payment created. Complete the provider payment, then wait for admin approval.');
       setCheckoutUrl(result.checkoutUrl || '');
@@ -242,11 +242,11 @@ export default function DepositPage() {
                 {getProviderField(packageProvider).label}
                 <input
                   className="input-field w-full mt-2"
-                  value={packageProvider === 'palpluss' ? packagePhone : packageEmail}
-                  onChange={(e) => packageProvider === 'palpluss' ? setPackagePhone(e.target.value) : setPackageEmail(e.target.value)}
+                  value={packageProvider === 'mpesa' ? packagePhone : packageEmail}
+                  onChange={(e) => packageProvider === 'mpesa' ? setPackagePhone(e.target.value) : setPackageEmail(e.target.value)}
                   placeholder={getProviderField(packageProvider).placeholder}
                   autoComplete={getProviderField(packageProvider).autoComplete}
-                  type={packageProvider === 'palpluss' ? 'tel' : 'email'}
+                  type={packageProvider === 'mpesa' ? 'tel' : 'email'}
                 />
               </label>
             </div>
@@ -314,7 +314,7 @@ export default function DepositPage() {
                     value={accountValue}
                     onChange={(e) => setAccountValue(e.target.value)}
                     placeholder={getProviderField(paymentMethod).placeholder}
-                    type={paymentMethod === 'palpluss' ? 'tel' : 'email'}
+                    type={paymentMethod === 'mpesa' ? 'tel' : 'email'}
                     autoComplete={getProviderField(paymentMethod).autoComplete}
                   />
                 </label>

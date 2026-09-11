@@ -14,7 +14,7 @@ interface PaymentProviderTabsProps {
 const PAYMENT_BRANDS = {
   paystack: { Icon: CreditCard, className: 'text-brand-600 dark:text-brand-300' },
   paypal: { Icon: FaPaypal, className: 'text-blue-600' },
-  palpluss: { Icon: Smartphone, className: 'text-brand-600 dark:text-brand-300' },
+  mpesa: { Icon: Smartphone, className: 'text-brand-600 dark:text-brand-300' },
 } as const;
 
 export default function PaymentProviderTabs({ selectedValue, onChange, idPrefix = 'payment-provider' }: PaymentProviderTabsProps) {

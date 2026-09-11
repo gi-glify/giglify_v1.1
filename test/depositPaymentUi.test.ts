@@ -42,7 +42,7 @@ test("Deposit uses the approved provider tabs for both payment flows", async () 
   assert.match(source, /startPackagePayment/);
   assert.match(source, /createVerificationPayment/);
   assert.match(providers, /Paystack/);
-  assert.match(providers, /PalPluss/);
+  assert.match(providers, /M-Pesa/);
   assert.doesNotMatch(source, /FaCcStripe/);
 });
 

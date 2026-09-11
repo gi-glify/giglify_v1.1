@@ -4,7 +4,7 @@ import { normalizePackagePaymentEvent, type NormalizedPackagePaymentEvent } from
 import type { ProviderName } from "../_shared/provider-requests.ts";
 
 function providerName(value: string | null): ProviderName {
-  if (value === "paystack" || value === "paypal" || value === "palpluss") return value;
+  if (value === "paystack" || value === "paypal" || value === "mpesa") return value;
   throw new HttpError("Unsupported payment provider", 400, "provider_error");
 }
 
@@ -64,7 +64,9 @@ async function paypalVerified(payload: unknown, request: Request): Promise<boole
 async function verifyProvider(provider: ProviderName, rawBody: string, payload: unknown, request: Request): Promise<boolean> {
   if (provider === "paystack") return paystackVerified(rawBody, request);
   if (provider === "paypal") return paypalVerified(payload, request);
-  throw new HttpError("PalPluss callback authentication is not configured; confirm its signed webhook contract before enabling settlement", 503, "provider_verification_unavailable");
+  const expected = requiredEnv("MPESA_CALLBACK_SECRET");
+  const supplied = request.headers.get("x-mpesa-callback-secret") || new URL(request.url).searchParams.get("callback_secret") || "";
+  return safeEqual(supplied, expected);
 }
 
 function terminalStatus(event: NormalizedPackagePaymentEvent): "failed" | "cancelled" | "expired" {

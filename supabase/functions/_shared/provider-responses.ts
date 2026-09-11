@@ -50,7 +50,7 @@ export function normalizeProviderResponse(provider: ProviderName, payload: unkno
     };
   }
 
-  const providerRequestId = text(body.transactionId) ?? text(body.transaction_id) ?? text(body.id) ?? text(data.transactionId);
+  const providerRequestId = text(body.CheckoutRequestID) ?? text(body.checkout_request_id) ?? text(body.transactionId) ?? text(body.transaction_id) ?? text(body.id) ?? text(data.transactionId);
   if (!providerRequestId) throw new Error("Provider response has no provider request identifier");
   return { providerRequestId };
 }

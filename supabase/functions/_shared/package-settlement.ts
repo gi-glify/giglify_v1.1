@@ -63,12 +63,12 @@ export function normalizePackagePaymentEvent(provider: ProviderName, payload: un
     return { ...reference, providerRequestId, status };
   }
 
-  const transaction = record(body.transaction);
-  const eventId = firstText(transaction.id, body.id);
-  const providerRequestId = firstText(transaction.provider_request_id, transaction.provider_checkout_id);
-  const tuid = firstText(transaction.external_reference);
-  const providerStatus = text(transaction.status)?.toUpperCase() ?? "";
-  const eventType = text(body.event_type)?.toLowerCase() ?? "";
+  const transaction = record(body.transaction ?? body.Body?.stkCallback);
+  const eventId = firstText(transaction.id, body.id, transaction.CheckoutRequestID, transaction.MerchantRequestID);
+  const providerRequestId = firstText(transaction.provider_request_id, transaction.provider_checkout_id, transaction.CheckoutRequestID, transaction.checkout_request_id);
+  const tuid = firstText(transaction.external_reference, transaction.AccountReference, body.tuid);
+  const providerStatus = text(transaction.status)?.toUpperCase() ?? (Number(transaction.ResultCode) === 0 ? "SUCCESS" : "");
+  const eventType = text(body.event_type)?.toLowerCase() ?? (Number(transaction.ResultCode) === 0 ? "stk.success" : "");
   const status = providerStatus === "SUCCESS" || eventType.endsWith(".success")
     ? "success"
     : providerStatus === "FAILED" || eventType.endsWith(".failed")
@@ -78,5 +78,5 @@ export function normalizePackagePaymentEvent(provider: ProviderName, payload: un
         : providerStatus === "EXPIRED" || eventType.endsWith(".expired")
           ? "expired"
           : "pending";
-  return { ...requireReference(eventId, tuid), providerRequestId, status };
+  return { ...requireReference(eventId, tuid ?? providerRequestId), providerRequestId, status };
 }

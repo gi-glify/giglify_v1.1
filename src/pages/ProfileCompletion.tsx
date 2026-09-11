@@ -556,7 +556,7 @@ export default function ProfileCompletionPage() {
                 </label>
                 <input
                   className="input-field"
-                  placeholder={form.payoutMethod === 'palpluss' ? 'Phone number (+254...)' : form.payoutMethod === 'paypal' ? 'PayPal email' : 'Paystack email'}
+                  placeholder={form.payoutMethod === 'mpesa' ? 'Phone number (+254...)' : form.payoutMethod === 'paypal' ? 'PayPal email' : 'Paystack email'}
                   value={form.payoutAccount}
                   onChange={(e) =>
                     setForm({ ...form, payoutAccount: e.target.value })

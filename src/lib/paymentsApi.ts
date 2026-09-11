@@ -2,7 +2,7 @@ import { supabase } from '../utils/supabase';
 import { PaymentMethod, PaymentVerificationStatus } from './paymentTypes';
 import type { PaidPackageTier } from './packageCheckout';
 
-export type PackagePaymentProvider = 'palpluss' | 'paystack' | 'paypal';
+export type PackagePaymentProvider = 'mpesa' | 'paystack' | 'paypal';
 
 export type PackagePaymentStart = {
   transactionId: string;

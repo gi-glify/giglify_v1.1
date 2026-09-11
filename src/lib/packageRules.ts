@@ -1,5 +1,5 @@
 export type PackageTier = "free" | "pro" | "elite";
-export const APPROVED_PAYMENT_PROVIDERS = ["palpluss", "paystack", "paypal"] as const;
+export const APPROVED_PAYMENT_PROVIDERS = ["mpesa", "paystack", "paypal"] as const;
 export const TRANSACTION_STATUSES = [
   "created",
   "pending",

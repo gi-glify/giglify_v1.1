@@ -8,8 +8,8 @@ import {
 } from "../src/lib/paymentProviders.ts";
 
 test("exposes the approved providers in tab order", () => {
-  assert.deepEqual(PAYMENT_PROVIDERS.map((provider) => provider.id), ["paystack", "paypal", "palpluss"]);
-  assert.deepEqual(PAYMENT_PROVIDERS.map((provider) => provider.label), ["Paystack", "PayPal", "PalPluss"]);
+  assert.deepEqual(PAYMENT_PROVIDERS.map((provider) => provider.id), ["paystack", "paypal", "mpesa"]);
+  assert.deepEqual(PAYMENT_PROVIDERS.map((provider) => provider.label), ["Paystack", "PayPal", "M-Pesa"]);
 });
 
 test("requires a valid email for Paystack checkout", () => {
@@ -24,8 +24,8 @@ test("requires a valid email for PayPal approval checkout", () => {
   assert.equal(getCheckoutLabel("paypal"), "Continue to PayPal approval");
 });
 
-test("requires a valid phone for PalPluss STK", () => {
-  assert.equal(validateProviderInput("palpluss", { phone: "123" }), "Enter a valid phone number for the PalPluss STK prompt.");
-  assert.equal(validateProviderInput("palpluss", { phone: "+254 712 345 678" }), null);
-  assert.equal(getProviderField("palpluss").label, "PalPluss phone number");
+test("requires a valid phone for M-Pesa STK", () => {
+  assert.equal(validateProviderInput("mpesa", { phone: "123" }), "Enter a valid phone number for the M-Pesa STK prompt.");
+  assert.equal(validateProviderInput("mpesa", { phone: "+254 712 345 678" }), null);
+  assert.equal(getProviderField("mpesa").label, "M-Pesa phone number");
 });

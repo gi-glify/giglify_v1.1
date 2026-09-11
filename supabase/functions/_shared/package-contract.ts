@@ -1,4 +1,4 @@
-export const PACKAGE_PAYMENT_PROVIDERS = ["palpluss", "paystack", "paypal"] as const;
+export const PACKAGE_PAYMENT_PROVIDERS = ["mpesa", "paystack", "paypal"] as const;
 export type PackagePaymentProvider = (typeof PACKAGE_PAYMENT_PROVIDERS)[number];
 
 export const PAID_PACKAGE_TIERS = ["pro", "elite"] as const;
