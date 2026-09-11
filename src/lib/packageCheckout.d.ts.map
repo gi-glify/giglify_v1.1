@@ -1,0 +1,1 @@
+{"version":3,"file":"packageCheckout.d.ts","sourceRoot":"","sources":["packageCheckout.ts"],"names":[],"mappings":"AAAA,OAAO,EAAiB,KAAK,WAAW,EAAE,MAAM,mBAAmB,CAAC;AAEpE,MAAM,MAAM,eAAe,GAAG,OAAO,CAAC,WAAW,EAAE,MAAM,CAAC,CAAC;AAE3D,wBAAgB,iBAAiB,CAAC,IAAI,EAAE,eAAe;;;;EAOtD;AAED,wBAAgB,2BAA2B,CAAC,IAAI,EAAE,eAAe,EAAE,KAAK,sDAAsB,GAAG,MAAM,CAEtG"}

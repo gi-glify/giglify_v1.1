@@ -1,0 +1,71 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { normalizePackagePaymentEvent } from "../supabase/functions/_shared/package-settlement.ts";
+
+test("normalizes a successful Paystack charge event", () => {
+  assert.deepEqual(normalizePackagePaymentEvent("paystack", {
+    id: "evt_123",
+    event: "charge.success",
+    data: { id: 9876, status: "success", reference: "GIG-ABC" },
+  }), {
+    eventId: "evt_123",
+    providerRequestId: "GIG-ABC",
+    tuid: "GIG-ABC",
+    status: "success",
+  });
+});
+
+test("keeps a PayPal order approval event pending until capture completes", () => {
+  assert.deepEqual(normalizePackagePaymentEvent("paypal", {
+    id: "WH-123",
+    event_type: "CHECKOUT.ORDER.APPROVED",
+    resource: { id: "ORDER-123", purchase_units: [{ custom_id: "GIG-ABC" }] },
+  }), {
+    eventId: "WH-123",
+    providerRequestId: "ORDER-123",
+    tuid: "GIG-ABC",
+    status: "pending",
+  });
+});
+
+test("normalizes a completed PayPal capture", () => {
+  assert.deepEqual(normalizePackagePaymentEvent("paypal", {
+    id: "WH-124",
+    event_type: "PAYMENT.CAPTURE.COMPLETED",
+    resource: {
+      id: "CAPTURE-123",
+      supplementary_data: { related_ids: { order_id: "ORDER-123" } },
+      custom_id: "GIG-ABC",
+    },
+  }), {
+    eventId: "WH-124",
+    providerRequestId: "ORDER-123",
+    tuid: "GIG-ABC",
+    status: "success",
+  });
+});
+
+test("normalizes a Palpluss transaction event", () => {
+  assert.deepEqual(normalizePackagePaymentEvent("palpluss", {
+    event: "transaction.updated",
+    event_type: "transaction.success",
+    transaction: {
+      id: "PL-123",
+      status: "SUCCESS",
+      external_reference: "GIG-ABC",
+      provider_request_id: "PAL-REQ-123",
+    },
+  }), {
+    eventId: "PL-123",
+    providerRequestId: "PAL-REQ-123",
+    tuid: "GIG-ABC",
+    status: "success",
+  });
+});
+
+test("rejects callbacks without an event ID or Giglify transaction reference", () => {
+  assert.throws(
+    () => normalizePackagePaymentEvent("paystack", { event: "charge.success", data: {} }),
+    /event ID or transaction reference/,
+  );
+});

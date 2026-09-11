@@ -1,5 +1,21 @@
 import { supabase } from '../utils/supabase';
 import { PaymentMethod, PaymentVerificationStatus } from './paymentTypes';
+import type { PaidPackageTier } from './packageCheckout';
+
+export type PackagePaymentProvider = 'palpluss' | 'paystack' | 'paypal';
+
+export type PackagePaymentStart = {
+  transactionId: string;
+  tuid: string;
+  paymentAttemptId?: string;
+  tier: PaidPackageTier;
+  amount: number;
+  currency: string;
+  provider: PackagePaymentProvider;
+  status: string;
+  checkoutUrl?: string;
+  clientSecret?: string;
+};
 
 export type PaymentVerificationState = {
   status: PaymentVerificationStatus;
@@ -34,6 +50,18 @@ export function createVerificationPayment(input: {
     'create-verification-payment',
     input,
   );
+}
+
+export function createPackagePayment(input: {
+  tier: PaidPackageTier;
+  provider: PackagePaymentProvider;
+  idempotencyKey: string;
+}) {
+  return invoke<PackagePaymentStart>('create-package-payment', input);
+}
+
+export function startPackagePayment(input: { transactionId: string; phone?: string }) {
+  return invoke<PackagePaymentStart>('start-package-payment', input);
 }
 
 export function createPayoutRequest(input: { amount: number; payoutAccountId: string }) {

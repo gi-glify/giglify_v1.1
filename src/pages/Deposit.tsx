@@ -3,28 +3,32 @@ import { formatCurrency } from '../utils/currency';
 import { FaCcStripe, FaPaypal, FaMobileScreenButton } from 'react-icons/fa6';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/authStore';
-import { createVerificationPayment } from '../lib/paymentsApi';
+import { createPackagePayment, createVerificationPayment, startPackagePayment, type PackagePaymentProvider } from '../lib/paymentsApi';
+import { createPackageIdempotencyKey, type PaidPackageTier } from '../lib/packageCheckout';
 import { VERIFICATION_KES, VERIFICATION_USD } from '../lib/paymentConstants';
 import { PaymentMethod } from '../lib/paymentTypes';
 
 const TIERS = [
   {
     name: 'Free',
+    tier: 'free' as const,
     price: 0,
     benefits: ['Basic tasks', '5 tasks/month', 'Mobile only'],
     color: 'border-stone-300',
   },
   {
     name: 'Pro',
-    price: 29,
-    benefits: ['Academic tasks', '50 tasks/month', 'Desktop + Mobile', 'Priority support'],
+    tier: 'pro' as const,
+    price: 45,
+    benefits: ['Academic tasks', '50 tasks per period', 'Desktop + Mobile', 'Priority support', '3-month access'],
     color: 'border-navy-300',
     recommended: true,
   },
   {
     name: 'Elite',
-    price: 99,
-    benefits: ['All tasks', 'Unlimited tasks', 'High-priority access', '24/7 support', 'Custom datasets'],
+    tier: 'elite' as const,
+    price: 120,
+    benefits: ['All tasks', 'Unlimited tasks', 'High-priority access', '24/7 support', '3-month access'],
     color: 'border-[#F5A623]',
   },
 ];
@@ -47,6 +51,11 @@ export default function DepositPage() {
   const [checkoutUrl, setCheckoutUrl] = useState('');
   const [selectedTier, setSelectedTier] = useState('Free');
   const [packageMessage, setPackageMessage] = useState('');
+  const [packageProvider, setPackageProvider] = useState<PackagePaymentProvider>('paystack');
+  const [packagePhone, setPackagePhone] = useState('');
+  const [packageSubmitting, setPackageSubmitting] = useState(false);
+  const [packageError, setPackageError] = useState('');
+  const [packageCheckoutUrl, setPackageCheckoutUrl] = useState('');
 
   const accountPlaceholder = paymentMethod === 'mpesa'
     ? '+254 7XX XXX XXX'
@@ -60,8 +69,45 @@ export default function DepositPage() {
       setPackageMessage('You are already on the Free plan. Choose a paid tier to begin an upgrade flow.');
       return;
     }
-    setPackageMessage(`${tierName} selected at $${price}/month. Choose a payment method below to continue.`);
-    window.setTimeout(() => document.getElementById('payment-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+    setPackageMessage(`${tierName} selected at $${price} for 3 months. Choose a provider below to continue.`);
+    window.setTimeout(() => document.getElementById('package-payment-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  }
+
+  async function handlePackagePayment(e: React.FormEvent) {
+    e.preventDefault();
+    setPackageError('');
+    setPackageCheckoutUrl('');
+    setPackageMessage('');
+    if (!user) {
+      setPackageError('Sign in before starting a package payment.');
+      return;
+    }
+    const tier = TIERS.find((item) => item.name === selectedTier)?.tier;
+    if (!tier) {
+      setPackageError('Choose Pro or Elite before starting a package payment.');
+      return;
+    }
+    if (packageProvider === 'palpluss' && !packagePhone.trim()) {
+      setPackageError('Enter the phone number that should receive the PalPluss STK prompt.');
+      return;
+    }
+    setPackageSubmitting(true);
+    try {
+      const created = await createPackagePayment({
+        tier: tier as PaidPackageTier,
+        provider: packageProvider,
+        idempotencyKey: createPackageIdempotencyKey(tier as PaidPackageTier),
+      });
+      const started = await startPackagePayment({ transactionId: created.transactionId, phone: packagePhone.trim() || undefined });
+      setPackageCheckoutUrl(started.checkoutUrl || '');
+      setPackageMessage(packageProvider === 'palpluss'
+        ? 'STK prompt started. Complete it on your phone; your package activates after verified provider confirmation.'
+        : 'Payment started. Complete checkout; your package activates after verified provider confirmation.');
+    } catch (err) {
+      setPackageError(err instanceof Error ? err.message : 'Unable to start package payment.');
+    } finally {
+      setPackageSubmitting(false);
+    }
   }
 
   async function handleVerification(e: React.FormEvent) {
@@ -116,7 +162,9 @@ export default function DepositPage() {
                   </div>
                 )}
                 <h3 className="font-display text-xl mb-2">{tier.name}</h3>
-                <p className="font-display text-3xl font-bold mb-4">${tier.price}</p>
+                <p className="font-display text-3xl font-bold mb-1">${tier.price}</p>
+                {tier.price > 0 && <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>for 3 months</p>}
+                {tier.price === 0 && <div className="mb-4" />}
                 <ul className="space-y-2 mb-6">
                   {tier.benefits.map((benefit) => (
                     <li key={benefit} className={`text-sm ${theme === 'dark' ? 'text-stone-400' : 'text-stone-600'}`}>
@@ -134,6 +182,46 @@ export default function DepositPage() {
           </div>
           {packageMessage && <div className="alert alert-info mt-6" data-aos="fade-in">{packageMessage}</div>}
         </div>
+
+        <form id="package-payment-form" onSubmit={handlePackagePayment} className={`card max-w-2xl mx-auto mb-10 scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">
+          <h2 className="font-display text-2xl mb-2">Pay for your package</h2>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Package changes are available from Free tier only. Payment remains pending until the provider callback is verified.</p>
+
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-semibold mb-3">Payment provider</label>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {([
+                  ['paystack', 'Paystack'],
+                  ['paypal', 'PayPal'],
+                  ['palpluss', 'PalPluss'],
+                ] as const).map(([provider, label]) => (
+                  <label key={provider} className={`flex items-center gap-2 cursor-pointer rounded-lg border p-3 ${packageProvider === provider ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-[var(--border)]'}`}>
+                    <input type="radio" name="package-provider" value={provider} checked={packageProvider === provider} onChange={() => setPackageProvider(provider)} />
+                    <span className="text-sm font-semibold">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {packageProvider === 'palpluss' && (
+              <label className="block text-sm font-semibold">
+                M-Pesa phone number
+                <input className="input-field w-full mt-2" value={packagePhone} onChange={(e) => setPackagePhone(e.target.value)} placeholder="+254 7XX XXX XXX" autoComplete="tel" />
+              </label>
+            )}
+
+            {packageCheckoutUrl && (
+              <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">
+                Continue to checkout
+              </a>
+            )}
+            {packageError && <div className="alert alert-error">{packageError}</div>}
+            <button disabled={packageSubmitting || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">
+              {packageSubmitting ? 'Starting package payment...' : selectedTier === 'Free' ? 'Choose a paid tier first' : `Pay $${TIERS.find((tier) => tier.name === selectedTier)?.price}`}
+            </button>
+          </div>
+        </form>
 
         {/* Deposit Section */}
         <form id="payment-form" onSubmit={handleVerification} className={`card max-w-2xl mx-auto animate-in scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">

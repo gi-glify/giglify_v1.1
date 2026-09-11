@@ -1,4 +1,18 @@
 import { PaymentMethod, PaymentVerificationStatus } from './paymentTypes';
+import type { PaidPackageTier } from './packageCheckout';
+export type PackagePaymentProvider = 'palpluss' | 'paystack' | 'paypal';
+export type PackagePaymentStart = {
+    transactionId: string;
+    tuid: string;
+    paymentAttemptId?: string;
+    tier: PaidPackageTier;
+    amount: number;
+    currency: string;
+    provider: PackagePaymentProvider;
+    status: string;
+    checkoutUrl?: string;
+    clientSecret?: string;
+};
 export type PaymentVerificationState = {
     status: PaymentVerificationStatus;
     verifiedAt: string | null;
@@ -29,6 +43,15 @@ export declare function createVerificationPayment(input: {
     checkoutUrl?: string;
     clientSecret?: string;
 }>;
+export declare function createPackagePayment(input: {
+    tier: PaidPackageTier;
+    provider: PackagePaymentProvider;
+    idempotencyKey: string;
+}): Promise<PackagePaymentStart>;
+export declare function startPackagePayment(input: {
+    transactionId: string;
+    phone?: string;
+}): Promise<PackagePaymentStart>;
 export declare function createPayoutRequest(input: {
     amount: number;
     payoutAccountId: string;

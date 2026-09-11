@@ -8,6 +8,12 @@ async function invoke(name, body) {
 export function createVerificationPayment(input) {
     return invoke('create-verification-payment', input);
 }
+export function createPackagePayment(input) {
+    return invoke('create-package-payment', input);
+}
+export function startPackagePayment(input) {
+    return invoke('start-package-payment', input);
+}
 export function createPayoutRequest(input) {
     return invoke('create-payout-request', input);
 }
