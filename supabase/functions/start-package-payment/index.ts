@@ -21,11 +21,11 @@ function requiredEnv(name: string): string {
 }
 
 function packageAmountKes(tier: string): number | undefined {
-  const configured = Deno.env.get(`MPESA_${tier.toUpperCase()}_AMOUNT_KES`);
+  const configured = Deno.env.get(`PALPLUSS_${tier.toUpperCase()}_AMOUNT_KES`);
   if (!configured) return undefined;
   const amount = Number(configured);
   if (!Number.isFinite(amount) || amount <= 0) {
-    throw new HttpError(`MPESA_${tier.toUpperCase()}_AMOUNT_KES must be a positive number`, 503, "configuration_error");
+    throw new HttpError(`PALPLUSS_${tier.toUpperCase()}_AMOUNT_KES must be a positive number`, 503, "configuration_error");
   }
   return amount;
 }
@@ -54,10 +54,8 @@ function providerCredentials(provider: ProviderName) {
     };
   }
   return {
-    accessToken: requiredEnv("MPESA_ACCESS_TOKEN"),
-    baseUrl: Deno.env.get("MPESA_BASE_URL") || undefined,
-    shortCode: requiredEnv("MPESA_SHORTCODE"),
-    passkey: requiredEnv("MPESA_PASSKEY"),
+    secret: requiredEnv("PALPLUSS_API_KEY"),
+    baseUrl: Deno.env.get("PALPLUSS_BASE_URL") || undefined,
   };
 }
 

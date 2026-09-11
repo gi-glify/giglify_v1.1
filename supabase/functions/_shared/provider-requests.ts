@@ -97,27 +97,19 @@ export function buildPackageProviderRequest(
     };
   }
 
-  if (!credentials.accessToken || !credentials.shortCode || !credentials.passkey || !input.amountKes || input.amountKes <= 0 || !input.phone) {
-    throw new Error("M-Pesa requires accessToken, shortCode, passkey, amountKes, and phone");
+  if (!credentials.secret || !input.amountKes || input.amountKes <= 0 || !input.phone) {
+    throw new Error("M-Pesa requires PalPluss secret, amountKes, and phone");
   }
-  const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-  const password = btoa(credentials.shortCode + credentials.passkey + timestamp);
   const phone = input.phone.replace(/\D/g, '').replace(/^0/, '254');
   return {
-    url: (credentials.baseUrl || "https://sandbox.safaricom.co.ke") + "/mpesa/stkpush/v1/processrequest",
-    headers: jsonHeaders("Bearer " + credentials.accessToken),
+    url: (credentials.baseUrl || "https://api.palpluss.com/v1") + "/payments/stk",
+    headers: jsonHeaders("Basic " + btoa(credentials.secret + ":")),
     body: JSON.stringify({
-      BusinessShortCode: credentials.shortCode,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
-      Amount: Math.round(input.amountKes),
-      PartyA: phone,
-      PartyB: credentials.shortCode,
-      PhoneNumber: phone,
-      CallBackURL: callbackUrl,
-      AccountReference: input.tuid,
-      TransactionDesc: purpose === "verification" ? "Giglify payout verification" : "Giglify package purchase",
+      amount: Math.round(input.amountKes),
+      phone,
+      accountReference: input.tuid,
+      transactionDesc: purpose === "verification" ? "Giglify payout verification" : "Giglify package purchase",
+      callbackUrl,
     }),
   };
 }

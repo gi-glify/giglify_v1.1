@@ -64,7 +64,7 @@ async function paypalVerified(payload: unknown, request: Request): Promise<boole
 async function verifyProvider(provider: ProviderName, rawBody: string, payload: unknown, request: Request): Promise<boolean> {
   if (provider === "paystack") return paystackVerified(rawBody, request);
   if (provider === "paypal") return paypalVerified(payload, request);
-  const expected = requiredEnv("MPESA_CALLBACK_SECRET");
+  const expected = requiredEnv("PALPLUSS_CALLBACK_SECRET");
   const supplied = request.headers.get("x-mpesa-callback-secret") || new URL(request.url).searchParams.get("callback_secret") || "";
   return safeEqual(supplied, expected);
 }

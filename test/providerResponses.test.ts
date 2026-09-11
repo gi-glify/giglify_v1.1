@@ -34,13 +34,13 @@ test("normalizes a PayPal order response using its approval link", () => {
 
 test("normalizes an M-Pesa response using the provider checkout identifier", () => {
   const result = normalizeProviderResponse("mpesa", {
-    CheckoutRequestID: "ws_CO_12345",
+    transactionId: "PL-12345",
     status: "pending",
     message: "STK prompt sent",
   });
 
   assert.deepEqual(result, {
-    providerRequestId: "ws_CO_12345",
+    providerRequestId: "PL-12345",
   });
 });
 

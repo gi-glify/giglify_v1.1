@@ -21,7 +21,7 @@ async function validSignature(request: Request, rawBody: string) {
 }
 
 function validMpesaCallbackSecret(request: Request): boolean {
-  const expected = Deno.env.get('MPESA_CALLBACK_SECRET');
+  const expected = Deno.env.get('PALPLUSS_CALLBACK_SECRET');
   const supplied = request.headers.get('x-mpesa-callback-secret') || new URL(request.url).searchParams.get('callback_secret');
   return Boolean(expected && supplied && supplied === expected);
 }
@@ -41,8 +41,8 @@ Deno.serve(async (request) => {
     } catch {
       return json({ error: 'Invalid JSON body' }, 400, request);
     }
-    const callback = payload.Body?.stkCallback;
-    const providerReference = callback?.CheckoutRequestID || callback?.MerchantRequestID;
+    const callback = payload.transaction || payload;
+    const providerReference = callback?.provider_request_id || callback?.provider_checkout_id || callback?.id;
     if (!providerReference) return json({ error: 'M-Pesa callback reference is required' }, 400, request);
     const supabase = adminClient();
     const { data: deposit, error: depositError } = await supabase
@@ -52,7 +52,7 @@ Deno.serve(async (request) => {
       .single();
     if (depositError || !deposit) return json({ error: 'Verification deposit not found' }, 404, request);
     const eventId = providerReference;
-    const succeeded = Number(callback.ResultCode) === 0;
+    const succeeded = String(callback.status || '').toUpperCase() === 'SUCCESS' || String(payload.event_type || '').toLowerCase().endsWith('.success');
     const status = succeeded ? 'held' : 'failed';
     const { error: eventError } = await supabase.from('payment_provider_events').insert({
       provider: 'mpesa',

@@ -54,27 +54,21 @@ test("builds an M-Pesa STK request only when KES and phone are supplied", () => 
     provider: "mpesa",
     phone: "254712345678",
     amountKes: 5603,
-  }, { accessToken: "mpesa-token", shortCode: "174379", passkey: "mpesa-passkey" });
-  assert.equal(request.url, "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest");
-  assert.equal(request.headers.Authorization, "Bearer mpesa-token");
+  }, { secret: "palpluss-key" });
+  assert.equal(request.url, "https://api.palpluss.com/v1/payments/stk");
+  assert.equal(request.headers.Authorization, "Basic " + btoa("palpluss-key:"));
   assert.deepEqual(JSON.parse(request.body), {
-    BusinessShortCode: "174379",
-    Password: JSON.parse(request.body).Password,
-    Timestamp: JSON.parse(request.body).Timestamp,
-    TransactionType: "CustomerPayBillOnline",
-    Amount: 5603,
-    PartyA: "254712345678",
-    PartyB: "174379",
-    PhoneNumber: "254712345678",
-    CallBackURL: "https://api.example.com/payment-callback",
-    AccountReference: "GIG-20260911120000-ABC123",
-    TransactionDesc: "Giglify package purchase",
+    amount: 5603,
+    phone: "254712345678",
+    accountReference: "GIG-20260911120000-ABC123",
+    transactionDesc: "Giglify package purchase",
+    callbackUrl: "https://api.example.com/payment-callback",
   });
 });
 
 test("rejects M-Pesa requests without an explicit KES amount", () => {
   assert.throws(
-    () => buildPackageProviderRequest({ ...base, provider: "mpesa", phone: "254712345678" }, { accessToken: "mpesa-token", shortCode: "174379", passkey: "mpesa-passkey" }),
-    /M-Pesa requires .*amountKes.*phone/,
+    () => buildPackageProviderRequest({ ...base, provider: "mpesa", phone: "254712345678" }, { secret: "palpluss-key" }),
+    /M-Pesa requires PalPluss secret, amountKes, and phone/,
   );
 });
