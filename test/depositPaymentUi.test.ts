@@ -31,9 +31,25 @@ test("notification toast uses the requested motion and danger behavior", async (
 
 test("Deposit uses the approved provider tabs for both payment flows", async () => {
   const source = await readFile("src/pages/Deposit.tsx", "utf8");
-  assert.match(source, /role="tablist"/g);
-  assert.match(source, /role="tab"/g);
-  assert.match(source, /Paystack/);
-  assert.match(source, /PalPluss/);
+  const providers = await readFile("src/lib/paymentProviders.ts", "utf8");
+  assert.match(source, /<PaymentProviderTabs/);
+  assert.match(source, /setPackageProvider/);
+  assert.match(source, /setPaymentMethod/);
+  assert.match(source, /getCheckoutLabel/);
+  assert.match(source, /getProviderField/);
+  assert.match(source, /onSubmit={handlePackagePayment}/);
+  assert.match(source, /onSubmit={handleVerification}/);
+  assert.match(source, /startPackagePayment/);
+  assert.match(source, /createVerificationPayment/);
+  assert.match(providers, /Paystack/);
+  assert.match(providers, /PalPluss/);
   assert.doesNotMatch(source, /FaCcStripe/);
+});
+
+test("provider tabs expose keyboard and selection semantics", async () => {
+  const source = await readFile("src/components/ui/PaymentProviderTabs.tsx", "utf8");
+  assert.match(source, /aria-label=/);
+  assert.match(source, /aria-controls=/);
+  assert.match(source, /onKeyDown=/);
+  assert.match(source, /tabIndex=/);
 });

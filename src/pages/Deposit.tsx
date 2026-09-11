@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatCurrency } from '../utils/currency';
-import { FaPaypal } from 'react-icons/fa6';
-import { ChevronDown, CreditCard, ShieldCheck, Smartphone } from 'lucide-react';
+import { ChevronDown, CreditCard, ShieldCheck } from 'lucide-react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { useTheme } from '../context/ThemeContext';
@@ -11,6 +10,7 @@ import { createPackageIdempotencyKey, type PaidPackageTier } from '../lib/packag
 import { VERIFICATION_KES, VERIFICATION_USD } from '../lib/paymentConstants';
 import { PaymentMethod } from '../lib/paymentTypes';
 import PaymentProviderTabs, { PaymentProviderId } from '../components/ui/PaymentProviderTabs';
+import { getCheckoutLabel, getProviderField, validateProviderInput } from '../lib/paymentProviders';
 
 const TIERS = [
   {
@@ -36,12 +36,6 @@ const TIERS = [
     color: 'border-[#F5A623]',
   },
 ];
-
-const PAYMENT_BRANDS = {
-  paystack: { label: 'Paystack', Icon: CreditCard, className: 'text-brand-600 dark:text-brand-300' },
-  paypal: { label: 'PayPal', Icon: FaPaypal, className: 'text-blue-600' },
-  palpluss: { label: 'PalPluss', Icon: Smartphone, className: 'text-brand-600 dark:text-brand-300' },
-} as const;
 
 export default function DepositPage() {
   const { theme } = useTheme();
@@ -72,12 +66,6 @@ export default function DepositPage() {
     return () => window.clearTimeout(refreshTimer);
   }, [packageOpen, verificationOpen]);
 
-  const accountPlaceholder = paymentMethod === 'palpluss'
-    ? '+254 7XX XXX XXX'
-    : paymentMethod === 'paypal'
-      ? 'PayPal email address'
-      : 'Paystack email address';
-
   function handleTierSelect(tierName: string, price: number) {
     setSelectedTier(tierName);
     setPackageOpen(true);
@@ -104,13 +92,9 @@ export default function DepositPage() {
       return;
     }
 
-    // Provider-specific validation
-    if (packageProvider === 'palpluss' && !packagePhone.trim()) {
-      setPackageError('Enter the phone number that should receive the PalPluss STK prompt.');
-      return;
-    }
-    if (packageProvider === 'paystack' && !packageEmail.trim()) {
-      setPackageError('Enter your email address for Paystack checkout.');
+    const packageProviderError = validateProviderInput(packageProvider, { email: packageEmail, phone: packagePhone });
+    if (packageProviderError) {
+      setPackageError(packageProviderError);
       return;
     }
 
@@ -124,7 +108,7 @@ export default function DepositPage() {
       const started = await startPackagePayment({
         transactionId: created.transactionId,
         phone: packagePhone.trim() || undefined,
-        email: packageEmail.trim() || undefined
+        email: packageEmail.trim() || undefined,
       });
       setPackageCheckoutUrl(started.checkoutUrl || '');
       setPackageMessage(packageProvider === 'palpluss'
@@ -146,17 +130,27 @@ export default function DepositPage() {
       setError('Sign in before starting payment verification.');
       return;
     }
-    if (!accountValue.trim() || !accountLabel.trim()) {
-      setError('Add a label and the account or phone number used for payout.');
+    if (!accountLabel.trim()) {
+      setError('Add a label for the payout account.');
       return;
     }
-    if (paymentMethod === 'palpluss' && !/^\+?[0-9 ()-]{8,24}$/.test(accountValue.trim())) {
-      setError('Enter a valid phone number for PalPluss.');
+    const verificationProviderError = validateProviderInput(paymentMethod, {
+      email: paymentMethod === 'palpluss' ? undefined : accountValue,
+      phone: paymentMethod === 'palpluss' ? accountValue : undefined,
+    });
+    if (verificationProviderError) {
+      setError(verificationProviderError);
       return;
     }
     setSubmitting(true);
     try {
-      const result = await createVerificationPayment({ method: paymentMethod, accountLabel: accountLabel.trim(), accountValue: accountValue.trim(), phone: paymentMethod === 'palpluss' ? accountValue.trim() : undefined });
+      const result = await createVerificationPayment({
+        method: paymentMethod,
+        accountLabel: accountLabel.trim(),
+        accountValue: accountValue.trim(),
+        email: paymentMethod === 'palpluss' ? undefined : accountValue.trim(),
+        phone: paymentMethod === 'palpluss' ? accountValue.trim() : undefined,
+      });
       setMessage('Verification payment created. Complete the provider payment, then wait for admin approval.');
       setCheckoutUrl(result.checkoutUrl || '');
       setAccountValue('');
@@ -242,23 +236,23 @@ export default function DepositPage() {
               />
             </div>
 
-            {packageProvider === 'palpluss' && (
+            <div id={`payment-provider-panel-${packageProvider}`} role="tabpanel" aria-labelledby={`payment-provider-tab-${packageProvider}`}>
               <label className="block text-sm font-semibold">
-                M-Pesa phone number
-                <input className="input-field w-full mt-2" value={packagePhone} onChange={(e) => setPackagePhone(e.target.value)} placeholder="+254 7XX XXX XXX" autoComplete="tel" />
+                {getProviderField(packageProvider).label}
+                <input
+                  className="input-field w-full mt-2"
+                  value={packageProvider === 'palpluss' ? packagePhone : packageEmail}
+                  onChange={(e) => packageProvider === 'palpluss' ? setPackagePhone(e.target.value) : setPackageEmail(e.target.value)}
+                  placeholder={getProviderField(packageProvider).placeholder}
+                  autoComplete={getProviderField(packageProvider).autoComplete}
+                  type={packageProvider === 'palpluss' ? 'tel' : 'email'}
+                />
               </label>
-            )}
-
-            {packageProvider === 'paystack' && (
-              <label className="block text-sm font-semibold">
-                Email address
-                <input className="input-field w-full mt-2" value={packageEmail} onChange={(e) => setPackageEmail(e.target.value)} placeholder="email@example.com" autoComplete="email" />
-              </label>
-            )}
+            </div>
 
             {packageCheckoutUrl && (
               <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">
-                Continue to checkout
+                {getCheckoutLabel(packageProvider)}
               </a>
             )}
             {packageError && <div className="alert alert-error">{packageError}</div>}
@@ -310,22 +304,25 @@ export default function DepositPage() {
                 Account label
                 <input className="input-field w-full mt-2" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder="My primary account" />
               </label>
-              <label className="text-sm font-semibold">
-                Account or phone
-                <input
-                  className="input-field w-full mt-2"
-                  value={accountValue}
-                  onChange={(e) => setAccountValue(e.target.value)}
-                  placeholder={paymentMethod === 'palpluss' ? '+254 7XX XXX XXX' : paymentMethod === 'paypal' ? 'PayPal email address' : 'Paystack email address'}
-                  autoComplete="off"
-                />
-              </label>
+              <div id={`payment-provider-panel-${paymentMethod}`} role="tabpanel" aria-labelledby={`payment-provider-tab-${paymentMethod}`}>
+                <label className="text-sm font-semibold">
+                  {getProviderField(paymentMethod).label}
+                  <input
+                    className="input-field w-full mt-2"
+                    value={accountValue}
+                    onChange={(e) => setAccountValue(e.target.value)}
+                    placeholder={getProviderField(paymentMethod).placeholder}
+                    type={paymentMethod === 'palpluss' ? 'tel' : 'email'}
+                    autoComplete={getProviderField(paymentMethod).autoComplete}
+                  />
+                </label>
+              </div>
             </div>
 
             {message && <div className="alert alert-success">{message}</div>}
             {checkoutUrl && (
               <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={checkoutUrl} target="_blank" rel="noreferrer">
-                Continue to PayPal
+                {getCheckoutLabel(paymentMethod)}
               </a>
             )}
             {error && <div className="alert alert-error">{error}</div>}

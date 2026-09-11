@@ -1,6 +1,7 @@
-import { audit, createProviderPayment, fingerprint, isPaymentMethod, KENYA_USD_RATE, VERIFICATION_KES, VERIFICATION_USD } from "../_shared/payment.ts";
+import { audit, createProviderPayment, fingerprint, KENYA_USD_RATE, VERIFICATION_KES, VERIFICATION_USD } from "../_shared/payment.ts";
 import { json, options } from "../_shared/http.ts";
 import { requireUser } from "../_shared/auth.ts";
+import { parseVerificationPaymentRequest } from "../_shared/verification-contract.ts";
 
 Deno.serve(async (req) => {
   const preflight = options(req);
@@ -9,14 +10,16 @@ Deno.serve(async (req) => {
 
   try {
     const { user, db } = await requireUser(req);
-    const body = await req.json();
-    const method = body?.method;
-    const accountLabel = typeof body?.accountLabel === "string" ? body.accountLabel.trim() : "";
-    const accountValue = typeof body?.accountValue === "string" ? body.accountValue.trim() : "";
-
-    if (!isPaymentMethod(method) || !accountLabel || !accountValue) {
+    const rawBody = await req.json();
+    const requestBody = rawBody && typeof rawBody === "object"
+      ? { ...(rawBody as Record<string, unknown>), email: (rawBody as Record<string, unknown>).email ?? user.email }
+      : rawBody;
+    const parsed = parseVerificationPaymentRequest(requestBody);
+    if (!parsed) {
       return json({ error: "A supported payment method and payout account are required" }, 400);
     }
+    const method = parsed.method;
+    const { accountLabel, accountValue, email = user.email ?? "" } = parsed;
 
     const accountFingerprint = await fingerprint(`${method}:${accountValue}`);
     const { data: account, error: accountError } = await db
@@ -53,7 +56,7 @@ Deno.serve(async (req) => {
 
     let providerPayment;
     try {
-      providerPayment = await createProviderPayment(method, { depositId: deposit.id, userId: user.id, accountValue, email: user.email ?? "" });
+      providerPayment = await createProviderPayment(method, { depositId: deposit.id, userId: user.id, accountValue, email });
     } catch (providerError) {
       await db.from("verification_deposits").update({ status: "failed" }).eq("id", deposit.id);
       throw providerError;

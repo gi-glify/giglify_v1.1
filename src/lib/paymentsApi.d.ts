@@ -34,6 +34,7 @@ export declare function createVerificationPayment(input: {
     method: PaymentMethod;
     accountLabel: string;
     accountValue: string;
+    email?: string;
     phone?: string;
 }): Promise<{
     depositId: string;
@@ -51,6 +52,7 @@ export declare function createPackagePayment(input: {
 }): Promise<PackagePaymentStart>;
 export declare function startPackagePayment(input: {
     transactionId: string;
+    email?: string;
     phone?: string;
 }): Promise<PackagePaymentStart>;
 export declare function createPayoutRequest(input: {

@@ -5,6 +5,7 @@ import { buildPackageProviderRequest, type ProviderName } from "../_shared/provi
 
 type PaymentBody = {
   transactionId?: unknown;
+  email?: unknown;
   phone?: unknown;
 };
 
@@ -29,15 +30,19 @@ function packageAmountKes(tier: string): number | undefined {
   return amount;
 }
 
-function parseBody(value: unknown): { transactionId: string; phone?: string } {
+function parseBody(value: unknown): { transactionId: string; email?: string; phone?: string } {
   const body = value as PaymentBody;
   const transactionId = typeof body?.transactionId === "string" ? body.transactionId.trim() : "";
+  const email = typeof body?.email === "string" ? body.email.trim() : undefined;
   const phone = typeof body?.phone === "string" ? body.phone.trim() : undefined;
   if (!transactionId) throw new HttpError("transactionId is required", 400, "validation_error");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new HttpError("email must be valid", 400, "validation_error");
+  }
   if (phone && !/^\+?[0-9 ()-]{8,24}$/.test(phone)) {
     throw new HttpError("phone must be a valid phone number", 400, "validation_error");
   }
-  return { transactionId, phone };
+  return { transactionId, email, phone };
 }
 
 function providerCredentials(provider: ProviderName) {
@@ -94,7 +99,7 @@ Deno.serve(async (req) => {
 
   try {
     const { user, db } = await requireUser(req);
-    const { transactionId, phone } = parseBody(await req.json());
+    const { transactionId, email, phone } = parseBody(await req.json());
     const { data: transaction, error: transactionError } = await db
       .from("transactions")
       .select("id, tuid, user_id, package_tier, amount, currency, provider, status")
@@ -130,7 +135,7 @@ Deno.serve(async (req) => {
       tuid: transaction.tuid,
       amountUsd: Number(transaction.amount),
       amountKes: provider === "palpluss" ? packageAmountKes(transaction.package_tier) : undefined,
-      email: user.email ?? "",
+      email: email || user.email || "",
       phone,
       idempotencyKey: `${transaction.tuid}:${attempt.attempt_number}`,
       ...urls,

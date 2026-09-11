@@ -45,6 +45,7 @@ export function createVerificationPayment(input: {
   method: PaymentMethod;
   accountLabel: string;
   accountValue: string;
+  email?: string;
   phone?: string;
 }) {
   return invoke<{ depositId: string; payoutAccountId: string; amountUsd: number; amountKes: number; status: string; checkoutUrl?: string; clientSecret?: string }>(
@@ -61,7 +62,7 @@ export function createPackagePayment(input: {
   return invoke<PackagePaymentStart>('create-package-payment', input);
 }
 
-export function startPackagePayment(input: { transactionId: string; phone?: string }) {
+export function startPackagePayment(input: { transactionId: string; email?: string; phone?: string }) {
   return invoke<PackagePaymentStart>('start-package-payment', input);
 }
 
