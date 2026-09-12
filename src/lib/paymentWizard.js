@@ -1,4 +1,8 @@
 export const PAYMENT_WIZARD_STEPS = ['details', 'provider', 'payment', 'result'];
+export function getPaymentProgressPercent(step) {
+    const index = PAYMENT_WIZARD_STEPS.indexOf(step);
+    return (index / (PAYMENT_WIZARD_STEPS.length - 1)) * 100;
+}
 export function getNextPaymentStep(step, valid) {
     if (!valid)
         return step;

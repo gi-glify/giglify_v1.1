@@ -76,6 +76,17 @@ test("Deposit uses the four-step wizard and safe draft restoration", async () =>
   assert.match(source, /setVerificationStep\('result'\)/);
 });
 
+test("payment wizard animates progress and keeps package cards visible", async () => {
+  const indicator = await readFile("src/components/payment/PaymentStepIndicator.tsx", "utf8");
+  const wizard = await readFile("src/components/payment/PaymentWizard.tsx", "utf8");
+  const deposit = await readFile("src/pages/Deposit.tsx", "utf8");
+  assert.match(indicator, /transition-\[width\]/);
+  assert.match(indicator, /duration-500/);
+  assert.match(wizard, /transition-\[opacity,transform\]/);
+  assert.match(deposit, /id="packages"[\s\S]*id="package-payment-form"/);
+  assert.match(deposit, /<div id="packages" className="mb-12/);
+});
+
 test("provider tabs expose keyboard and selection semantics", async () => {
   const source = await readFile("src/components/ui/PaymentProviderTabs.tsx", "utf8");
   assert.match(source, /aria-label=/);
