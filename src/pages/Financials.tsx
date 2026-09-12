@@ -6,6 +6,8 @@ import { Download } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { createPayoutRequest, fetchPaymentVerificationState, PaymentVerificationState } from '../lib/paymentsApi';
 import { MIN_WITHDRAWAL_USD } from '../lib/paymentConstants';
+import { fetchUserTransactions, transactionsToCsv, type TransactionFilter } from '../lib/transactionsApi';
+import { getPayoutProviderStatus } from '../lib/payoutProviders';
 
 export default function FinancialsPage() {
   const { theme } = useTheme();
@@ -17,18 +19,31 @@ export default function FinancialsPage() {
   const [paymentState, setPaymentState] = useState<PaymentVerificationState | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState('');
   const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsError, setTransactionsError] = useState('');
+  const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>('all');
+  const [transactionPage, setTransactionPage] = useState(0);
+  const [hasMoreTransactions, setHasMoreTransactions] = useState(false);
+  const payoutExecutionStatus = paymentState?.accounts.find((account) => account.id === selectedAccountId)?.method
+    ? getPayoutProviderStatus(paymentState.accounts.find((account) => account.id === selectedAccountId)!.method)
+    : 'provider_not_configured';
 
   useEffect(() => {
-    async function fetchTransactions() {
+    async function loadTransactions() {
+      if (!user?.id) return;
+      setTransactionsLoading(true);
+      setTransactionsError('');
       try {
-        // Implementation will fetch from Supabase `transactions` table
-        // const { data } = await supabase.from('transactions').select('*').eq('userId', user?.id);
-        // setTransactions(data || []);
+        const result = await fetchUserTransactions(user.id, transactionPage, 20, transactionFilter);
+        setTransactions((existing) => transactionPage === 0 ? result.rows : [...existing, ...result.rows]);
+        setHasMoreTransactions(result.hasMore);
       } catch (e) {
-        console.error("Failed to fetch transactions", e);
+        setTransactionsError(e instanceof Error ? e.message : 'Unable to load transactions.');
+      } finally {
+        setTransactionsLoading(false);
       }
     }
-    fetchTransactions();
+    void loadTransactions();
     if (user?.id) {
       fetchPaymentVerificationState(user.id)
         .then((state) => {
@@ -37,7 +52,17 @@ export default function FinancialsPage() {
         })
         .catch((e) => setError(e instanceof Error ? e.message : 'Unable to load payout verification status.'));
     }
-  }, [user]);
+  }, [user, transactionFilter, transactionPage]);
+
+  function exportTransactions() {
+    const csv = transactionsToCsv(transactions);
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'giglify-transactions.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   const handleWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +138,7 @@ export default function FinancialsPage() {
                 </select>
               </label>
             )}
+            {paymentState?.status === 'verified' && payoutExecutionStatus === 'provider_not_configured' && <div className="alert alert-warning">Your withdrawal request can be submitted for review, but provider payout execution is not configured yet. Funds will not be marked paid automatically.</div>}
             <div className="flex gap-2">
               <input
                 type="number"
@@ -136,11 +162,16 @@ export default function FinancialsPage() {
 
         {/* Transaction History */}
         <div>
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
             <h2 className="font-display text-2xl">Transaction History</h2>
-            <button className="flex items-center gap-2 btn-secondary px-3 py-2 text-sm rounded-lg">
-              <Download size={16} /> Export CSV
-            </button>
+            <div className="flex items-center gap-2">
+              <select aria-label="Transaction status" className="input-field py-2 text-sm" value={transactionFilter} onChange={(e) => { setTransactionPage(0); setTransactionFilter(e.target.value as TransactionFilter); }}>
+                <option value="all">All statuses</option><option value="pending">Pending</option><option value="completed">Completed</option><option value="failed">Failed</option>
+              </select>
+              <button type="button" onClick={exportTransactions} disabled={transactions.length === 0} className="flex items-center gap-2 btn-secondary px-3 py-2 text-sm rounded-lg disabled:opacity-50">
+                <Download size={16} /> Export CSV
+              </button>
+            </div>
           </div>
 
           <div className={`overflow-x-auto ${theme === 'dark' ? 'bg-stone-800' : 'bg-white'} rounded-lg border ${theme === 'dark' ? 'border-stone-700' : 'border-sand-100'}`}>
@@ -148,13 +179,16 @@ export default function FinancialsPage() {
               <thead>
                 <tr className={`border-b ${theme === 'dark' ? 'border-stone-700' : 'border-sand-100'}`}>
                   <th className="text-left px-6 py-4 font-semibold text-sm">Date</th>
-                  <th className="text-left px-6 py-4 font-semibold text-sm">Description</th>
+                  <th className="text-left px-6 py-4 font-semibold text-sm">Description / TUID</th>
                   <th className="text-left px-6 py-4 font-semibold text-sm">Type</th>
                   <th className="text-right px-6 py-4 font-semibold text-sm">Amount</th>
                   <th className="text-left px-6 py-4 font-semibold text-sm">Status</th>
                 </tr>
               </thead>
               <tbody>
+                {transactionsLoading && <tr><td colSpan={5} className="px-6 py-8 text-center text-sm">Loading transactions...</td></tr>}
+                {!transactionsLoading && transactionsError && <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-red-600">{transactionsError}</td></tr>}
+                {!transactionsLoading && !transactionsError && transactions.length === 0 && <tr><td colSpan={5} className="px-6 py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>No transactions found.</td></tr>}
                 {transactions.map((tx) => (
                   <tr
                     key={tx.id}
@@ -163,7 +197,7 @@ export default function FinancialsPage() {
                     <td className="px-6 py-4 text-sm">
                       {new Date(tx.timestamp).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-sm">{tx.description}</td>
+                    <td className="px-6 py-4 text-sm"><span className="block">{tx.description}</span><span className="text-xs opacity-60">{tx.tuid}</span></td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
                         tx.type === 'deposit'
@@ -196,6 +230,7 @@ export default function FinancialsPage() {
               </tbody>
             </table>
           </div>
+          {hasMoreTransactions && <button type="button" className="btn-secondary mt-4" onClick={() => setTransactionPage((page) => page + 1)} disabled={transactionsLoading}>Load more</button>}
         </div>
       </main>
     </div>

@@ -6,6 +6,7 @@ type PaymentProgressProps = {
   kind: PaymentProgressKind;
   provider: PaymentMethod;
   status: string;
+  onRetry?: () => void;
 };
 
 const STEPS = [
@@ -14,7 +15,7 @@ const STEPS = [
   { phase: 'review', label: 'Review or activation' },
 ];
 
-export default function PaymentProgress({ kind, provider, status }: PaymentProgressProps) {
+export default function PaymentProgress({ kind, provider, status, onRetry }: PaymentProgressProps) {
   const progress = getPaymentProgress(status, kind, provider);
   const failed = progress.phase === 'failed' || progress.phase === 'cancelled';
   const currentIndex = progress.phase === 'complete' || progress.phase === 'review'
@@ -41,6 +42,7 @@ export default function PaymentProgress({ kind, provider, status }: PaymentProgr
           </li>;
         })}
       </ol>
+      {progress.canRetry && onRetry && <button type="button" className="btn-secondary mt-4 w-full py-2 rounded-lg font-semibold" onClick={onRetry}>Start a new payment</button>}
     </section>
   );
 }

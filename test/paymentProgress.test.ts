@@ -8,6 +8,7 @@ test("maps an M-Pesa pending payment to an actionable STK progress state", () =>
     label: "Waiting for M-Pesa confirmation",
     description: "Check your phone and approve the STK prompt. Your payment will update automatically after provider confirmation.",
     terminal: false,
+    canRetry: false,
   });
 });
 
@@ -17,12 +18,15 @@ test("maps a successful verification deposit to a completed progress state", () 
     label: "Payment received — awaiting admin review",
     description: "Your verification payment was received and is now held for the normal admin-review flow.",
     terminal: true,
+    canRetry: false,
   });
 });
 
 test("maps failed and completed provider statuses to terminal states", () => {
   assert.equal(getPaymentProgress("failed", "package", "paypal").phase, "failed");
   assert.equal(getPaymentProgress("completed", "package", "paypal").phase, "complete");
+  assert.equal(getPaymentProgress("failed", "package", "paypal").canRetry, true);
+  assert.equal(getPaymentProgress("cancelled", "verification", "mpesa").canRetry, true);
   assert.equal(isPaymentProgressTerminal("failed"), true);
   assert.equal(isPaymentProgressTerminal("processing"), false);
 });

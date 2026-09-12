@@ -1,0 +1,10 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { ArrowLeft, ArrowRight, X } from 'lucide-react';
+import PaymentStepIndicator from './PaymentStepIndicator';
+import { getNextPaymentStep, getPreviousPaymentStep } from '../../lib/paymentWizard';
+export default function PaymentWizard({ currentStep, canContinue, children, onStepChange, onDiscard, nextLabel = 'Continue' }) {
+    const isFirst = currentStep === 'details';
+    const isLast = currentStep === 'result';
+    return _jsxs("section", { "aria-label": "Payment progress form", "data-payment-wizard": currentStep, children: [_jsxs("div", { className: "mb-6 flex items-center justify-between gap-3", children: [_jsxs("button", { type: "button", className: "inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:underline disabled:invisible dark:text-brand-300", onClick: () => onStepChange(getPreviousPaymentStep(currentStep)), disabled: isFirst, children: [_jsx(ArrowLeft, { size: 16, "aria-hidden": "true" }), " Back"] }), onDiscard && _jsxs("button", { type: "button", className: "inline-flex items-center gap-2 text-sm font-semibold opacity-75 hover:opacity-100", onClick: onDiscard, children: [_jsx(X, { size: 16, "aria-hidden": "true" }), " Cancel"] })] }), _jsx(PaymentStepIndicator, { currentStep: currentStep }), _jsx("div", { className: "mt-6", children: children }), !isLast && _jsx("div", { className: "mt-6 flex justify-end", children: _jsxs("button", { type: "button", className: "btn-primary inline-flex items-center gap-2 rounded-lg px-5 py-3 font-semibold disabled:opacity-50", disabled: !canContinue, onClick: () => onStepChange(getNextPaymentStep(currentStep, canContinue)), children: [nextLabel, " ", _jsx(ArrowRight, { size: 16, "aria-hidden": "true" })] }) })] });
+}
+//# sourceMappingURL=PaymentWizard.js.map

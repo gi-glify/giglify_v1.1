@@ -5,6 +5,8 @@ import { ArrowRight, Clock3 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { StatCardSkeleton, TaskListSkeleton } from '../components/ui/Skeleton';
 import { fetchTasks } from '../lib/taskQuestionsApi';
+import { fetchPackageVisibility } from '../lib/paymentsApi';
+import type { PackageVisibility } from '../lib/packageVisibility';
 import type { TaskCatalogItem } from '../lib/taskCatalog';
 import { getProfileCompletion, PROFILE_TASK_LIMIT_THRESHOLD } from '../utils/profileCompletion';
 
@@ -16,6 +18,7 @@ export default function DashboardPage() {
   const [completedToday] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [packageVisibility, setPackageVisibility] = useState<PackageVisibility | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,6 +30,11 @@ export default function DashboardPage() {
     });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchPackageVisibility(user.id).then(setPackageVisibility).catch(() => setPackageVisibility(null));
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen transition-colors" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
@@ -94,6 +102,19 @@ export default function DashboardPage() {
             </>
           )}
         </div>
+
+        {packageVisibility && <section className="card mb-8" aria-label="Package usage">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div><p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Package usage</p><h2 className="font-display text-2xl mt-1 capitalize">{packageVisibility.tier}</h2></div>
+            <Link to="/deposit?view=packages" className="text-sm font-semibold text-brand-600 dark:text-brand-300">Manage package <ArrowRight size={14} className="inline" /></Link>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+            <div><span style={{ color: 'var(--text-muted)' }}>Tasks used</span><p className="font-semibold mt-1">{packageVisibility.tasksUsed}{packageVisibility.tasksAllowed === null ? '' : ` / ${packageVisibility.tasksAllowed}`}</p></div>
+            <div><span style={{ color: 'var(--text-muted)' }}>Remaining</span><p className="font-semibold mt-1">{packageVisibility.tasksRemaining === null ? 'Unlimited' : packageVisibility.tasksRemaining}</p></div>
+            <div><span style={{ color: 'var(--text-muted)' }}>High-paying tasks</span><p className="font-semibold mt-1">{packageVisibility.highPayingEligible ? 'Included' : 'Not included'}</p></div>
+          </div>
+          {packageVisibility.renewalAt && <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>Renews {new Date(packageVisibility.renewalAt).toLocaleDateString()}</p>}
+        </section>}
 
         <div>
           <div className="flex items-center justify-between mb-4">

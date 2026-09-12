@@ -1,5 +1,6 @@
 import { PaymentMethod, PaymentVerificationStatus } from './paymentTypes';
 import type { PaidPackageTier } from './packageCheckout';
+import { type PackageVisibility } from './packageVisibility';
 export type PackagePaymentProvider = 'mpesa' | 'paystack' | 'paypal';
 export type PackagePaymentStart = {
     transactionId: string;
@@ -63,6 +64,7 @@ export declare function fetchVerificationPaymentStatus(depositId: string): Promi
     status: string;
     provider: PaymentMethod;
 }>;
+export declare function fetchPackageVisibility(userId: string): Promise<PackageVisibility | null>;
 export declare function createPayoutRequest(input: {
     amount: number;
     payoutAccountId: string;

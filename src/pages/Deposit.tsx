@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { formatCurrency } from '../utils/currency';
 import { ChevronDown, CreditCard, ShieldCheck } from 'lucide-react';
 import AOS from 'aos';
@@ -13,6 +14,10 @@ import PaymentProviderTabs, { PaymentProviderId } from '../components/ui/Payment
 import PaymentProgress from '../components/ui/PaymentProgress';
 import { getCheckoutLabel, getProviderField, validateProviderInput } from '../lib/paymentProviders';
 import { isPaymentProgressTerminal } from '../lib/paymentProgress';
+import { getPaymentProgress } from '../lib/paymentProgress';
+import { clearPaymentDraft, parsePaymentIntent, readPaymentDraft, readPaymentViewPreference, writePaymentDraft, writePaymentViewPreference } from '../lib/paymentDraft';
+import { type PaymentWizardStep } from '../lib/paymentWizard';
+import PaymentWizard from '../components/payment/PaymentWizard';
 
 const TIERS = [
   {
@@ -42,6 +47,7 @@ const TIERS = [
 export default function DepositPage() {
   const { theme } = useTheme();
   const user = useAuthStore((state) => state.user);
+  const location = useLocation();
   const [paymentMethod, setPaymentMethod] = useState<PaymentProviderId>('paystack');
   const [accountValue, setAccountValue] = useState('');
   const [accountLabel, setAccountLabel] = useState('');
@@ -59,10 +65,48 @@ export default function DepositPage() {
   const [packageCheckoutUrl, setPackageCheckoutUrl] = useState('');
   const [packagePaymentId, setPackagePaymentId] = useState('');
   const [packagePaymentStatus, setPackagePaymentStatus] = useState('');
+  const [packageStep, setPackageStep] = useState<PaymentWizardStep>('details');
   const [packageOpen, setPackageOpen] = useState(true);
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [verificationPaymentId, setVerificationPaymentId] = useState('');
   const [verificationPaymentStatus, setVerificationPaymentStatus] = useState('');
+  const [verificationStep, setVerificationStep] = useState<PaymentWizardStep>('details');
+
+  useEffect(() => {
+    const packageDraft = readPaymentDraft('package');
+    const verificationDraft = readPaymentDraft('verification');
+    if (packageDraft) {
+      if (packageDraft.tier) setSelectedTier(packageDraft.tier === 'pro' ? 'Pro' : 'Elite');
+      if (packageDraft.provider) setPackageProvider(packageDraft.provider);
+      if (packageDraft.email) setPackageEmail(packageDraft.email);
+      if (packageDraft.phone) setPackagePhone(packageDraft.phone);
+      setPackageStep(packageDraft.step);
+      setPackageOpen(true);
+    }
+    if (verificationDraft) {
+      if (verificationDraft.provider) setPaymentMethod(verificationDraft.provider);
+      if (verificationDraft.accountLabel) setAccountLabel(verificationDraft.accountLabel);
+      if (verificationDraft.email || verificationDraft.phone) setAccountValue(verificationDraft.email || verificationDraft.phone || '');
+      setVerificationStep(verificationDraft.step);
+    }
+    const explicitIntent = parsePaymentIntent(location.search, location.state);
+    const intent = explicitIntent === 'auto' ? readPaymentViewPreference() : explicitIntent;
+    if (intent === 'packages') setPackageOpen(true);
+    if (intent === 'verification') setVerificationOpen(true);
+  }, [location.search, location.state]);
+
+  useEffect(() => {
+    writePaymentDraft('package', { flow: 'package', tier: TIERS.find((item) => item.name === selectedTier)?.tier as PaidPackageTier | undefined, provider: packageProvider, email: packageEmail, phone: packagePhone, step: packageStep });
+  }, [selectedTier, packageProvider, packageEmail, packagePhone, packageStep]);
+
+  useEffect(() => {
+    writePaymentDraft('verification', { flow: 'verification', provider: paymentMethod, accountLabel, email: paymentMethod === 'mpesa' ? undefined : accountValue, phone: paymentMethod === 'mpesa' ? accountValue : undefined, step: verificationStep });
+  }, [paymentMethod, accountLabel, accountValue, verificationStep]);
+
+  useEffect(() => {
+    if (packagePaymentStatus && ['success', 'completed'].includes(packagePaymentStatus)) clearPaymentDraft('package');
+    if (verificationPaymentStatus && ['held', 'verified'].includes(verificationPaymentStatus)) clearPaymentDraft('verification');
+  }, [packagePaymentStatus, verificationPaymentStatus]);
 
   useEffect(() => {
     const refreshTimer = window.setTimeout(() => {
@@ -113,12 +157,65 @@ export default function DepositPage() {
   function handleTierSelect(tierName: string, price: number) {
     setSelectedTier(tierName);
     setPackageOpen(true);
+    setPackageStep('details');
     if (price === 0) {
       setPackageMessage('You are already on the Free plan. Choose a paid tier to begin an upgrade flow.');
       return;
     }
     setPackageMessage(`${tierName} selected at $${price} for 3 months. Choose a provider below to continue.`);
     window.setTimeout(() => document.getElementById('package-payment-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  }
+
+  function resetPackagePayment() {
+    setPackagePaymentId('');
+    setPackagePaymentStatus('');
+    setPackageCheckoutUrl('');
+    setPackageError('');
+    setPackageMessage('Your previous attempt was not completed. Review the details and start a new payment.');
+    setPackageStep('payment');
+  }
+
+  function resetVerificationPayment() {
+    setVerificationPaymentId('');
+    setVerificationPaymentStatus('');
+    setCheckoutUrl('');
+    setError('');
+    setMessage('Your previous attempt was not completed. Review the details and start a new verification payment.');
+    setVerificationStep('payment');
+  }
+
+  function discardPackageDraft() {
+    clearPaymentDraft('package');
+    setPackageStep('details');
+    setPackagePaymentId('');
+    setPackagePaymentStatus('');
+    setPackageCheckoutUrl('');
+    setPackageError('');
+  }
+
+  function discardVerificationDraft() {
+    clearPaymentDraft('verification');
+    setVerificationStep('details');
+    setVerificationPaymentId('');
+    setVerificationPaymentStatus('');
+    setCheckoutUrl('');
+    setError('');
+  }
+
+  function togglePackageView() {
+    setPackageOpen((open) => {
+      const next = !open;
+      if (next) writePaymentViewPreference('packages');
+      return next;
+    });
+  }
+
+  function toggleVerificationView() {
+    setVerificationOpen((open) => {
+      const next = !open;
+      if (next) writePaymentViewPreference('verification');
+      return next;
+    });
   }
 
   async function handlePackagePayment(e: React.FormEvent) {
@@ -163,6 +260,7 @@ export default function DepositPage() {
       setPackageMessage(packageProvider === 'mpesa'
         ? 'STK prompt started. Complete it on your phone; your package activates after verified provider confirmation.'
         : 'Payment started. Complete checkout; your package activates after verified provider confirmation.');
+      setPackageStep('result');
     } catch (err) {
       setPackagePaymentStatus('failed');
       setPackageError(err instanceof Error ? err.message : 'Unable to start package payment.');
@@ -208,6 +306,7 @@ export default function DepositPage() {
       setMessage('Verification payment created. Complete the provider payment, then wait for admin approval.');
       setCheckoutUrl(result.checkoutUrl || '');
       setAccountValue('');
+      setVerificationStep('result');
     } catch (err) {
       setVerificationPaymentStatus('failed');
       setError(err instanceof Error ? err.message : 'Unable to start verification payment.');
@@ -269,7 +368,7 @@ export default function DepositPage() {
             type="button"
             aria-expanded={packageOpen}
             aria-controls="package-payment-form"
-            onClick={() => setPackageOpen((open) => !open)}
+            onClick={togglePackageView}
             className="w-full flex items-center justify-between gap-4 text-left"
           >
             <span className="flex items-center gap-3">
@@ -282,41 +381,43 @@ export default function DepositPage() {
           <form id="package-payment-form" aria-hidden={!packageOpen} onSubmit={handlePackagePayment} className={`mt-6 overflow-hidden transition-[max-height,opacity,transform] duration-500 ease-out ${packageOpen ? 'max-h-[1200px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'}`}>
           <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Package changes are available from Free tier only. Payment remains pending until the provider callback is verified.</p>
 
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold mb-3">Payment provider</label>
-              <PaymentProviderTabs
-                selectedValue={packageProvider}
-                onChange={setPackageProvider}
-                idPrefix="package-payment-provider"
-              />
-            </div>
-
-            <div id={`package-payment-provider-panel-${packageProvider}`} role="tabpanel" aria-labelledby={`package-payment-provider-tab-${packageProvider}`}>
-              <label className="block text-sm font-semibold">
-                {getProviderField(packageProvider).label}
-                <input
-                  className="input-field w-full mt-2"
-                  value={packageProvider === 'mpesa' ? packagePhone : packageEmail}
-                  onChange={(e) => packageProvider === 'mpesa' ? setPackagePhone(e.target.value) : setPackageEmail(e.target.value)}
-                  placeholder={getProviderField(packageProvider).placeholder}
-                  autoComplete={getProviderField(packageProvider).autoComplete}
-                  type={packageProvider === 'mpesa' ? 'tel' : 'email'}
-                />
-              </label>
-            </div>
-
-            {packageCheckoutUrl && (
-              <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">
-                {getCheckoutLabel(packageProvider)}
-              </a>
-            )}
-            {packagePaymentId && packagePaymentStatus && <PaymentProgress kind="package" provider={packageProvider} status={packagePaymentStatus} />}
-            {packageError && <div className="alert alert-error">{packageError}</div>}
-            <button disabled={packageSubmitting || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">
-              {packageSubmitting ? 'Starting package payment...' : selectedTier === 'Free' ? 'Choose a paid tier first' : `Pay $${TIERS.find((tier) => tier.name === selectedTier)?.price}`}
-            </button>
-          </div>
+          <PaymentWizard
+            currentStep={packageStep}
+            canContinue={packageStep !== 'payment' && (packageStep === 'details' ? selectedTier !== 'Free' : packageStep === 'provider' ? !validateProviderInput(packageProvider, { email: packageEmail, phone: packagePhone }) : true)}
+            onStepChange={setPackageStep}
+            onDiscard={discardPackageDraft}
+            nextLabel={packageStep === 'provider' ? 'Continue to payment' : 'Continue'}
+          >
+            {packageStep === 'details' && <div className="space-y-4">
+              <h3 className="font-display text-xl">Confirm your package</h3>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Review the selected package before choosing how to pay.</p>
+              <div className="rounded-xl border border-[var(--border)] p-4"><p className="font-semibold">{selectedTier}</p><p className="text-2xl font-bold mt-1">${TIERS.find((tier) => tier.name === selectedTier)?.price}</p><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>3-month access</p></div>
+            </div>}
+            {packageStep === 'provider' && <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold mb-3">Payment provider</label>
+                <PaymentProviderTabs selectedValue={packageProvider} onChange={setPackageProvider} idPrefix="package-payment-provider" />
+              </div>
+              <div id={`package-payment-provider-panel-${packageProvider}`} role="tabpanel" aria-labelledby={`package-payment-provider-tab-${packageProvider}`}>
+                <label className="block text-sm font-semibold">
+                  {getProviderField(packageProvider).label}
+                  <input className="input-field w-full mt-2" value={packageProvider === 'mpesa' ? packagePhone : packageEmail} onChange={(e) => packageProvider === 'mpesa' ? setPackagePhone(e.target.value) : setPackageEmail(e.target.value)} placeholder={getProviderField(packageProvider).placeholder} autoComplete={getProviderField(packageProvider).autoComplete} type={packageProvider === 'mpesa' ? 'tel' : 'email'} />
+                </label>
+              </div>
+              {validateProviderInput(packageProvider, { email: packageEmail, phone: packagePhone }) && <p className="alert alert-error">{validateProviderInput(packageProvider, { email: packageEmail, phone: packagePhone })}</p>}
+            </div>}
+            {packageStep === 'payment' && <div className="space-y-5">
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Start the provider payment. Keep this page open until confirmation is received.</p>
+              {packageCheckoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(packageProvider)}</a>}
+              {packageError && <div className="alert alert-error">{packageError}</div>}
+              <button type="submit" disabled={packageSubmitting || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">{packageSubmitting ? 'Starting package payment...' : `Pay $${TIERS.find((tier) => tier.name === selectedTier)?.price}`}</button>
+            </div>}
+            {packageStep === 'result' && <div className="space-y-4">
+              {packagePaymentId && packagePaymentStatus && <PaymentProgress kind="package" provider={packageProvider} status={packagePaymentStatus} onRetry={resetPackagePayment} />}
+              {packageError && <div className="alert alert-error">{packageError}</div>}
+              {packageCheckoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(packageProvider)}</a>}
+            </div>}
+          </PaymentWizard>
           </form>
         </section>
 
@@ -327,7 +428,7 @@ export default function DepositPage() {
             type="button"
             aria-expanded={verificationOpen}
             aria-controls="payment-form"
-            onClick={() => setVerificationOpen((open) => !open)}
+            onClick={toggleVerificationView}
             className="w-full flex items-center justify-between gap-4 text-left"
           >
             <span className="flex items-center gap-3">
@@ -343,58 +444,41 @@ export default function DepositPage() {
             Pay exactly {formatCurrency(VERIFICATION_USD, 'USD')} ({formatCurrency(VERIFICATION_KES, 'KES')}) to verify ownership. The payment is held for admin review.
           </p>
 
-          <div className="space-y-6">
-
-            {/* Payment Method */}
-            <div>
-              <label className={`block text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-stone-300' : ''}`}>
-                Payment Method
-              </label>
-              <PaymentProviderTabs
-                selectedValue={paymentMethod}
-                onChange={setPaymentMethod}
-                idPrefix="verification-payment-provider"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-semibold">
-                Account label
-                <input className="input-field w-full mt-2" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder="My primary account" />
-              </label>
-              <div id={`verification-payment-provider-panel-${paymentMethod}`} role="tabpanel" aria-labelledby={`verification-payment-provider-tab-${paymentMethod}`}>
-                <label className="text-sm font-semibold">
-                  {getProviderField(paymentMethod).label}
-                  <input
-                    className="input-field w-full mt-2"
-                    value={accountValue}
-                    onChange={(e) => setAccountValue(e.target.value)}
-                    placeholder={getProviderField(paymentMethod).placeholder}
-                    type={paymentMethod === 'mpesa' ? 'tel' : 'email'}
-                    autoComplete={getProviderField(paymentMethod).autoComplete}
-                  />
-                </label>
+          <PaymentWizard
+            currentStep={verificationStep}
+            canContinue={verificationStep !== 'payment' && (verificationStep === 'details' ? Boolean(accountLabel.trim()) : verificationStep === 'provider' ? !validateProviderInput(paymentMethod, { email: paymentMethod === 'mpesa' ? undefined : accountValue, phone: paymentMethod === 'mpesa' ? accountValue : undefined }) : true)}
+            onStepChange={setVerificationStep}
+            onDiscard={discardVerificationDraft}
+            nextLabel={verificationStep === 'provider' ? 'Continue to payment' : 'Continue'}
+          >
+            {verificationStep === 'details' && <div className="space-y-4">
+              <h3 className="font-display text-xl">Confirm payout account</h3>
+              <label className="block text-sm font-semibold">Account label<input className="input-field w-full mt-2" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder="My primary account" /></label>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Verification amount: {formatCurrency(VERIFICATION_USD, 'USD')} ({formatCurrency(VERIFICATION_KES, 'KES')}).</p>
+            </div>}
+            {verificationStep === 'provider' && <div className="space-y-5">
+              <div>
+                <label className={`block text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-stone-300' : ''}`}>Payment Method</label>
+                <PaymentProviderTabs selectedValue={paymentMethod} onChange={setPaymentMethod} idPrefix="verification-payment-provider" />
               </div>
-            </div>
-
-            {message && <div className="alert alert-success">{message}</div>}
-            {checkoutUrl && (
-              <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={checkoutUrl} target="_blank" rel="noreferrer">
-                {getCheckoutLabel(paymentMethod)}
-              </a>
-            )}
-            {verificationPaymentId && verificationPaymentStatus && <PaymentProgress kind="verification" provider={paymentMethod} status={verificationPaymentStatus} />}
-            {error && <div className="alert alert-error">{error}</div>}
-
-            {/* Submit */}
-            <button disabled={submitting} className="w-full btn-primary py-3 rounded-lg font-semibold hover:shadow-lg text-lg disabled:opacity-60">
-              {submitting ? 'Starting verification...' : `Start verification for ${formatCurrency(VERIFICATION_USD, 'USD')}`}
-            </button>
-
-            <p className={`text-xs text-center ${theme === 'dark' ? 'text-stone-500' : 'text-stone-600'}`}>
-              Your payment is secured and encrypted. No additional fees.
-            </p>
-          </div>
+              <div id={`verification-payment-provider-panel-${paymentMethod}`} role="tabpanel" aria-labelledby={`verification-payment-provider-tab-${paymentMethod}`}>
+                <label className="text-sm font-semibold">{getProviderField(paymentMethod).label}<input className="input-field w-full mt-2" value={accountValue} onChange={(e) => setAccountValue(e.target.value)} placeholder={getProviderField(paymentMethod).placeholder} type={paymentMethod === 'mpesa' ? 'tel' : 'email'} autoComplete={getProviderField(paymentMethod).autoComplete} /></label>
+              </div>
+              {validateProviderInput(paymentMethod, { email: paymentMethod === 'mpesa' ? undefined : accountValue, phone: paymentMethod === 'mpesa' ? accountValue : undefined }) && <p className="alert alert-error">{validateProviderInput(paymentMethod, { email: paymentMethod === 'mpesa' ? undefined : accountValue, phone: paymentMethod === 'mpesa' ? accountValue : undefined })}</p>}
+            </div>}
+            {verificationStep === 'payment' && <div className="space-y-5">
+              {message && <div className="alert alert-success">{message}</div>}
+              {checkoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={checkoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(paymentMethod)}</a>}
+              {error && <div className="alert alert-error">{error}</div>}
+              <button type="submit" disabled={submitting} className="w-full btn-primary py-3 rounded-lg font-semibold hover:shadow-lg text-lg disabled:opacity-60">{submitting ? 'Starting verification...' : `Start verification for ${formatCurrency(VERIFICATION_USD, 'USD')}`}</button>
+            </div>}
+            {verificationStep === 'result' && <div className="space-y-4">
+              {verificationPaymentId && verificationPaymentStatus && <PaymentProgress kind="verification" provider={paymentMethod} status={verificationPaymentStatus} onRetry={resetVerificationPayment} />}
+              {message && <div className="alert alert-success">{message}</div>}
+              {error && <div className="alert alert-error">{error}</div>}
+            </div>}
+          </PaymentWizard>
+          <p className={`mt-6 text-xs text-center ${theme === 'dark' ? 'text-stone-500' : 'text-stone-600'}`}>Your payment is secured and encrypted. No additional fees.</p>
           </form>
         </section>
       </main>

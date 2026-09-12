@@ -1,6 +1,7 @@
 import { supabase } from '../utils/supabase';
 import { PaymentMethod, PaymentVerificationStatus } from './paymentTypes';
 import type { PaidPackageTier } from './packageCheckout';
+import { summarizePackageVisibility, type PackageVisibility } from './packageVisibility';
 
 export type PackagePaymentProvider = 'mpesa' | 'paystack' | 'paypal';
 
@@ -84,6 +85,27 @@ export async function fetchVerificationPaymentStatus(depositId: string) {
     .single();
   if (error) throw error;
   return { status: String(data.status), provider: data.method as PaymentMethod };
+}
+
+export async function fetchPackageVisibility(userId: string): Promise<PackageVisibility | null> {
+  const { data: entitlement, error: entitlementError } = await supabase
+    .from('package_entitlements')
+    .select('id, tier, tasks_allowed, high_paying_eligible, activation_at, renewal_at, usage_period_start')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('activation_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (entitlementError) throw entitlementError;
+  if (!entitlement) return null;
+  const { count, error: usageError } = await supabase
+    .from('package_usage_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('entitlement_id', entitlement.id)
+    .gte('started_at', entitlement.usage_period_start);
+  if (usageError) throw usageError;
+  return summarizePackageVisibility(entitlement, count || 0);
 }
 
 export function createPayoutRequest(input: { amount: number; payoutAccountId: string }) {

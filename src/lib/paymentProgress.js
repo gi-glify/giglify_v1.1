@@ -9,6 +9,7 @@ export function getPaymentProgress(status, kind, provider) {
             label: 'Payment was not completed',
             description: 'The provider did not confirm this payment. You can start a new attempt when you are ready.',
             terminal: true,
+            canRetry: true,
         };
     }
     if (status === 'cancelled') {
@@ -17,6 +18,7 @@ export function getPaymentProgress(status, kind, provider) {
             label: 'Payment cancelled',
             description: 'No funds were applied. Start a new payment attempt if you still want to continue.',
             terminal: true,
+            canRetry: true,
         };
     }
     if (kind === 'verification' && status === 'held') {
@@ -25,6 +27,7 @@ export function getPaymentProgress(status, kind, provider) {
             label: 'Payment received — awaiting admin review',
             description: 'Your verification payment was received and is now held for the normal admin-review flow.',
             terminal: true,
+            canRetry: false,
         };
     }
     if (status === 'verified' || status === 'success' || status === 'completed') {
@@ -33,6 +36,7 @@ export function getPaymentProgress(status, kind, provider) {
             label: kind === 'package' ? 'Package payment confirmed' : 'Payout account verified',
             description: kind === 'package' ? 'Your package access will update automatically.' : 'Your payout account is ready for withdrawals.',
             terminal: true,
+            canRetry: false,
         };
     }
     if (status === 'pending' || status === 'processing') {
@@ -43,6 +47,7 @@ export function getPaymentProgress(status, kind, provider) {
                 ? 'Check your phone and approve the STK prompt. Your payment will update automatically after provider confirmation.'
                 : 'Complete the provider checkout. This page will update automatically after confirmation.',
             terminal: false,
+            canRetry: false,
         };
     }
     return {
@@ -50,6 +55,7 @@ export function getPaymentProgress(status, kind, provider) {
         label: 'Payment started',
         description: 'We are preparing your provider payment. Keep this page open while it starts.',
         terminal: false,
+        canRetry: false,
     };
 }
 //# sourceMappingURL=paymentProgress.js.map

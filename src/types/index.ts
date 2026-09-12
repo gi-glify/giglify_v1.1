@@ -46,6 +46,8 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'failed';
   timestamp: string;
   description: string;
+  tuid?: string;
+  provider?: string;
 }
 
 export interface DeviceInfo {

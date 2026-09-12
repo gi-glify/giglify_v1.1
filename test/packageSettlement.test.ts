@@ -66,3 +66,24 @@ test("rejects callbacks without an event ID or Giglify transaction reference", (
     /event ID or transaction reference/,
   );
 });
+
+test("normalizes cancelled and expired M-Pesa callbacks as terminal failures", () => {
+  assert.equal(normalizePackagePaymentEvent("mpesa", {
+    id: "evt-cancelled",
+    event_type: "stk.cancelled",
+    transaction: { external_reference: "GIG-CANCELLED", provider_request_id: "PL-CANCELLED", status: "CANCELLED" },
+  }).status, "cancelled");
+  assert.equal(normalizePackagePaymentEvent("mpesa", {
+    id: "evt-expired",
+    event_type: "stk.expired",
+    transaction: { external_reference: "GIG-EXPIRED", provider_request_id: "PL-EXPIRED", status: "EXPIRED" },
+  }).status, "expired");
+});
+
+test("normalizes a failed Paystack callback without activating a package", () => {
+  assert.equal(normalizePackagePaymentEvent("paystack", {
+    id: "evt-failed",
+    event: "charge.failed",
+    data: { reference: "GIG-FAILED", status: "failed" },
+  }).status, "failed");
+});

@@ -8,6 +8,7 @@ export type PaymentProgress = {
   label: string;
   description: string;
   terminal: boolean;
+  canRetry: boolean;
 };
 
 const TERMINAL_STATUSES = new Set(['success', 'completed', 'verified', 'held', 'failed', 'cancelled', 'expired', 'refunded']);
@@ -27,6 +28,7 @@ export function getPaymentProgress(
       label: 'Payment was not completed',
       description: 'The provider did not confirm this payment. You can start a new attempt when you are ready.',
       terminal: true,
+      canRetry: true,
     };
   }
 
@@ -36,6 +38,7 @@ export function getPaymentProgress(
       label: 'Payment cancelled',
       description: 'No funds were applied. Start a new payment attempt if you still want to continue.',
       terminal: true,
+      canRetry: true,
     };
   }
 
@@ -45,6 +48,7 @@ export function getPaymentProgress(
       label: 'Payment received — awaiting admin review',
       description: 'Your verification payment was received and is now held for the normal admin-review flow.',
       terminal: true,
+      canRetry: false,
     };
   }
 
@@ -54,6 +58,7 @@ export function getPaymentProgress(
       label: kind === 'package' ? 'Package payment confirmed' : 'Payout account verified',
       description: kind === 'package' ? 'Your package access will update automatically.' : 'Your payout account is ready for withdrawals.',
       terminal: true,
+      canRetry: false,
     };
   }
 
@@ -65,6 +70,7 @@ export function getPaymentProgress(
         ? 'Check your phone and approve the STK prompt. Your payment will update automatically after provider confirmation.'
         : 'Complete the provider checkout. This page will update automatically after confirmation.',
       terminal: false,
+      canRetry: false,
     };
   }
 
@@ -73,5 +79,6 @@ export function getPaymentProgress(
     label: 'Payment started',
     description: 'We are preparing your provider payment. Keep this page open while it starts.',
     terminal: false,
+    canRetry: false,
   };
 }

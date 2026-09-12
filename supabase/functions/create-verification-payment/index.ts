@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     const { accountLabel, accountValue, email = user.email ?? "" } = parsed;
 
     const accountFingerprint = await fingerprint(`${method}:${accountValue}`);
-    const { data: account, error: accountError } = await db
+    let { data: account, error: accountError } = await db
       .from("payout_accounts")
       .insert({
         user_id: user.id,
@@ -35,9 +35,19 @@ Deno.serve(async (req) => {
       .select("id")
       .single();
     if (accountError) {
-      if (accountError.code === "23505") return json({ error: "This payout account is already registered" }, 409);
-      throw accountError;
+      if (accountError.code !== "23505") throw accountError;
+      const existing = await db
+        .from("payout_accounts")
+        .select("id, status, is_primary")
+        .eq("user_id", user.id)
+        .eq("account_fingerprint", accountFingerprint)
+        .neq("status", "disabled")
+        .maybeSingle();
+      if (existing.error || !existing.data) throw existing.error ?? new Error("This payout account is already registered");
+      account = existing.data;
+      accountError = null;
     }
+    if (!account) throw new Error("Unable to create or reuse payout account");
 
     const { data: deposit, error: depositError } = await db
       .from("verification_deposits")

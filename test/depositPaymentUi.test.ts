@@ -58,6 +58,24 @@ test("Deposit renders shared payment progress and refreshes both payment records
   assert.match(api, /from\('verification_deposits'\)/);
 });
 
+test("terminal payment progress exposes a safe new-attempt fallback", async () => {
+  const source = await readFile("src/components/ui/PaymentProgress.tsx", "utf8");
+  assert.match(source, /onRetry/);
+  assert.match(source, /Start a new payment/);
+  assert.match(source, /progress\.canRetry/);
+});
+
+test("Deposit uses the four-step wizard and safe draft restoration", async () => {
+  const source = await readFile("src/pages/Deposit.tsx", "utf8");
+  assert.match(source, /<PaymentWizard/);
+  assert.match(source, /parsePaymentIntent/);
+  assert.match(source, /readPaymentDraft/);
+  assert.match(source, /writePaymentDraft/);
+  assert.match(source, /clearPaymentDraft/);
+  assert.match(source, /setPackageStep\('result'\)/);
+  assert.match(source, /setVerificationStep\('result'\)/);
+});
+
 test("provider tabs expose keyboard and selection semantics", async () => {
   const source = await readFile("src/components/ui/PaymentProviderTabs.tsx", "utf8");
   assert.match(source, /aria-label=/);
