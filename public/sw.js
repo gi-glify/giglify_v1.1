@@ -1,52 +1,32 @@
-// Minimal app-shell service worker.
-// Bump this on every deploy so old caches get cleared.
-const CACHE_VERSION = 'giglify-v1';
-const APP_SHELL = ['/', '/index.html', '/giglify.svg', '/manifest.webmanifest'];
+const CACHE_NAME = 'giglify-public-v2';
+const PUBLIC_FILES = new Set(['/giglify.svg', '/manifest.webmanifest']);
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)).catch(() => {})
-  );
-  self.skipWaiting();
-});
-
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter(name => name.startsWith('giglify-') && name !== CACHE_NAME).map(name => caches.delete(name)));
+    await self.clients.claim();
+  })());
 });
 
-// Network-first for navigations (so users get fresh content when online),
-// falling back to cache when offline. Cache-first for static assets.
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  if (request.method !== 'GET') return;
-
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put(request, clone));
-          return res;
-        })
-        .catch(() => caches.match(request).then((r) => r || caches.match('/index.html')))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put(request, clone));
-          return res;
-        })
-    )
-  );
+  const request = event.request;
+  const url = new URL(request.url);
+  // Never intercept navigations, API responses, authorization, or other origins.
+  if (request.method !== 'GET' || request.mode === 'navigate' || request.headers.has('authorization') || url.origin !== self.location.origin || url.search) return;
+  const asset = url.pathname.startsWith('/assets/') && /\.(?:js|css|woff2?|png|jpe?g|webp|svg|ico)$/.test(url.pathname);
+  if (!asset && !PUBLIC_FILES.has(url.pathname)) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = asset ? await cache.match(request) : null;
+    if (cached) return cached;
+    const response = await fetch(request);
+    if (response.ok && response.type === 'basic' && !response.headers.get('cache-control')?.includes('no-store')) {
+      await cache.put(request, response.clone());
+      const keys = await cache.keys();
+      await Promise.all(keys.slice(0, Math.max(0, keys.length - 100)).map(key => cache.delete(key)));
+    }
+    return response;
+  })());
 });

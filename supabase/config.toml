@@ -33,3 +33,18 @@ verify_jwt = true
 
 [functions.payment-webhook]
 verify_jwt = false
+
+[functions.package-payment-webhook]
+verify_jwt = false
+
+[functions.capture-paypal-payment]
+verify_jwt = false
+
+[functions.start-package-payment]
+verify_jwt = false
+
+[functions.create-package-payment]
+verify_jwt = false
+
+[functions.resolve-payment-return]
+verify_jwt = false

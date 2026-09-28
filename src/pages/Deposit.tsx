@@ -18,6 +18,7 @@ import { getPaymentProgress } from '../lib/paymentProgress';
 import { clearPaymentDraft, parsePaymentIntent, readPaymentDraft, readPaymentViewPreference, writePaymentDraft, writePaymentViewPreference } from '../lib/paymentDraft';
 import { type PaymentWizardStep } from '../lib/paymentWizard';
 import PaymentWizard from '../components/payment/PaymentWizard';
+import { supabase } from '../utils/supabase';
 
 const TIERS = [
   {
@@ -71,6 +72,36 @@ export default function DepositPage() {
   const [verificationPaymentId, setVerificationPaymentId] = useState('');
   const [verificationPaymentStatus, setVerificationPaymentStatus] = useState('');
   const [verificationStep, setVerificationStep] = useState<PaymentWizardStep>('details');
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const orderId = query.get('token');
+    const reference = query.get('reference') || query.get('trxref');
+    if ((!orderId && !reference) || !user?.id) return;
+    let active = true;
+    setMessage('Checking your payment…');
+    void supabase.functions.invoke(orderId ? 'capture-paypal-payment' : 'resolve-payment-return', { body: orderId ? { orderId } : { reference } }).then(({ data, error: captureError }) => {
+      if (!active) return;
+      if (captureError || !data?.paymentId) {
+        setError('Unable to confirm payment. Reload this page to retry; your payment will not be captured twice.');
+        setMessage('');
+        setVerificationOpen(true);
+        return;
+      }
+      if (data.kind === 'package') {
+        setPackageProvider(orderId ? 'paypal' : 'paystack'); setPackagePaymentId(data.paymentId); setPackagePaymentStatus(data.status);
+        setPackageStep('result'); setPackageOpen(true);
+      } else {
+        setPaymentMethod(orderId ? 'paypal' : 'paystack'); setVerificationPaymentId(data.paymentId); setVerificationPaymentStatus(data.status);
+        setVerificationStep('result'); setVerificationOpen(true);
+      }
+      setMessage('');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('token'); url.searchParams.delete('PayerID'); url.searchParams.delete('reference'); url.searchParams.delete('trxref');
+      window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    }).catch(() => { if (active) { setError('Unable to confirm payment. Reload this page to retry.'); setMessage(''); setVerificationOpen(true); } });
+    return () => { active = false; };
+  }, [location.search, user?.id]);
 
   useEffect(() => {
     const packageDraft = readPaymentDraft('package');
@@ -447,7 +478,7 @@ export default function DepositPage() {
           <form id="payment-form" aria-hidden={!verificationOpen} onSubmit={handleVerification} className={`mt-6 overflow-hidden transition-[max-height,opacity,transform] duration-500 ease-out ${verificationOpen ? 'max-h-[1600px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'}`}>
           <h2 className="sr-only">Verify Your Payout Account</h2>
           <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-stone-300' : 'text-stone-600'}`}>
-            Pay exactly {formatCurrency(VERIFICATION_USD, 'USD')} ({formatCurrency(VERIFICATION_KES, 'KES')}) to verify ownership. The payment is held for admin review.
+            Pay {formatCurrency(VERIFICATION_USD, 'USD')} to verify ownership, or {formatCurrency(Math.round(VERIFICATION_KES), 'KES')} with M-Pesa (rounded to a whole shilling). The payment is held for admin review.
           </p>
 
           <PaymentWizard
@@ -460,7 +491,7 @@ export default function DepositPage() {
             {verificationStep === 'details' && <div className="space-y-4">
               <h3 className="font-display text-xl">Confirm payout account</h3>
               <label className="block text-sm font-semibold">Account label<input className="input-field w-full mt-2" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder="My primary account" /></label>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Verification amount: {formatCurrency(VERIFICATION_USD, 'USD')} ({formatCurrency(VERIFICATION_KES, 'KES')}).</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Verification amount: {formatCurrency(VERIFICATION_USD, 'USD')}, or {formatCurrency(Math.round(VERIFICATION_KES), 'KES')} with M-Pesa.</p>
             </div>}
             {verificationStep === 'provider' && <div className="space-y-5">
               <div>
@@ -477,7 +508,7 @@ export default function DepositPage() {
               <dl className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] px-4">
                 <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Account label</dt><dd className="min-w-0 break-words text-right font-semibold">{accountLabel}</dd></div>
                 <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Payment account</dt><dd className="min-w-0 break-all text-right">{accountValue}</dd></div>
-                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-right font-bold">{formatCurrency(VERIFICATION_USD, 'USD')}<span className="block text-sm font-normal text-[var(--text-muted)]">{formatCurrency(VERIFICATION_KES, 'KES')}</span></dd></div>
+                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-right font-bold">{paymentMethod === 'mpesa' ? formatCurrency(Math.round(VERIFICATION_KES), 'KES') : formatCurrency(VERIFICATION_USD, 'USD')}</dd></div>
               </dl>
               <p className="text-sm text-[var(--text-muted)]">{paymentMethod === 'mpesa' ? 'Approve the prompt on your phone.' : 'Complete checkout with your payment provider.'} Your verification payment will then be reviewed by an admin.</p>
               {message && <div className="alert alert-success">{message}</div>}

@@ -9,7 +9,7 @@ import {
   X,
   Star,
 } from "lucide-react";
-import { SiStripe, SiSupabase } from "react-icons/si";
+import { SiPaypal, SiSupabase } from "react-icons/si";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import AOS from "aos";
@@ -22,7 +22,7 @@ import {
 
 const partnerIcons: Record<LandingPartner["icon"], typeof SiSupabase> = {
   supabase: SiSupabase,
-  stripe: SiStripe,
+  paypal: SiPaypal,
 };
 
 export default function Landing() {
@@ -145,12 +145,12 @@ export default function Landing() {
             >
               Stats
             </a>
-            <a
+            {LANDING_REVIEWS.length > 0 && <a
               href="#reviews"
               className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
             >
               Reviews
-            </a>
+            </a>}
             <a
               href="/about"
               className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
@@ -204,13 +204,13 @@ export default function Landing() {
               >
                 Stats
               </a>
-              <a
+              {LANDING_REVIEWS.length > 0 && <a
                 href="#reviews"
                 onClick={() => setIsMenuOpen(false)}
                 className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
               >
                 Reviews
-              </a>
+              </a>}
               <a
                 href="/about"
                 onClick={() => setIsMenuOpen(false)}
@@ -322,8 +322,9 @@ export default function Landing() {
       <section className="bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800 py-12">
         <div className="max-w-6xl mx-auto px-6">
           <p className="text-center text-sm font-semibold uppercase tracking-wide text-slate-text dark:text-slate-400 mb-8">
-            Built with credible infrastructure partners
+            Technology and payment integrations
           </p>
+          <p className="text-center text-sm text-slate-text dark:text-slate-400 mb-6">Provider names identify integrations, not sponsorships or endorsements.</p>
           <div className="grid sm:grid-cols-2 gap-4">
             {LANDING_PARTNERS.map((partner, i) => {
               const PartnerIcon = partnerIcons[partner.icon];
@@ -353,7 +354,7 @@ export default function Landing() {
       </section>
 
       {/* Reviews */}
-      <section id="reviews" className="max-w-6xl mx-auto px-6 py-20 md:py-32">
+      {LANDING_REVIEWS.length > 0 && <section id="reviews" className="max-w-6xl mx-auto px-6 py-20 md:py-32">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12" data-aos="fade-up">
           <div>
             <span className="text-sm font-medium text-accent-green uppercase tracking-wide">
@@ -399,8 +400,7 @@ export default function Landing() {
             </article>
           ))}
         </div>
-      </section>
-
+      </section>}
       {/* How It Works */}
       <section
         id="how-it-works"

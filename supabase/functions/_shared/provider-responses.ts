@@ -50,7 +50,8 @@ export function normalizeProviderResponse(provider: ProviderName, payload: unkno
     };
   }
 
-  const providerRequestId = text(body.CheckoutRequestID) ?? text(body.checkout_request_id) ?? text(body.transactionId) ?? text(body.transaction_id) ?? text(body.id) ?? text(data.transactionId);
+  if (String(body.ResponseCode) !== '0') throw new Error('M-Pesa rejected the payment request');
+  const providerRequestId = text(body.CheckoutRequestID);
   if (!providerRequestId) throw new Error("Provider response has no provider request identifier");
   return { providerRequestId };
 }

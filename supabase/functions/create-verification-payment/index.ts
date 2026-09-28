@@ -2,6 +2,8 @@ import { audit, createProviderPayment, fingerprint, KENYA_USD_RATE, VERIFICATION
 import { json, options } from "../_shared/http.ts";
 import { requireUser } from "../_shared/auth.ts";
 import { parseVerificationPaymentRequest } from "../_shared/verification-contract.ts";
+import { rateLimit, readBodyText } from '../_shared/request-limits.ts';
+import { HttpError } from '../_shared/http.ts';
 
 Deno.serve(async (req) => {
   const preflight = options(req);
@@ -10,7 +12,8 @@ Deno.serve(async (req) => {
 
   try {
     const { user, db } = await requireUser(req);
-    const rawBody = await req.json();
+    await rateLimit('verification-start', user.id, 5, 600);
+    const rawBody = JSON.parse(await readBodyText(req, 8192));
     const requestBody = rawBody && typeof rawBody === "object"
       ? { ...(rawBody as Record<string, unknown>), email: (rawBody as Record<string, unknown>).email ?? user.email }
       : rawBody;
@@ -101,6 +104,7 @@ Deno.serve(async (req) => {
       clientSecret: providerPayment.clientSecret,
     }, 201);
   } catch (error) {
+    if (error instanceof HttpError) return json({ error: error.message }, error.status);
     const message = error instanceof Error ? error.message : "Unable to create verification payment";
     return json({ error: message }, message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 500);
   }

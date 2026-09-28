@@ -11,7 +11,7 @@ export type PaymentProgress = {
   canRetry: boolean;
 };
 
-const TERMINAL_STATUSES = new Set(['success', 'completed', 'verified', 'held', 'failed', 'cancelled', 'expired', 'refunded']);
+const TERMINAL_STATUSES = new Set(['success', 'completed', 'verified', 'held', 'failed', 'cancelled', 'expired', 'refunded', 'rejected']);
 
 export function isPaymentProgressTerminal(status: string | null | undefined) {
   return TERMINAL_STATUSES.has(status || '');
@@ -22,6 +22,15 @@ export function getPaymentProgress(
   kind: PaymentProgressKind,
   provider: PaymentMethod,
 ): PaymentProgress {
+  if (status === 'rejected' || status === 'refunded') {
+    return {
+      phase: 'failed',
+      label: status === 'refunded' ? 'Payment refunded' : 'Verification not approved',
+      description: 'Contact support for details before making another payment.',
+      terminal: true,
+      canRetry: false,
+    };
+  }
   if (status === 'failed' || status === 'expired') {
     return {
       phase: 'failed',

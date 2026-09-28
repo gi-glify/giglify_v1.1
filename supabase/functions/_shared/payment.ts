@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { buildPackageProviderRequest, type ProviderName } from "./provider-requests.ts";
 import { normalizeProviderResponse } from "./provider-responses.ts";
+import { providerCredentials, paymentCallback, requiredSecret } from './provider-auth.ts';
 
 export const PAYMENT_METHODS = ["mpesa", "paystack", "paypal"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
@@ -24,13 +25,9 @@ export async function createProviderPayment(method: PaymentMethod, input: { depo
   const provider = method as ProviderName;
   const callbackUrl = Deno.env.get("VERIFICATION_PAYMENT_CALLBACK_URL");
   if (!callbackUrl) throw new Error("VERIFICATION_PAYMENT_CALLBACK_URL is not configured");
-  const credentials = method === "paystack"
-    ? { secret: Deno.env.get("PAYSTACK_SECRET_KEY") }
-    : method === "paypal"
-      ? { accessToken: Deno.env.get("PAYPAL_ACCESS_TOKEN"), baseUrl: Deno.env.get("PAYPAL_BASE_URL") || undefined }
-      : { secret: Deno.env.get("PALPLUSS_API_KEY"), baseUrl: Deno.env.get("PALPLUSS_BASE_URL") || undefined };
+  const credentials = await providerCredentials(method);
   const phone = method === "mpesa" ? input.accountValue : undefined;
-  const amountKes = method === "mpesa" ? Number(Deno.env.get("MPESA_VERIFICATION_AMOUNT_KES") || VERIFICATION_KES) : undefined;
+  const amountKes = method === "mpesa" ? VERIFICATION_KES : undefined;
   const request = buildPackageProviderRequest({
     provider,
     tuid: input.depositId,
@@ -39,12 +36,13 @@ export async function createProviderPayment(method: PaymentMethod, input: { depo
     email: input.email,
     phone,
     idempotencyKey: input.depositId,
-    callbackUrl,
+    callbackUrl: paymentCallback(callbackUrl, method),
+    checkoutReturnUrl: method === 'paystack' ? requiredSecret('VERIFICATION_PAYMENT_RETURN_URL') : undefined,
     returnUrl: method === "paypal" ? Deno.env.get("VERIFICATION_PAYMENT_RETURN_URL") : undefined,
     cancelUrl: method === "paypal" ? Deno.env.get("VERIFICATION_PAYMENT_CANCEL_URL") : undefined,
     purpose: "verification",
   }, credentials);
-  const response = await fetch(request.url, { method: "POST", headers: request.headers, body: request.body });
+  const response = await fetch(request.url, { method: "POST", headers: request.headers, body: request.body, signal: AbortSignal.timeout(25000) });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload?.message || payload?.error?.message || "Payment provider request failed");
   const normalized = normalizeProviderResponse(provider, payload);
@@ -59,13 +57,17 @@ export async function fingerprint(value: string): Promise<string> {
 
 export async function audit(
   db: SupabaseClient,
-  eventType: string,
-  entityType: string,
-  entityId: string | null,
-  userId: string | null,
-  actorId: string | null,
+  eventType: string | { eventType: string; entityType: string; entityId: string | null; userId: string | null; actorId?: string | null; metadata?: Record<string, unknown> },
+  entityType?: string,
+  entityId: string | null = null,
+  userId: string | null = null,
+  actorId: string | null = null,
   metadata: Record<string, unknown> = {},
-) {
+): Promise<void> {
+  if (typeof eventType === 'object') {
+    const input = eventType;
+    return audit(db, input.eventType, input.entityType, input.entityId, input.userId, input.actorId ?? null, input.metadata ?? {});
+  }
   const { error } = await db.from("payment_audit_logs").insert({
     event_type: eventType,
     entity_type: entityType,

@@ -12,6 +12,7 @@ export interface ProviderRequestInput {
   returnUrl?: string;
   cancelUrl?: string;
   purpose?: "package" | "verification";
+  checkoutReturnUrl?: string;
 }
 
 export interface ProviderCredentials {
@@ -70,7 +71,7 @@ export function buildPackageProviderRequest(
         currency: "USD",
         email: input.email,
         reference: input.tuid,
-        callback_url: callbackUrl,
+        callback_url: requireUrl(input.checkoutReturnUrl ?? '', 'checkoutReturnUrl'),
         metadata: JSON.stringify(purpose === "verification" ? { tuid: input.tuid, purpose } : { tuid: input.tuid }),
       }),
     };
@@ -79,8 +80,8 @@ export function buildPackageProviderRequest(
   if (input.provider === "paypal") {
     if (!credentials.accessToken) throw new Error("PayPal access token is required");
     return {
-      url: (credentials.baseUrl || "https://api-m.sandbox.paypal.com") + "/v2/checkout/orders",
-      headers: jsonHeaders("Bearer " + credentials.accessToken),
+      url: requireUrl(credentials.baseUrl ?? '', 'PayPal base URL') + "/v2/checkout/orders",
+      headers: { ...jsonHeaders("Bearer " + credentials.accessToken), 'PayPal-Request-Id': input.idempotencyKey },
       body: JSON.stringify({
         intent: "CAPTURE",
         purchase_units: [{
@@ -97,19 +98,27 @@ export function buildPackageProviderRequest(
     };
   }
 
-  if (!credentials.secret || !input.amountKes || input.amountKes <= 0 || !input.phone) {
-    throw new Error("M-Pesa requires PalPluss secret, amountKes, and phone");
+  if (!credentials.accessToken || !credentials.shortCode || !credentials.passkey || !Number.isFinite(input.amountKes) || !input.amountKes || input.amountKes <= 0 || !input.phone) {
+    throw new Error("M-Pesa requires Daraja credentials, amountKes, and phone");
   }
   const phone = input.phone.replace(/\D/g, '').replace(/^0/, '254');
+  if (!/^254[17]\d{8}$/.test(phone)) throw new Error('Enter a valid Kenyan M-Pesa number');
+  const timestamp = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
   return {
-    url: (credentials.baseUrl || "https://api.palpluss.com/v1") + "/payments/stk",
-    headers: jsonHeaders("Basic " + btoa(credentials.secret + ":")),
+    url: credentials.baseUrl + "/mpesa/stkpush/v1/processrequest",
+    headers: jsonHeaders("Bearer " + credentials.accessToken),
     body: JSON.stringify({
-      amount: Math.round(input.amountKes),
-      phone,
-      accountReference: input.tuid,
-      transactionDesc: purpose === "verification" ? "Giglify payout verification" : "Giglify package purchase",
-      callbackUrl,
+      BusinessShortCode: credentials.shortCode,
+      Password: btoa(credentials.shortCode + credentials.passkey + timestamp),
+      Timestamp: timestamp,
+      TransactionType: 'CustomerPayBillOnline',
+      Amount: Math.round(input.amountKes),
+      PartyA: phone,
+      PartyB: credentials.shortCode,
+      PhoneNumber: phone,
+      AccountReference: input.tuid.slice(-12),
+      TransactionDesc: purpose === 'verification' ? 'Verification' : 'Package',
+      CallBackURL: callbackUrl,
     }),
   };
 }

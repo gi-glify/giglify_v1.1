@@ -1,5 +1,6 @@
 import { adminClient } from "../_shared/auth.ts";
-import { corsHeaders, json, options } from "../_shared/http.ts";
+import { corsHeaders, HttpError, json, options } from "../_shared/http.ts";
+import { rateLimit, readBodyText } from '../_shared/request-limits.ts';
 
 function validEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -12,13 +13,15 @@ Deno.serve(async (req) => {
 
   let messageId = "";
   try {
-    const body = await req.json();
+    await rateLimit('contact-global', 'global', 100, 3600);
+    const body = JSON.parse(await readBodyText(req, 24000));
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const message = typeof body?.message === "string" ? body.message.trim() : "";
     if (name.length < 2 || name.length > 100 || !validEmail(email) || email.length > 320 || message.length < 10 || message.length > 5000) {
       return json({ error: "Please provide a valid name, email, and message." }, 400);
     }
+    await rateLimit('contact-email', email, 3, 3600);
 
     const db = adminClient();
     let userId: string | null = null;
@@ -51,6 +54,8 @@ Deno.serve(async (req) => {
     await db.from("contact_messages").update({ status: "sent" }).eq("id", messageId);
     return json({ sent: true });
   } catch (error) {
+    if (error instanceof HttpError) return json({ error: error.message }, error.status);
+    if (error instanceof SyntaxError) return json({ error: 'Invalid JSON body' }, 400);
     if (messageId) await adminClient().from("contact_messages").update({ status: "failed" }).eq("id", messageId);
     console.error("contact-team error", error);
     return new Response(JSON.stringify({ error: "Unable to send your message right now." }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });

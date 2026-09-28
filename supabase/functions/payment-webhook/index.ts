@@ -1,111 +1,38 @@
 import { adminClient } from '../_shared/auth.ts';
-import { json, options } from '../_shared/http.ts';
-import { audit, isPaymentMethod } from '../_shared/payment.ts';
+import { errorResponse, HttpError, json, options } from '../_shared/http.ts';
+import { isPaymentMethod } from '../_shared/payment.ts';
+import { paymentEvent, verifyPaymentEvent, verifyPayoutBridge } from '../_shared/payment-events.ts';
+import { readBodyText } from '../_shared/request-limits.ts';
 
-type WebhookBody = {
-  eventId?: string;
-  eventType?: string;
-  entityType?: 'verification_deposit' | 'payout_request';
-  entityId?: string;
-  status?: 'pending' | 'held' | 'verified' | 'failed' | 'refunded' | 'paid';
-};
-
-async function validSignature(request: Request, rawBody: string) {
-  const secret = Deno.env.get('PAYMENT_WEBHOOK_SECRET');
-  const signature = request.headers.get('x-payment-signature');
-  if (!secret || !signature) return false;
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const digest = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
-  const expected = Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
-  return signature.length === expected.length && [...signature].every((char, index) => char === expected[index]);
-}
-
-function validMpesaCallbackSecret(request: Request): boolean {
-  const expected = Deno.env.get('PALPLUSS_CALLBACK_SECRET');
-  const supplied = request.headers.get('x-mpesa-callback-secret') || new URL(request.url).searchParams.get('callback_secret');
-  return Boolean(expected && supplied && supplied === expected);
-}
-
-Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return options(request);
-  if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405, request);
-
-  const provider = new URL(request.url).searchParams.get('provider');
-  if (!provider || !isPaymentMethod(provider)) return json({ error: 'Unsupported payment provider' }, 400, request);
-  const rawBody = await request.text();
-  if (provider === 'mpesa') {
-    if (!validMpesaCallbackSecret(request)) return json({ error: 'Invalid M-Pesa callback secret' }, 401, request);
-    let payload: Record<string, any>;
-    try {
-      payload = JSON.parse(rawBody) as Record<string, any>;
-    } catch {
-      return json({ error: 'Invalid JSON body' }, 400, request);
-    }
-    const callback = payload.transaction || payload;
-    const providerReference = callback?.provider_request_id || callback?.provider_checkout_id || callback?.id;
-    if (!providerReference) return json({ error: 'M-Pesa callback reference is required' }, 400, request);
-    const supabase = adminClient();
-    const { data: deposit, error: depositError } = await supabase
-      .from('verification_deposits')
-      .select('id, user_id, payout_account_id')
-      .eq('provider_reference', providerReference)
-      .single();
-    if (depositError || !deposit) return json({ error: 'Verification deposit not found' }, 404, request);
-    const eventId = providerReference;
-    const succeeded = String(callback.status || '').toUpperCase() === 'SUCCESS' || String(payload.event_type || '').toLowerCase().endsWith('.success');
-    const status = succeeded ? 'held' : 'failed';
-    const { error: eventError } = await supabase.from('payment_provider_events').insert({
-      provider: 'mpesa',
-      event_id: eventId,
-      event_type: succeeded ? 'stk.success' : 'stk.failed',
-      payload,
-    });
-    if (eventError?.code === '23505') return json({ accepted: true, duplicate: true }, 200, request);
-    if (eventError) return json({ error: eventError.message }, 500, request);
-    const { error: updateError } = await supabase.from('verification_deposits').update({ status }).eq('id', deposit.id);
-    if (updateError) return json({ error: updateError.message }, 500, request);
-    await audit(supabase, `verification_${status}`, 'verification_deposit', deposit.id, deposit.user_id, deposit.user_id, { provider: 'mpesa', eventId });
-    return json({ accepted: true, status }, 200, request);
-  }
-  if (!(await validSignature(request, rawBody))) return json({ error: 'Invalid webhook signature' }, 401, request);
-
-  let body: WebhookBody;
+Deno.serve(async (req) => {
+  const preflight = options(req);
+  if (preflight) return preflight;
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   try {
-    body = JSON.parse(rawBody) as WebhookBody;
-  } catch {
-    return json({ error: 'Invalid JSON body' }, 400, request);
-  }
-  if (!body.eventId || !body.eventType || !body.entityId || !body.entityType || !body.status) {
-    return json({ error: 'eventId, eventType, entityId, entityType, and status are required' }, 400, request);
-  }
-
-  const supabase = adminClient();
-  const { error: eventError } = await supabase.from('payment_provider_events').insert({
-    provider,
-    event_id: body.eventId,
-    event_type: body.eventType,
-    payload: { entityType: body.entityType, entityId: body.entityId, status: body.status },
-  });
-  if (eventError?.code === '23505') return json({ accepted: true, duplicate: true }, 200, request);
-  if (eventError) return json({ error: eventError.message }, 500, request);
-
-  if (body.entityType === 'verification_deposit') {
-    const { data: deposit, error } = await supabase.from('verification_deposits').select('id, user_id, payout_account_id').eq('id', body.entityId).single();
-    if (error || !deposit) return json({ error: 'Verification deposit not found' }, 404, request);
-    const verified = body.status === 'verified';
-    const { error: updateError } = await supabase.from('verification_deposits').update({ status: body.status, verified_at: verified ? new Date().toISOString() : null }).eq('id', body.entityId);
-    if (updateError) return json({ error: updateError.message }, 500, request);
-    if (verified) {
-      await supabase.from('profiles').update({ payment_verification_status: 'deposit_pending' }).eq('id', deposit.user_id);
+    const provider = new URL(req.url).searchParams.get('provider');
+    if (!isPaymentMethod(provider)) throw new HttpError('Unsupported provider', 400, 'invalid_provider');
+    const raw = await readBodyText(req, 262144);
+    const body = JSON.parse(raw);
+    if (body?.entityType === 'payout_request') {
+      await verifyPayoutBridge(req, raw);
+      if (typeof body.eventId !== 'string' || typeof body.entityId !== 'string' || body.status !== 'paid') throw new HttpError('Invalid payout event', 400, 'invalid_event');
+      const { data, error } = await adminClient().rpc('record_reconciled_payout_event', {
+        p_provider: provider, p_event_id: body.eventId, p_entity_id: body.entityId,
+      });
+      if (error) throw error;
+      return json({ accepted: true, result: data });
     }
-    await audit(supabase, { userId: deposit.user_id, eventType: `verification_${body.status}`, entityType: 'verification_deposit', entityId: deposit.id, metadata: { provider, eventId: body.eventId } });
-  } else {
-    const { data: payout, error } = await supabase.from('payout_requests').select('id, user_id').eq('id', body.entityId).single();
-    if (error || !payout) return json({ error: 'Payout request not found' }, 404, request);
-    const { error: updateError } = await supabase.from('payout_requests').update({ status: body.status, paid_at: body.status === 'paid' ? new Date().toISOString() : null }).eq('id', body.entityId);
-    if (updateError) return json({ error: updateError.message }, 500, request);
-    await audit(supabase, { userId: payout.user_id, eventType: `payout_${body.status}`, entityType: 'payout_request', entityId: payout.id, metadata: { provider, eventId: body.eventId } });
+    await verifyPaymentEvent(req, raw, body, provider);
+    if (provider === 'paypal' && !['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.DENIED'].includes(body.event_type)) return json({ accepted: true, ignored: true });
+    if (provider === 'paystack' && body.event !== 'charge.success') return json({ accepted: true, ignored: true });
+    const event = paymentEvent(provider, body);
+    const { data, error } = await adminClient().rpc('apply_verified_payment_event', {
+      p_provider: provider, p_event_id: event.id, p_reference: event.reference,
+      p_status: event.status, p_amount: event.amount, p_currency: event.currency, p_payload: body,
+    });
+    if (error) throw error;
+    return json({ accepted: true, result: data });
+  } catch (error) {
+    return errorResponse(error instanceof SyntaxError ? new HttpError('Invalid JSON', 400, 'invalid_json') : error);
   }
-
-  return json({ accepted: true }, 200, request);
 });
