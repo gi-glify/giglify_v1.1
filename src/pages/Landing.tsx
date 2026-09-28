@@ -7,11 +7,23 @@ import {
   CheckCircle2,
   Menu,
   X,
+  Star,
 } from "lucide-react";
+import { SiStripe, SiSupabase } from "react-icons/si";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import AOS from "aos";
 import { getLastRoute } from "../utils/routeMemory";
+import {
+  LANDING_PARTNERS,
+  LANDING_REVIEWS,
+  type LandingPartner,
+} from "./landingTrustContent";
+
+const partnerIcons: Record<LandingPartner["icon"], typeof SiSupabase> = {
+  supabase: SiSupabase,
+  stripe: SiStripe,
+};
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -134,6 +146,12 @@ export default function Landing() {
               Stats
             </a>
             <a
+              href="#reviews"
+              className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
+            >
+              Reviews
+            </a>
+            <a
               href="/about"
               className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
             >
@@ -185,6 +203,13 @@ export default function Landing() {
                 className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
               >
                 Stats
+              </a>
+              <a
+                href="#reviews"
+                onClick={() => setIsMenuOpen(false)}
+                className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
+              >
+                Reviews
               </a>
               <a
                 href="/about"
@@ -290,6 +315,89 @@ export default function Landing() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Partners */}
+      <section className="bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800 py-12">
+        <div className="max-w-6xl mx-auto px-6">
+          <p className="text-center text-sm font-semibold uppercase tracking-wide text-slate-text dark:text-slate-400 mb-8">
+            Built with credible infrastructure partners
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {LANDING_PARTNERS.map((partner, i) => {
+              const PartnerIcon = partnerIcons[partner.icon];
+              return (
+                <div
+                  key={partner.name}
+                  className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-6 py-5"
+                  data-aos="fade-up"
+                  data-aos-delay={i * 100}
+                >
+                  <div>
+                    <h3 className="text-xl font-bold text-navy-900 dark:text-white">
+                      {partner.name}
+                    </h3>
+                    <p className="text-sm text-slate-text dark:text-slate-400">
+                      {partner.description}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-navy-900 dark:text-white shadow-sm">
+                    <PartnerIcon size={26} aria-label={`${partner.name} logo`} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Reviews */}
+      <section id="reviews" className="max-w-6xl mx-auto px-6 py-20 md:py-32">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12" data-aos="fade-up">
+          <div>
+            <span className="text-sm font-medium text-accent-green uppercase tracking-wide">
+              Customer reviews
+            </span>
+            <h2 className="text-4xl md:text-5xl font-bold text-navy-900 dark:text-white mt-3">
+              Teams and taskers trust Giglify.
+            </h2>
+          </div>
+          <p className="text-lg text-slate-text dark:text-slate-300 max-w-md">
+            Social proof from both sides of the marketplace, from requesters
+            posting work to taskers completing it.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {LANDING_REVIEWS.map((review, i) => (
+            <article
+              key={review.name}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 shadow-sm"
+              data-aos="fade-up"
+              data-aos-delay={i * 100}
+            >
+              <div className="flex gap-1 text-primary-amber mb-5" aria-label="5 out of 5 stars">
+                {[0, 1, 2, 3, 4].map((star) => (
+                  <Star key={star} size={16} fill="currentColor" />
+                ))}
+              </div>
+              <p className="text-base text-slate-text dark:text-slate-300 leading-relaxed mb-6">
+                "{review.quote}"
+              </p>
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-5">
+                <p className="font-semibold text-navy-900 dark:text-white">
+                  {review.name}
+                </p>
+                <p className="text-sm text-slate-text dark:text-slate-400">
+                  {review.role}
+                </p>
+                <p className="text-xs font-semibold text-accent-green mt-3">
+                  {review.detail}
+                </p>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 

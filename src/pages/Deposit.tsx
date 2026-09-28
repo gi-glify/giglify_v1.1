@@ -379,7 +379,7 @@ export default function DepositPage() {
           </button>
 
           <form id="package-payment-form" aria-hidden={!packageOpen} onSubmit={handlePackagePayment} className={`mt-6 overflow-hidden transition-[max-height,opacity,transform] duration-500 ease-out ${packageOpen ? 'max-h-[1200px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'}`}>
-          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Package changes are available from Free tier only. Payment remains pending until the provider callback is verified.</p>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>Choose your package, select a payment method, then review and pay. Your package activates once payment is confirmed.</p>
 
           <PaymentWizard
             currentStep={packageStep}
@@ -407,7 +407,13 @@ export default function DepositPage() {
               {validateProviderInput(packageProvider, { email: packageEmail, phone: packagePhone }) && <p className="alert alert-error">{validateProviderInput(packageProvider, { email: packageEmail, phone: packagePhone })}</p>}
             </div>}
             {packageStep === 'payment' && <div className="space-y-5">
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Start the provider payment. Keep this page open until confirmation is received.</p>
+              <h3 className="font-display text-xl">Review your payment</h3>
+              <dl className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] px-4">
+                <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Package</dt><dd className="font-semibold">{selectedTier} · 3 months</dd></div>
+                <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Payment account</dt><dd className="min-w-0 break-all text-right">{packageProvider === 'mpesa' ? packagePhone : packageEmail}</dd></div>
+                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-2xl font-bold">${TIERS.find((tier) => tier.name === selectedTier)?.price}</dd></div>
+              </dl>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{packageProvider === 'mpesa' ? 'Confirm the payment prompt on your phone, then return here to see your status.' : 'Continue to your payment provider to complete checkout, then return here to see your status.'}</p>
               {packageCheckoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(packageProvider)}</a>}
               {packageError && <div className="alert alert-error">{packageError}</div>}
               <button type="submit" disabled={packageSubmitting || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">{packageSubmitting ? 'Starting package payment...' : `Pay $${TIERS.find((tier) => tier.name === selectedTier)?.price}`}</button>
@@ -467,6 +473,13 @@ export default function DepositPage() {
               {validateProviderInput(paymentMethod, { email: paymentMethod === 'mpesa' ? undefined : accountValue, phone: paymentMethod === 'mpesa' ? accountValue : undefined }) && <p className="alert alert-error">{validateProviderInput(paymentMethod, { email: paymentMethod === 'mpesa' ? undefined : accountValue, phone: paymentMethod === 'mpesa' ? accountValue : undefined })}</p>}
             </div>}
             {verificationStep === 'payment' && <div className="space-y-5">
+              <h3 className="font-display text-xl">Review your verification payment</h3>
+              <dl className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] px-4">
+                <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Account label</dt><dd className="min-w-0 break-words text-right font-semibold">{accountLabel}</dd></div>
+                <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Payment account</dt><dd className="min-w-0 break-all text-right">{accountValue}</dd></div>
+                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-right font-bold">{formatCurrency(VERIFICATION_USD, 'USD')}<span className="block text-sm font-normal text-[var(--text-muted)]">{formatCurrency(VERIFICATION_KES, 'KES')}</span></dd></div>
+              </dl>
+              <p className="text-sm text-[var(--text-muted)]">{paymentMethod === 'mpesa' ? 'Approve the prompt on your phone.' : 'Complete checkout with your payment provider.'} Your verification payment will then be reviewed by an admin.</p>
               {message && <div className="alert alert-success">{message}</div>}
               {checkoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={checkoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(paymentMethod)}</a>}
               {error && <div className="alert alert-error">{error}</div>}

@@ -16,16 +16,16 @@ export default function PaymentWizard({ currentStep, canContinue, children, onSt
   const isFirst = currentStep === 'details';
   const isLast = currentStep === 'result';
   return <section aria-label="Payment progress form" data-payment-wizard={currentStep}>
-    <div className="mb-6 flex items-center justify-between gap-3">
+    {!isLast && <div className="mb-6 flex items-center justify-between gap-3">
       <button type="button" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:underline disabled:invisible dark:text-brand-300" onClick={() => onStepChange(getPreviousPaymentStep(currentStep))} disabled={isFirst}>
         <ArrowLeft size={16} aria-hidden="true" /> Back
       </button>
       {onDiscard && <button type="button" className="inline-flex items-center gap-2 text-sm font-semibold opacity-75 hover:opacity-100" onClick={onDiscard}><X size={16} aria-hidden="true" /> Cancel</button>}
-    </div>
+    </div>}
     <PaymentStepIndicator currentStep={currentStep} />
     <div key={currentStep} className="mt-6 animate-in transition-[opacity,transform] duration-300 ease-out motion-reduce:animate-none motion-reduce:transition-none">{children}</div>
-    {!isLast && <div className="mt-6 flex justify-end">
-      <button type="button" className="btn-primary inline-flex items-center gap-2 rounded-lg px-5 py-3 font-semibold disabled:opacity-50" disabled={!canContinue} onClick={() => onStepChange(getNextPaymentStep(currentStep, canContinue))}>
+    {!isLast && currentStep !== 'payment' && <div className="mt-6 flex justify-end border-t border-[var(--border)] pt-5">
+      <button type="button" className="btn-primary inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto" disabled={!canContinue} onClick={() => onStepChange(getNextPaymentStep(currentStep, canContinue))}>
         {nextLabel} <ArrowRight size={16} aria-hidden="true" />
       </button>
     </div>}
