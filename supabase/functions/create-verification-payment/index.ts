@@ -13,7 +13,13 @@ Deno.serve(async (req) => {
   try {
     const { user, db } = await requireUser(req);
     await rateLimit('verification-start', user.id, 5, 600);
-    const rawBody = JSON.parse(await readBodyText(req, 8192));
+    let rawBody: unknown;
+    try {
+      rawBody = JSON.parse(await readBodyText(req, 8192));
+    } catch (error) {
+      if (error instanceof SyntaxError) return json({ error: 'Invalid JSON body' }, 400);
+      throw error;
+    }
     const requestBody = rawBody && typeof rawBody === "object"
       ? { ...(rawBody as Record<string, unknown>), email: (rawBody as Record<string, unknown>).email ?? user.email }
       : rawBody;

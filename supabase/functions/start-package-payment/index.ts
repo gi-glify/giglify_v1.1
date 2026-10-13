@@ -2,7 +2,7 @@ import { requireUser } from "../_shared/auth.ts";
 import { HttpError, errorResponse, json, options } from "../_shared/http.ts";
 import { normalizeProviderResponse } from "../_shared/provider-responses.ts";
 import { buildPackageProviderRequest, type ProviderName } from "../_shared/provider-requests.ts";
-import { providerCredentials, paymentCallback } from '../_shared/provider-auth.ts';
+import { providerCredentials, paymentCallback, requiredSecretAny } from '../_shared/provider-auth.ts';
 import { rateLimit, readBodyText } from '../_shared/request-limits.ts';
 
 type PaymentBody = {
@@ -23,11 +23,12 @@ function requiredEnv(name: string): string {
 }
 
 function packageAmountKes(tier: string): number | undefined {
-  const configured = Deno.env.get(`MPESA_${tier.toUpperCase()}_AMOUNT_KES`);
+  const configured = Deno.env.get(`DARAJA_${tier.toUpperCase()}_AMOUNT_KES`)
+    ?? Deno.env.get(`MPESA_${tier.toUpperCase()}_AMOUNT_KES`);
   if (!configured) return undefined;
   const amount = Number(configured);
   if (!Number.isSafeInteger(amount) || amount <= 0) {
-    throw new HttpError(`MPESA_${tier.toUpperCase()}_AMOUNT_KES must be a positive number`, 503, "configuration_error");
+    throw new HttpError(`DARAJA_${tier.toUpperCase()}_AMOUNT_KES must be a positive number`, 503, "configuration_error");
   }
   return amount;
 }

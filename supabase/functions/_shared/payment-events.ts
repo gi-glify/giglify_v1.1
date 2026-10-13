@@ -1,5 +1,5 @@
 import { HttpError } from './http.ts';
-import { providerBase, providerToken, requiredSecret } from './provider-auth.ts';
+import { providerBase, providerToken, requiredSecret, requiredSecretAny } from './provider-auth.ts';
 import type { ProviderName } from './provider-requests.ts';
 
 function equal(a: string, b: string): boolean {
@@ -24,7 +24,7 @@ export async function verifyPaymentEvent(req: Request, raw: string, body: any, p
     const expected = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
     valid = equal(req.headers.get('x-paystack-signature') || '', expected);
   } else if (provider === 'mpesa') {
-    valid = equal(new URL(req.url).searchParams.get('callback_secret') || '', requiredSecret('MPESA_CALLBACK_SECRET'));
+    valid = equal(new URL(req.url).searchParams.get('callback_secret') || '', requiredSecretAny('DARAJA_CALLBACK_SECRET', 'MPESA_CALLBACK_SECRET'));
   } else {
     const response = await fetch(`${providerBase('paypal')}/v1/notifications/verify-webhook-signature`, {
       method: 'POST', signal: AbortSignal.timeout(15000),
