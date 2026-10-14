@@ -16,6 +16,7 @@ import AOS from "aos";
 import { getLastRoute } from "../utils/routeMemory";
 import {
   LANDING_PARTNERS,
+  LANDING_FAQS,
   LANDING_REVIEWS,
   type LandingPartner,
 } from "./landingTrustContent";
@@ -145,6 +146,7 @@ export default function Landing() {
             >
               Stats
             </a>
+            <a href="#faq" className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition">FAQ</a>
             {LANDING_REVIEWS.length > 0 && <a
               href="#reviews"
               className="text-sm font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition"
@@ -204,6 +206,7 @@ export default function Landing() {
               >
                 Stats
               </a>
+              <a href="#faq" onClick={() => setIsMenuOpen(false)} className="text-base font-medium text-slate-text dark:text-slate-300 hover:text-navy-900 dark:hover:text-white transition">FAQ</a>
               {LANDING_REVIEWS.length > 0 && <a
                 href="#reviews"
                 onClick={() => setIsMenuOpen(false)}
@@ -292,6 +295,25 @@ export default function Landing() {
               <div className="w-12 h-12 bg-navy-700 rounded-xl"></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="max-w-4xl mx-auto px-6 py-20 md:py-28 scroll-mt-16" aria-labelledby="faq-heading">
+        <div className="text-center mb-10" data-aos="fade-up">
+          <span className="text-sm font-medium text-accent-green uppercase tracking-wide">Good to know</span>
+          <h2 id="faq-heading" className="text-4xl md:text-5xl font-bold text-navy-900 dark:text-white mt-3">Frequently asked questions</h2>
+          <p className="text-lg text-slate-text dark:text-slate-300 max-w-2xl mx-auto mt-4">Clear answers before you create an account, start a payment, or post a task.</p>
+        </div>
+        <div className="space-y-3" data-aos="fade-up">
+          {LANDING_FAQS.map((item) => (
+            <details key={item.question} className="group rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4">
+              <summary className="cursor-pointer list-none pr-8 text-base font-semibold text-navy-900 dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-amber focus-visible:ring-offset-2 rounded">
+                {item.question}
+              </summary>
+              <p className="pt-3 text-sm leading-relaxed text-slate-text dark:text-slate-300">{item.answer}</p>
+            </details>
+          ))}
         </div>
       </section>
 

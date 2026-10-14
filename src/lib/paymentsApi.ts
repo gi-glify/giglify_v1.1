@@ -67,8 +67,23 @@ export function startPackagePayment(input: { transactionId: string; email?: stri
   return invoke<PackagePaymentStart>('start-package-payment', input);
 }
 
-export function createTestPackagePayment(input: { tier: 'pro' | 'elite'; amountKes: number }) {
-  return invoke<PackagePaymentStart & { testAmountKes: number }>('create-test-package-payment', input);
+export type PackageCatalog = {
+  plans: Array<{
+    tier: 'free' | 'pro' | 'elite';
+    priceUsd: number;
+    priceKes: number | null;
+    validityMonths: number | null;
+    tasksAllowed: number | null;
+    highPayingEligible: boolean;
+  }>;
+  verification: {
+    amountUsd: number;
+    amountKes: number;
+  };
+};
+
+export function fetchPackageCatalog() {
+  return invoke<PackageCatalog>('package-catalog');
 }
 
 export async function fetchPackagePaymentStatus(transactionId: string) {

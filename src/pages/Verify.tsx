@@ -34,8 +34,9 @@ export default function VerifyPage() {
 
       <main className="container py-8">
         {loading ? (
-          <div className="flex justify-center items-center h-96">
+          <div className="flex flex-col justify-center items-center gap-4 h-96" role="status" aria-live="polite">
             <div className="spinner"></div>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Analyzing this device securely…</p>
           </div>
         ) : deviceInfo ? (
           <div className="max-w-2xl mx-auto">

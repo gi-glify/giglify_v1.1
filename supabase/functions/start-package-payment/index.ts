@@ -33,15 +33,6 @@ function packageAmountKes(tier: string): number | undefined {
   return amount;
 }
 
-function testAmountKes(metadata: unknown): number | undefined {
-  if (!metadata || typeof metadata !== 'object' || (metadata as Record<string, unknown>).test_mode !== true) return undefined;
-  const amount = Number((metadata as Record<string, unknown>).test_amount_kes);
-  if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 250000) {
-    throw new HttpError('Test amount must be a whole KES amount between 1 and 250000', 503, 'configuration_error');
-  }
-  return amount;
-}
-
 function parseBody(value: unknown): { transactionId: string; email?: string; phone?: string } {
   const body = value as PaymentBody;
   const transactionId = typeof body?.transactionId === "string" ? body.transactionId.trim() : "";
@@ -101,7 +92,7 @@ Deno.serve(async (req) => {
     const { transactionId, email, phone } = parseBody(JSON.parse(await readBodyText(req, 8192)));
     const { data: transaction, error: transactionError } = await db
       .from("transactions")
-      .select("id, tuid, user_id, package_tier, amount, currency, provider, status, payment_metadata")
+      .select("id, tuid, user_id, package_tier, amount, currency, provider, status")
       .eq("id", transactionId)
       .eq("user_id", user.id)
       .single();
@@ -129,14 +120,11 @@ Deno.serve(async (req) => {
     }
 
     const urls = callbackUrls(provider);
-    const amountKes = provider === "mpesa"
-      ? testAmountKes(transaction.payment_metadata) ?? packageAmountKes(transaction.package_tier)
-      : undefined;
     const request = buildPackageProviderRequest({
       provider,
       tuid: transaction.tuid,
       amountUsd: Number(transaction.amount),
-      amountKes,
+      amountKes: provider === "mpesa" ? packageAmountKes(transaction.package_tier) : undefined,
       email: email || user.email || "",
       phone,
       idempotencyKey: `${transaction.tuid}:${attempt.attempt_number}`,
@@ -148,7 +136,7 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
     const { data: claimed, error: processingAttemptError } = await db.from("payment_attempts").update({
       request_status: "processing",
-      expected_amount: provider === 'mpesa' ? Math.round(amountKes!) : Number(transaction.amount),
+      expected_amount: provider === 'mpesa' ? Math.round(packageAmountKes(transaction.package_tier)!) : Number(transaction.amount),
       expected_currency: provider === 'mpesa' ? 'KES' : transaction.currency,
       updated_at: now,
     }).eq("id", attempt.id).eq("request_status", "created").select('id').maybeSingle();

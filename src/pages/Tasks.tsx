@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ArrowRight, Clock3, Laptop, Smartphone, Globe2 } from 'lucide-react';
+import { Search, ArrowRight, Bookmark, BookmarkCheck, Clock3, Laptop, Smartphone, Globe2 } from 'lucide-react';
 import { TaskListSkeleton } from '../components/ui/Skeleton';
 import { useAuthStore } from '../store/authStore';
 import { getProfileCompletion, PROFILE_TASK_LIMIT_THRESHOLD, DAILY_TASK_LIMIT_BELOW_THRESHOLD } from '../utils/profileCompletion';
 import { fetchTasks } from '../lib/taskQuestionsApi';
 import type { TaskCatalogItem } from '../lib/taskCatalog';
+import { fetchSavedTaskIds, saveTask, unsaveTask } from '../lib/savedTasks';
 
 type TaskDevice = 'any' | 'mobile' | 'desktop';
 
@@ -46,6 +47,9 @@ export default function TasksPage() {
   const [questionType, setQuestionType] = useState<Set<string>>(new Set());
   const [device, setDevice] = useState<Set<TaskDevice>>(new Set());
   const [payBand, setPayBand] = useState<Set<string>>(new Set());
+  const [savedTaskIds, setSavedTaskIds] = useState<Set<string>>(new Set());
+  const [savedOnly, setSavedOnly] = useState(false);
+  const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,6 +61,17 @@ export default function TasksPage() {
     });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void fetchSavedTaskIds(user.id).then((ids) => {
+      if (!cancelled) setSavedTaskIds(ids);
+    }).catch(() => {
+      if (!cancelled) setSavedTaskIds(new Set());
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const completion = getProfileCompletion(user);
   const gated = completion < PROFILE_TASK_LIMIT_THRESHOLD;
@@ -74,13 +89,38 @@ export default function TasksPage() {
     setQuestionType(new Set());
     setDevice(new Set());
     setPayBand(new Set());
+    setSavedOnly(false);
   };
 
-  const hasFilters = Boolean(search.trim()) || category.size > 0 || questionType.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
+  const hasFilters = Boolean(search.trim()) || category.size > 0 || questionType.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0 || savedOnly;
+
+  async function toggleSavedTask(taskId: string) {
+    if (!user?.id || savingTaskId) return;
+    const wasSaved = savedTaskIds.has(taskId);
+    setSavingTaskId(taskId);
+    setSavedTaskIds((current) => {
+      const next = new Set(current);
+      if (wasSaved) next.delete(taskId); else next.add(taskId);
+      return next;
+    });
+    try {
+      if (wasSaved) await unsaveTask(user.id, taskId);
+      else await saveTask(user.id, taskId);
+    } catch {
+      setSavedTaskIds((current) => {
+        const next = new Set(current);
+        if (wasSaved) next.add(taskId); else next.delete(taskId);
+        return next;
+      });
+    } finally {
+      setSavingTaskId(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     return tasks.filter((task) => {
       const q = search.trim().toLowerCase();
+      if (savedOnly && !savedTaskIds.has(task.id)) return false;
       if (q && !task.title.toLowerCase().includes(q) && !task.description.toLowerCase().includes(q)) return false;
       const normalizedCategory = task.category.toLowerCase().replace(/[_\s]+/g, '-');
       const normalizedQuestionType = (task.taskType || 'saq').toLowerCase();
@@ -95,7 +135,7 @@ export default function TasksPage() {
       }
       return true;
     });
-  }, [tasks, search, category, questionType, difficulty, device, payBand]);
+  }, [tasks, search, category, questionType, difficulty, device, payBand, savedOnly, savedTaskIds]);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
@@ -139,6 +179,14 @@ export default function TasksPage() {
             } disabled:cursor-default disabled:opacity-100`}
           >
             All tasks
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSavedOnly((current) => !current)}
+            className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors flex items-center gap-1.5 ${savedOnly ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`}
+          >
+            <Bookmark size={13} /> Saved ({savedTaskIds.size})
           </button>
 
           <div>
@@ -272,6 +320,10 @@ export default function TasksPage() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
+                    <button type="button" aria-label={savedTaskIds.has(task.id) ? `Remove ${task.title} from saved tasks` : `Save ${task.title}`} title={savedTaskIds.has(task.id) ? 'Remove from saved tasks' : 'Save task'} disabled={!user?.id || savingTaskId === task.id} onClick={() => void toggleSavedTask(task.id)} className="mb-2 ml-auto flex items-center gap-1 text-xs font-semibold text-brand-700 dark:text-brand-300 disabled:opacity-50">
+                      {savedTaskIds.has(task.id) ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+                      {savedTaskIds.has(task.id) ? 'Saved' : 'Save'}
+                    </button>
                     <p className="font-display text-2xl font-bold text-green-600 dark:text-green-400">+${task.reward}</p>
                     {task.taskCode && !gated ? (
                       <Link to={`/tasks/${encodeURIComponent(task.taskCode)}`} className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto">

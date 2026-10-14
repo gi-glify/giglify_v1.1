@@ -13,10 +13,17 @@ Deno.serve(async (req) => {
   try {
     const { db } = await requireAdmin(req);
     const body = await req.json();
-    const queue = body?.queue === "payouts" ? "payouts" : "deposits";
+    const queue = body?.queue === "payouts" || body?.queue === "packages" ? body.queue : "deposits";
     const limit = bounded(body?.limit);
     const offset = Math.max(Number(body?.offset) || 0, 0);
     const status = typeof body?.status === "string" ? body.status : "";
+    if (queue === "packages") {
+      let query = db.from("transactions").select("id, user_id, tuid, package_tier, provider, amount, currency, status, verification_status, technical_error, created_at, completed_at, failed_at, payment_attempts(id, attempt_number, provider_request_id, provider_event_id, request_status, callback_status, technical_error, updated_at)", { count: "exact" }).eq("transaction_type", "package_purchase").order("created_at", { ascending: false }).range(offset, offset + limit - 1);
+      if (status) query = query.eq("status", status);
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return json({ queue, items: data ?? [], count: count ?? 0, limit, offset });
+    }
     if (queue === "payouts") {
       let query = db.from("payout_requests").select("id, user_id, payout_account_id, amount, status, admin_note, reviewed_by, reviewed_at, paid_at, provider_event_id, reconciled_at, created_at", { count: "exact" }).order("created_at", { ascending: false }).range(offset, offset + limit - 1);
       if (status) query = query.eq("status", status);

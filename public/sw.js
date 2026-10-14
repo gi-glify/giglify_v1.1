@@ -1,4 +1,4 @@
-const CACHE_NAME = 'giglify-public-v2';
+const CACHE_NAME = 'giglify-public-v3';
 const PUBLIC_FILES = new Set(['/giglify.svg', '/manifest.webmanifest']);
 
 self.addEventListener('install', () => self.skipWaiting());

@@ -75,6 +75,22 @@ export default function AboutPage() {
             <h2 className="font-display text-xl mb-2">Data policy</h2>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>Task answers may be retained for quality review, fraud prevention, dispute resolution, and payment records. AI grading uses task answers and rubrics only for grading. You may request access, correction, or deletion where legal and operational retention requirements allow.</p>
           </article>
+          <article id="refunds" className="card scroll-mt-24" data-aos="fade-right">
+            <h2 className="font-display text-xl mb-2">Refunds and reversals</h2>
+            <div className="text-sm space-y-3" style={{ color: "var(--text-muted)" }}>
+              <p>Package and verification payments are reviewed against their transaction status, the payment provider result, and the applicable Giglify terms. A pending or failed payment is not treated as a successful activation.</p>
+              <p>Provider reversals, duplicate charges, unrecognized payments, or a payment that does not activate the expected entitlement should be reported to <a className="text-brand-600 dark:text-brand-300 font-semibold hover:underline" href={`mailto:${TEAM_EMAIL}`}>{TEAM_EMAIL}</a> with the displayed reference. Do not submit a second payment while the first attempt is still pending.</p>
+              <p>Any refund or correction is handled through the relevant provider and Giglify review process. This page does not promise a refund where provider rules, fraud controls, or applicable law require a different outcome.</p>
+            </div>
+          </article>
+          <article id="acceptable-use" className="card scroll-mt-24" data-aos="fade-left">
+            <h2 className="font-display text-xl mb-2">Acceptable use</h2>
+            <div className="text-sm space-y-3" style={{ color: "var(--text-muted)" }}>
+              <p>Use one honest account, provide accurate identity and payment details, follow task instructions, and submit original work. Requesters must post lawful tasks with clear requirements and fair reward information.</p>
+              <p>Do not use Giglify for fraud, harassment, unlawful data collection, impersonation, duplicate-account abuse, grading manipulation, unauthorized automation, or attempts to bypass verification and payment controls.</p>
+              <p>Read the <a href="/terms-of-use" className="text-brand-600 dark:text-brand-300 font-semibold hover:underline">complete Terms of Use</a> for the full platform rules and dispute process.</p>
+            </div>
+          </article>
         </section>
 
         <section className="card" data-aos="fade-up">

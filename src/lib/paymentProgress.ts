@@ -65,7 +65,7 @@ export function getPaymentProgress(
     return {
       phase: 'complete',
       label: kind === 'package' ? 'Package payment confirmed' : 'Payout account verified',
-      description: kind === 'package' ? 'Your package access will update automatically.' : 'Your payout account is ready for withdrawals.',
+      description: kind === 'package' ? 'Your package entitlement is active. Open your dashboard to see the tier, limits, and renewal date.' : 'Your payout account is ready for withdrawals.',
       terminal: true,
       canRetry: false,
     };
@@ -76,8 +76,8 @@ export function getPaymentProgress(
       phase: 'awaiting_confirmation',
       label: provider === 'mpesa' ? 'Waiting for M-Pesa confirmation' : 'Waiting for provider confirmation',
       description: provider === 'mpesa'
-        ? 'Check your phone and approve the STK prompt. Your payment will update automatically after provider confirmation.'
-        : 'Complete the provider checkout. This page will update automatically after confirmation.',
+        ? 'Check your phone and approve the STK prompt. Do not submit another payment while this one is pending.'
+        : 'Complete the provider checkout. Do not start another payment while this one is pending.',
       terminal: false,
       canRetry: false,
     };

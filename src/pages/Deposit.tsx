@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { formatCurrency } from '../utils/currency';
 import { ChevronDown, CreditCard, ShieldCheck } from 'lucide-react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/authStore';
-import { createPackagePayment, createTestPackagePayment, createVerificationPayment, fetchPackagePaymentStatus, fetchVerificationPaymentStatus, startPackagePayment, type PackagePaymentProvider } from '../lib/paymentsApi';
+import { createPackagePayment, createVerificationPayment, fetchPackageCatalog, fetchPackagePaymentStatus, fetchVerificationPaymentStatus, startPackagePayment, type PackagePaymentProvider } from '../lib/paymentsApi';
 import { createPackageIdempotencyKey, type PaidPackageTier } from '../lib/packageCheckout';
 import { VERIFICATION_KES, VERIFICATION_USD } from '../lib/paymentConstants';
 import { PaymentMethod } from '../lib/paymentTypes';
@@ -25,6 +25,10 @@ const TIERS = [
     name: 'Free',
     tier: 'free' as const,
     price: 0,
+    priceKes: null,
+    validityMonths: null,
+    tasksAllowed: 5,
+    highPayingEligible: false,
     benefits: ['Basic tasks', '5 tasks/month', 'Mobile only'],
     color: 'border-stone-300',
   },
@@ -32,6 +36,10 @@ const TIERS = [
     name: 'Pro',
     tier: 'pro' as const,
     price: 45,
+    priceKes: null,
+    validityMonths: 3,
+    tasksAllowed: 50,
+    highPayingEligible: true,
     benefits: ['Academic tasks', '50 tasks per period', 'Desktop + Mobile', 'Priority support', '3-month access'],
     color: 'border-navy-300',
     recommended: true,
@@ -40,15 +48,32 @@ const TIERS = [
     name: 'Elite',
     tier: 'elite' as const,
     price: 120,
+    priceKes: null,
+    validityMonths: 3,
+    tasksAllowed: null,
+    highPayingEligible: true,
     benefits: ['All tasks', 'Unlimited tasks', 'High-priority access', '24/7 support', '3-month access'],
     color: 'border-[#F5A623]',
   },
 ];
 
+function tierBenefits(tier: (typeof TIERS)[number]) {
+  if (tier.tier === 'free') return ['Basic tasks', `${tier.tasksAllowed ?? 0} tasks/month`, 'Mobile only'];
+  const taskLimit = tier.tasksAllowed === null ? 'Unlimited tasks' : `${tier.tasksAllowed} tasks per period`;
+  return tier.tier === 'pro'
+    ? ['Academic tasks', taskLimit, 'Desktop + Mobile', 'Priority support']
+    : ['All tasks', taskLimit, 'High-priority access', '24/7 support'];
+}
+
 export default function DepositPage() {
   const { theme } = useTheme();
   const user = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
   const location = useLocation();
+  const [tiers, setTiers] = useState(TIERS);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState('');
+  const [verificationAmounts, setVerificationAmounts] = useState({ amountUsd: VERIFICATION_USD, amountKes: Math.round(VERIFICATION_KES) });
   const [paymentMethod, setPaymentMethod] = useState<PaymentProviderId>('paystack');
   const [accountValue, setAccountValue] = useState('');
   const [accountLabel, setAccountLabel] = useState('');
@@ -65,21 +90,32 @@ export default function DepositPage() {
   const [packageError, setPackageError] = useState('');
   const [packageCheckoutUrl, setPackageCheckoutUrl] = useState('');
   const [packagePaymentId, setPackagePaymentId] = useState('');
+  const [packageReference, setPackageReference] = useState('');
   const [packagePaymentStatus, setPackagePaymentStatus] = useState('');
   const [packageStep, setPackageStep] = useState<PaymentWizardStep>('details');
   const [packageOpen, setPackageOpen] = useState(true);
-  const [testTier, setTestTier] = useState<'pro' | 'elite'>('pro');
-  const [testAmountKes, setTestAmountKes] = useState('10');
-  const [testPhone, setTestPhone] = useState('');
-  const [testSubmitting, setTestSubmitting] = useState(false);
-  const [testPaymentId, setTestPaymentId] = useState('');
-  const [testPaymentStatus, setTestPaymentStatus] = useState('');
-  const [testPaidAmount, setTestPaidAmount] = useState<number | null>(null);
-  const [testError, setTestError] = useState('');
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [verificationPaymentId, setVerificationPaymentId] = useState('');
   const [verificationPaymentStatus, setVerificationPaymentStatus] = useState('');
   const [verificationStep, setVerificationStep] = useState<PaymentWizardStep>('details');
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPackageCatalog().then((catalog) => {
+      if (cancelled) return;
+      setTiers((current) => current.map((tier) => {
+        const plan = catalog.plans.find((item) => item.tier === tier.tier);
+        return plan ? { ...tier, price: plan.priceUsd, priceKes: plan.priceKes, validityMonths: plan.validityMonths, tasksAllowed: plan.tasksAllowed, highPayingEligible: plan.highPayingEligible } : tier;
+      }));
+      setVerificationAmounts(catalog.verification);
+      setCatalogLoading(false);
+    }).catch((error) => {
+      if (cancelled) return;
+      setCatalogError(error instanceof Error ? error.message : 'Unable to load current package pricing.');
+      setCatalogLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const query = new URLSearchParams(location.search);
@@ -135,8 +171,8 @@ export default function DepositPage() {
   }, [location.search, location.state]);
 
   useEffect(() => {
-    writePaymentDraft('package', { flow: 'package', tier: TIERS.find((item) => item.name === selectedTier)?.tier as PaidPackageTier | undefined, provider: packageProvider, email: packageEmail, phone: packagePhone, step: packageStep });
-  }, [selectedTier, packageProvider, packageEmail, packagePhone, packageStep]);
+    writePaymentDraft('package', { flow: 'package', tier: tiers.find((item) => item.name === selectedTier)?.tier as PaidPackageTier | undefined, provider: packageProvider, email: packageEmail, phone: packagePhone, step: packageStep });
+  }, [selectedTier, packageProvider, packageEmail, packagePhone, packageStep, tiers]);
 
   useEffect(() => {
     writePaymentDraft('verification', { flow: 'verification', provider: paymentMethod, accountLabel, email: paymentMethod === 'mpesa' ? undefined : accountValue, phone: paymentMethod === 'mpesa' ? accountValue : undefined, step: verificationStep });
@@ -146,6 +182,14 @@ export default function DepositPage() {
     if (packagePaymentStatus && ['success', 'completed'].includes(packagePaymentStatus)) clearPaymentDraft('package');
     if (verificationPaymentStatus && ['held', 'verified'].includes(verificationPaymentStatus)) clearPaymentDraft('verification');
   }, [packagePaymentStatus, verificationPaymentStatus]);
+
+  useEffect(() => {
+    if (!user || !['success', 'completed'].includes(packagePaymentStatus)) return;
+    const activatedTier = selectedTier.toLowerCase();
+    if (activatedTier !== 'pro' && activatedTier !== 'elite') return;
+    if (user.subscription === activatedTier) return;
+    setUser({ ...user, subscription: activatedTier });
+  }, [packagePaymentStatus, selectedTier, setUser, user]);
 
   useEffect(() => {
     const refreshTimer = window.setTimeout(() => {
@@ -175,25 +219,6 @@ export default function DepositPage() {
   }, [packagePaymentId, packagePaymentStatus, user]);
 
   useEffect(() => {
-    if (!testPaymentId || !user || isPaymentProgressTerminal(testPaymentStatus)) return;
-    let cancelled = false;
-    const refresh = async () => {
-      try {
-        const result = await fetchPackagePaymentStatus(testPaymentId);
-        if (!cancelled) setTestPaymentStatus(result.status);
-      } catch {
-        // Keep the test result actionable while a transient read fails.
-      }
-    };
-    void refresh();
-    const timer = window.setInterval(refresh, 4000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [testPaymentId, testPaymentStatus, user]);
-
-  useEffect(() => {
     if (!verificationPaymentId || !user || isPaymentProgressTerminal(verificationPaymentStatus)) return;
     let cancelled = false;
     const refresh = async () => {
@@ -220,58 +245,19 @@ export default function DepositPage() {
       setPackageMessage('You are already on the Free plan. Choose a paid tier to begin an upgrade flow.');
       return;
     }
-    setPackageMessage(`${tierName} selected at $${price} for 3 months. Choose a provider below to continue.`);
+    const selected = tiers.find((tier) => tier.name === tierName);
+    setPackageMessage(`${tierName} selected at $${price} for ${selected?.validityMonths ?? 3} months. Choose a provider below to continue.`);
     window.setTimeout(() => document.getElementById('package-payment-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   }
 
   function resetPackagePayment() {
     setPackagePaymentId('');
+    setPackageReference('');
     setPackagePaymentStatus('');
     setPackageCheckoutUrl('');
     setPackageError('');
     setPackageMessage('Your previous attempt was not completed. Review the details and start a new payment.');
     setPackageStep('payment');
-  }
-
-  function resetTestPayment() {
-    setTestPaymentId('');
-    setTestPaymentStatus('');
-    setTestPaidAmount(null);
-    setTestError('');
-  }
-
-  async function handleTestPackagePayment(e: React.FormEvent) {
-    e.preventDefault();
-    setTestError('');
-    setTestPaymentId('');
-    setTestPaymentStatus('');
-    if (!user) {
-      setTestError('Sign in before starting a test payment.');
-      return;
-    }
-    const amountKes = Number(testAmountKes);
-    if (!Number.isSafeInteger(amountKes) || amountKes < 1 || amountKes > 250000) {
-      setTestError('Enter a whole KES amount between 1 and 250000.');
-      return;
-    }
-    const phoneError = validateProviderInput('mpesa', { phone: testPhone });
-    if (phoneError) {
-      setTestError(phoneError);
-      return;
-    }
-    setTestSubmitting(true);
-    try {
-      const created = await createTestPackagePayment({ tier: testTier, amountKes });
-      setTestPaidAmount(amountKes);
-      setTestPaymentId(created.transactionId);
-      const started = await startPackagePayment({ transactionId: created.transactionId, phone: testPhone.trim() });
-      setTestPaymentStatus(started.status || 'pending');
-    } catch (testPaymentError) {
-      setTestPaymentStatus('failed');
-      setTestError(testPaymentError instanceof Error ? testPaymentError.message : 'Unable to start the test payment.');
-    } finally {
-      setTestSubmitting(false);
-    }
   }
 
   function resetVerificationPayment() {
@@ -287,9 +273,34 @@ export default function DepositPage() {
     clearPaymentDraft('package');
     setPackageStep('details');
     setPackagePaymentId('');
+    setPackageReference('');
     setPackagePaymentStatus('');
     setPackageCheckoutUrl('');
     setPackageError('');
+  }
+
+  function downloadPackageReceipt() {
+    if (!['success', 'completed'].includes(packagePaymentStatus)) return;
+    const selected = tiers.find((tier) => tier.name === selectedTier);
+    const amount = packageProvider === 'mpesa'
+      ? formatCurrency(selected?.priceKes || 0, 'KES')
+      : formatCurrency(selected?.price || 0, 'USD');
+    const receipt = [
+      'Giglify payment receipt',
+      `Date: ${new Date().toLocaleString()}`,
+      `Package: ${selectedTier}`,
+      `Amount: ${amount}`,
+      `Provider: ${packageProvider}`,
+      `Reference: ${packageReference || packagePaymentId}`,
+      'Status: Confirmed',
+      `Access: ${selected?.validityMonths ?? 3} months`,
+    ].join('\n');
+    const url = URL.createObjectURL(new Blob([receipt], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `giglify-${selectedTier.toLowerCase()}-receipt.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   function discardVerificationDraft() {
@@ -328,7 +339,7 @@ export default function DepositPage() {
       setPackageError('Sign in before starting a package payment.');
       return;
     }
-    const tier = TIERS.find((item) => item.name === selectedTier)?.tier;
+    const tier = tiers.find((item) => item.name === selectedTier)?.tier;
     if (!tier) {
       setPackageError('Choose Pro or Elite before starting a package payment.');
       return;
@@ -340,6 +351,10 @@ export default function DepositPage() {
       return;
     }
 
+    if (catalogLoading || catalogError) {
+      setPackageError('Current package pricing is unavailable. Refresh the page before starting payment.');
+      return;
+    }
     setPackageSubmitting(true);
     try {
       const created = await createPackagePayment({
@@ -348,6 +363,7 @@ export default function DepositPage() {
         idempotencyKey: createPackageIdempotencyKey(tier as PaidPackageTier),
       });
       setPackagePaymentId(created.transactionId);
+      setPackageReference(created.tuid);
       setPackagePaymentStatus('created');
       const started = await startPackagePayment({
         transactionId: created.transactionId,
@@ -425,7 +441,7 @@ export default function DepositPage() {
         <div id="packages" className="mb-12 scroll-mt-6" data-aos="fade-up">
           <h2 className="font-display text-2xl mb-6" data-aos="fade-down">Choose Your Tier</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            {TIERS.map((tier, index) => (
+            {tiers.map((tier, index) => (
               <div
                 key={tier.name}
                 data-aos="fade-up"
@@ -441,10 +457,11 @@ export default function DepositPage() {
                 )}
                 <h3 className="font-display text-xl mb-2">{tier.name}</h3>
                 <p className="font-display text-3xl font-bold mb-1">${tier.price}</p>
-                {tier.price > 0 && <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>for 3 months</p>}
+                {tier.price > 0 && <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>for {tier.validityMonths ?? 3} months</p>}
+                {tier.price > 0 && tier.priceKes !== null && <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{formatCurrency(tier.priceKes, 'KES')} with M-Pesa</p>}
                 {tier.price === 0 && <div className="mb-4" />}
                 <ul className="space-y-2 mb-6">
-                  {tier.benefits.map((benefit) => (
+                  {tierBenefits(tier).map((benefit) => (
                     <li key={benefit} className={`text-sm ${theme === 'dark' ? 'text-stone-400' : 'text-stone-600'}`}>
                       ✓ {benefit}
                     </li>
@@ -458,30 +475,10 @@ export default function DepositPage() {
               </div>
             ))}
           </div>
+          {catalogLoading && <p className="text-sm mt-5" style={{ color: 'var(--text-muted)' }}>Loading current package pricing…</p>}
+          {catalogError && <div className="alert alert-error mt-5">{catalogError} Refresh the page before paying.</div>}
           {packageMessage && <div className="alert alert-info mt-6" data-aos="fade-in">{packageMessage}</div>}
         </div>
-
-        <section className="card max-w-2xl mx-auto mb-10 border-2 border-amber-400/70 bg-amber-50/60 dark:bg-amber-950/20" data-aos="fade-up">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] font-bold text-amber-700 dark:text-amber-300">Temporary test mode</p>
-              <h2 className="font-display text-2xl mt-1">Test a small M-Pesa price</h2>
-            </div>
-            <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-bold text-amber-900 dark:bg-amber-900/50 dark:text-amber-100">STK Push</span>
-          </div>
-          <p className="text-sm mt-3" style={{ color: 'var(--text-muted)' }}>This visible test checkout uses a custom KES amount and the real Daraja callback. It does not change the normal Pro or Elite prices.</p>
-          <form className="mt-5 space-y-4" onSubmit={handleTestPackagePayment}>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <label className="text-sm font-semibold">Package<select className="input-field w-full mt-2" value={testTier} onChange={(event) => setTestTier(event.target.value as 'pro' | 'elite')}><option value="pro">Pro</option><option value="elite">Elite</option></select></label>
-              <label className="text-sm font-semibold">Test price (KES)<input className="input-field w-full mt-2" inputMode="numeric" min="1" max="250000" step="1" value={testAmountKes} onChange={(event) => setTestAmountKes(event.target.value)} /></label>
-              <label className="text-sm font-semibold">M-Pesa phone<input className="input-field w-full mt-2" type="tel" placeholder="0712345678" value={testPhone} onChange={(event) => setTestPhone(event.target.value)} /></label>
-            </div>
-            {testError && <div className="alert alert-error">{testError}</div>}
-            {testPaymentId && testPaymentStatus && <PaymentProgress kind="package" provider="mpesa" status={testPaymentStatus} onRetry={resetTestPayment} />}
-            {testPaymentStatus === 'success' && <p className="alert alert-success">Test payment of {formatCurrency(testPaidAmount ?? Number(testAmountKes), 'KES')} confirmed. Your {testTier === 'pro' ? 'Pro' : 'Elite'} access should now be reflected across the site.</p>}
-            <button type="submit" disabled={testSubmitting} className="w-full rounded-lg bg-amber-600 px-4 py-3 font-semibold text-white hover:bg-amber-700 disabled:opacity-60">{testSubmitting ? 'Starting test payment…' : `Pay KES ${testAmountKes || '0'} and test ${testTier === 'pro' ? 'Pro' : 'Elite'}`}</button>
-          </form>
-        </section>
 
         <section className={`card max-w-2xl mx-auto mb-10 scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">
           <button
@@ -512,7 +509,7 @@ export default function DepositPage() {
             {packageStep === 'details' && <div className="space-y-4">
               <h3 className="font-display text-xl">Confirm your package</h3>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Review the selected package before choosing how to pay.</p>
-              <div className="rounded-xl border border-[var(--border)] p-4"><p className="font-semibold">{selectedTier}</p><p className="text-2xl font-bold mt-1">${TIERS.find((tier) => tier.name === selectedTier)?.price}</p><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>3-month access</p></div>
+              <div className="rounded-xl border border-[var(--border)] p-4"><p className="font-semibold">{selectedTier}</p><p className="text-2xl font-bold mt-1">${tiers.find((tier) => tier.name === selectedTier)?.price}</p><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 3}-month access</p>{tiers.find((tier) => tier.name === selectedTier)?.priceKes !== null && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES')} with M-Pesa</p>}</div>
             </div>}
             {packageStep === 'provider' && <div className="space-y-5">
               <div>
@@ -530,21 +527,23 @@ export default function DepositPage() {
             {packageStep === 'payment' && <div className="space-y-5">
               <h3 className="font-display text-xl">Review your payment</h3>
               <dl className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] px-4">
-                <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Package</dt><dd className="font-semibold">{selectedTier} · 3 months</dd></div>
+                <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Package</dt><dd className="font-semibold">{selectedTier} · {tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 3} months</dd></div>
                 <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Payment account</dt><dd className="min-w-0 break-all text-right">{packageProvider === 'mpesa' ? packagePhone : packageEmail}</dd></div>
-                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-2xl font-bold">${TIERS.find((tier) => tier.name === selectedTier)?.price}</dd></div>
+                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-right text-2xl font-bold">{packageProvider === 'mpesa' ? formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES') : formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.price || 0, 'USD')}</dd></div>
               </dl>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{packageProvider === 'mpesa' ? 'Confirm the payment prompt on your phone, then return here to see your status.' : 'Continue to your payment provider to complete checkout, then return here to see your status.'}</p>
               {packageCheckoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(packageProvider)}</a>}
               {packageError && <div className="alert alert-error">{packageError}</div>}
-              <button type="submit" disabled={packageSubmitting || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">{packageSubmitting ? 'Starting package payment...' : `Pay $${TIERS.find((tier) => tier.name === selectedTier)?.price}`}</button>
+              <button type="submit" disabled={packageSubmitting || catalogLoading || Boolean(catalogError) || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">{packageSubmitting ? 'Starting package payment...' : `Pay ${packageProvider === 'mpesa' ? formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES') : formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.price || 0, 'USD')}`}</button>
             </div>}
             {packageStep === 'result' && <div className="space-y-4">
-              {packagePaymentId && packagePaymentStatus && <PaymentProgress kind="package" provider={packageProvider} status={packagePaymentStatus} onRetry={resetPackagePayment} />}
+              {packagePaymentId && packagePaymentStatus && <PaymentProgress kind="package" provider={packageProvider} status={packagePaymentStatus} reference={packageReference} onRetry={resetPackagePayment} />}
+              {['success', 'completed'].includes(packagePaymentStatus) && <div className="flex flex-wrap gap-3"><button type="button" className="btn-secondary flex-1 py-3 rounded-lg font-semibold" onClick={downloadPackageReceipt}>Download receipt</button><Link to="/dashboard" className="btn-primary flex-1 py-3 rounded-lg font-semibold text-center">Open dashboard</Link></div>}
               {packageError && <div className="alert alert-error">{packageError}</div>}
               {packageCheckoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(packageProvider)}</a>}
             </div>}
           </PaymentWizard>
+          <p className="mt-5 text-xs text-center" style={{ color: 'var(--text-muted)' }}>Need help before paying? <Link to="/about#refunds" className="text-brand-600 dark:text-brand-300 font-semibold hover:underline">Refund policy</Link> · <Link to="/terms-of-use" className="text-brand-600 dark:text-brand-300 font-semibold hover:underline">Terms</Link> · <Link to="/contact" className="text-brand-600 dark:text-brand-300 font-semibold hover:underline">Contact support</Link></p>
           </form>
         </section>
 
@@ -568,7 +567,7 @@ export default function DepositPage() {
           <form id="payment-form" aria-hidden={!verificationOpen} onSubmit={handleVerification} className={`mt-6 overflow-hidden transition-[max-height,opacity,transform] duration-500 ease-out ${verificationOpen ? 'max-h-[1600px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'}`}>
           <h2 className="sr-only">Verify Your Payout Account</h2>
           <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-stone-300' : 'text-stone-600'}`}>
-            Pay {formatCurrency(VERIFICATION_USD, 'USD')} to verify ownership, or {formatCurrency(Math.round(VERIFICATION_KES), 'KES')} with M-Pesa (rounded to a whole shilling). The payment is held for admin review.
+            Pay the {formatCurrency(verificationAmounts.amountUsd, 'USD')} activation and payout-verification fee, or {formatCurrency(verificationAmounts.amountKes, 'KES')} with M-Pesa. The payment is held for admin review and unlocks payout access after approval.
           </p>
 
           <PaymentWizard
@@ -581,7 +580,7 @@ export default function DepositPage() {
             {verificationStep === 'details' && <div className="space-y-4">
               <h3 className="font-display text-xl">Confirm payout account</h3>
               <label className="block text-sm font-semibold">Account label<input className="input-field w-full mt-2" value={accountLabel} onChange={(e) => setAccountLabel(e.target.value)} placeholder="My primary account" /></label>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Verification amount: {formatCurrency(VERIFICATION_USD, 'USD')}, or {formatCurrency(Math.round(VERIFICATION_KES), 'KES')} with M-Pesa.</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Activation and verification fee: {formatCurrency(verificationAmounts.amountUsd, 'USD')}, or {formatCurrency(verificationAmounts.amountKes, 'KES')} with M-Pesa.</p>
             </div>}
             {verificationStep === 'provider' && <div className="space-y-5">
               <div>
@@ -598,13 +597,13 @@ export default function DepositPage() {
               <dl className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] px-4">
                 <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Account label</dt><dd className="min-w-0 break-words text-right font-semibold">{accountLabel}</dd></div>
                 <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Payment account</dt><dd className="min-w-0 break-all text-right">{accountValue}</dd></div>
-                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-right font-bold">{paymentMethod === 'mpesa' ? formatCurrency(Math.round(VERIFICATION_KES), 'KES') : formatCurrency(VERIFICATION_USD, 'USD')}</dd></div>
+                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Activation fee</dt><dd className="text-right font-bold">{paymentMethod === 'mpesa' ? formatCurrency(verificationAmounts.amountKes, 'KES') : formatCurrency(verificationAmounts.amountUsd, 'USD')}</dd></div>
               </dl>
               <p className="text-sm text-[var(--text-muted)]">{paymentMethod === 'mpesa' ? 'Approve the prompt on your phone.' : 'Complete checkout with your payment provider.'} Your verification payment will then be reviewed by an admin.</p>
               {message && <div className="alert alert-success">{message}</div>}
               {checkoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={checkoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(paymentMethod)}</a>}
               {error && <div className="alert alert-error">{error}</div>}
-              <button type="submit" disabled={submitting} className="w-full btn-primary py-3 rounded-lg font-semibold hover:shadow-lg text-lg disabled:opacity-60">{submitting ? 'Starting verification...' : `Start verification for ${formatCurrency(VERIFICATION_USD, 'USD')}`}</button>
+              <button type="submit" disabled={submitting} className="w-full btn-primary py-3 rounded-lg font-semibold hover:shadow-lg text-lg disabled:opacity-60">{submitting ? 'Starting verification...' : `Pay ${paymentMethod === 'mpesa' ? formatCurrency(verificationAmounts.amountKes, 'KES') : formatCurrency(verificationAmounts.amountUsd, 'USD')} and verify`}</button>
             </div>}
             {verificationStep === 'result' && <div className="space-y-4">
               {verificationPaymentId && verificationPaymentStatus && <PaymentProgress kind="verification" provider={paymentMethod} status={verificationPaymentStatus} onRetry={resetVerificationPayment} />}
@@ -612,7 +611,8 @@ export default function DepositPage() {
               {error && <div className="alert alert-error">{error}</div>}
             </div>}
           </PaymentWizard>
-          <p className={`mt-6 text-xs text-center ${theme === 'dark' ? 'text-stone-500' : 'text-stone-600'}`}>Your payment is secured and encrypted. No additional fees.</p>
+          <p className={`mt-6 text-xs text-center ${theme === 'dark' ? 'text-stone-500' : 'text-stone-600'}`}>Your payment is secured and encrypted. Only the displayed activation and verification amount is charged.</p>
+          <p className="mt-3 text-xs text-center" style={{ color: 'var(--text-muted)' }}>Questions about a charge? Read the <Link to="/about#refunds" className="text-brand-600 dark:text-brand-300 font-semibold hover:underline">refund policy</Link> or <Link to="/contact" className="text-brand-600 dark:text-brand-300 font-semibold hover:underline">contact support</Link>.</p>
           </form>
         </section>
       </main>

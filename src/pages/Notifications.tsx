@@ -7,11 +7,16 @@ import { AppNotification, fetchNotifications, formatNotificationTime, markNotifi
 export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [error, setError] = useState('');
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     if (!user) return;
-    fetchNotifications(user.id).then(setNotifications).catch(() => setNotifications([])).finally(() => setLoading(false));
+    setError('');
+    fetchNotifications(user.id).then(setNotifications).catch((fetchError) => {
+      setNotifications([]);
+      setError(fetchError instanceof Error ? fetchError.message : 'Unable to load notifications.');
+    }).finally(() => setLoading(false));
   }, [user?.id]);
 
   async function openNotification(notification: AppNotification) {
@@ -42,6 +47,8 @@ export default function NotificationsPage() {
               </div>
             ))}
           </div>
+        ) : error ? (
+          <div className="alert alert-error text-sm" role="alert">{error} Refresh the page or contact support if the problem continues.</div>
         ) : (
           <div className="space-y-3">
             {notifications.map((n, i) => (

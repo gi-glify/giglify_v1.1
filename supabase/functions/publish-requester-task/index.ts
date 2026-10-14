@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     if (!draftId) throw new HttpError("draftId is required", 400, "validation_error");
 
     const { data: draft, error: draftError } = await db.from("requester_task_drafts")
-      .select("id, requester_id, title, context, category, difficulty, reward, questions, status, reviewed_at, reviewed_by, admin_note")
+      .select("id, requester_id, title, context, category, difficulty, reward, questions, status, reviewed_at, reviewed_by, admin_note, published_task_id, published_task_code")
       .eq("id", draftId)
       .single();
     if (draftError) throw draftError;
@@ -69,10 +69,10 @@ Deno.serve(async (req) => {
 
     const before = draft;
     const { data: updatedDraft, error: updateError } = await db.from("requester_task_drafts")
-      .update({ status: "approved", reviewed_at: new Date().toISOString(), reviewed_by: user.id, admin_note: note || null })
+      .update({ status: "approved", reviewed_at: new Date().toISOString(), reviewed_by: user.id, admin_note: note || null, published_task_id: task.id, published_task_code: task.task_code })
       .eq("id", draft.id)
       .eq("status", "pending_review")
-      .select("id, requester_id, title, status, reviewed_at, reviewed_by, admin_note")
+      .select("id, requester_id, title, status, reviewed_at, reviewed_by, admin_note, published_task_id, published_task_code")
       .single();
     if (updateError) throw updateError;
     await auditAdminAction(db, { actorUserId: user.id, action: "requester_task_published", entityType: "requester_task", entityId: draft.id, before, after: { draft: updatedDraft, taskId: task.id, taskCode: task.task_code }, reason: note, requestId: requestId(req) });

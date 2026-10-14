@@ -131,6 +131,8 @@ export default function DesktopNavbar({ onLogout }: DesktopNavbarProps) {
           <button
             onClick={() => setMenuOpen((v) => !v)}
             className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5"
+            aria-label="Open profile menu"
+            aria-expanded={menuOpen}
           >
             <div className="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center text-sm font-semibold overflow-hidden">
               {user?.profilePicture ? <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" /> : user?.firstName?.[0]?.toUpperCase() || <UserIcon size={16} />}

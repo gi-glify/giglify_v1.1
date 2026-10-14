@@ -6,6 +6,7 @@ type PaymentProgressProps = {
   kind: PaymentProgressKind;
   provider: PaymentMethod;
   status: string;
+  reference?: string;
   onRetry?: () => void;
 };
 
@@ -15,7 +16,7 @@ const STEPS = [
   { phase: 'review', label: 'Review or activation' },
 ];
 
-export default function PaymentProgress({ kind, provider, status, onRetry }: PaymentProgressProps) {
+export default function PaymentProgress({ kind, provider, status, reference, onRetry }: PaymentProgressProps) {
   const progress = getPaymentProgress(status, kind, provider);
   const failed = progress.phase === 'failed' || progress.phase === 'cancelled';
   const currentIndex = progress.phase === 'complete' || progress.phase === 'review'
@@ -25,12 +26,13 @@ export default function PaymentProgress({ kind, provider, status, onRetry }: Pay
       : 0;
 
   return (
-    <section className={`rounded-xl border p-4 ${failed ? 'border-red-300 bg-red-50 dark:border-red-900/60 dark:bg-red-950/20' : 'border-brand-200 bg-brand-50/60 dark:border-brand-900/60 dark:bg-brand-950/20'}`} aria-live="polite" data-payment-progress={kind}>
+    <section className={`rounded-xl border p-4 ${failed ? 'border-red-300 bg-red-50 dark:border-red-900/60 dark:bg-red-950/20' : 'border-brand-200 bg-brand-50/60 dark:border-brand-900/60 dark:bg-brand-950/20'}`} aria-live="polite" aria-busy={!progress.terminal} data-payment-progress={kind}>
       <div className="flex items-start gap-3">
         {failed ? <AlertCircle className="mt-0.5 shrink-0 text-red-600" size={20} aria-hidden="true" /> : progress.terminal ? <Check className="mt-0.5 shrink-0 text-emerald-600" size={20} aria-hidden="true" /> : <Loader2 className="mt-0.5 shrink-0 animate-spin text-brand-600" size={20} aria-hidden="true" />}
         <div>
           <p className="font-semibold">{progress.label}</p>
           <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>{progress.description}</p>
+          {reference && <p className="mt-2 text-xs font-mono opacity-70">Reference: {reference}</p>}
         </div>
       </div>
       <ol className="mt-4 grid grid-cols-3 gap-2" aria-label="Payment progress">
