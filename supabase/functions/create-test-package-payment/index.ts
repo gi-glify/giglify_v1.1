@@ -1,4 +1,4 @@
-import { requireAdmin } from "../_shared/auth.ts";
+import { requireAdmin, requireUser } from "../_shared/auth.ts";
 import { errorResponse, HttpError, json, options } from "../_shared/http.ts";
 import { readBodyText, rateLimit } from "../_shared/request-limits.ts";
 
@@ -24,7 +24,9 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const { user, db } = await requireAdmin(req);
+    const { user, db } = Deno.env.get('DARAJA_PUBLIC_TEST_MODE')?.trim().toLowerCase() === 'true'
+      ? await requireUser(req)
+      : await requireAdmin(req);
     await rateLimit("admin-test-package-payment", user.id, 5, 600);
     const { tier, amountKes } = parseBody(JSON.parse(await readBodyText(req, 4096)));
     const { data: plan, error: planError } = await db

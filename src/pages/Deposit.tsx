@@ -6,7 +6,7 @@ import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { useTheme } from '../context/ThemeContext';
 import { useAuthStore } from '../store/authStore';
-import { createPackagePayment, createVerificationPayment, fetchPackagePaymentStatus, fetchVerificationPaymentStatus, startPackagePayment, type PackagePaymentProvider } from '../lib/paymentsApi';
+import { createPackagePayment, createTestPackagePayment, createVerificationPayment, fetchPackagePaymentStatus, fetchVerificationPaymentStatus, startPackagePayment, type PackagePaymentProvider } from '../lib/paymentsApi';
 import { createPackageIdempotencyKey, type PaidPackageTier } from '../lib/packageCheckout';
 import { VERIFICATION_KES, VERIFICATION_USD } from '../lib/paymentConstants';
 import { PaymentMethod } from '../lib/paymentTypes';
@@ -68,6 +68,14 @@ export default function DepositPage() {
   const [packagePaymentStatus, setPackagePaymentStatus] = useState('');
   const [packageStep, setPackageStep] = useState<PaymentWizardStep>('details');
   const [packageOpen, setPackageOpen] = useState(true);
+  const [testTier, setTestTier] = useState<'pro' | 'elite'>('pro');
+  const [testAmountKes, setTestAmountKes] = useState('10');
+  const [testPhone, setTestPhone] = useState('');
+  const [testSubmitting, setTestSubmitting] = useState(false);
+  const [testPaymentId, setTestPaymentId] = useState('');
+  const [testPaymentStatus, setTestPaymentStatus] = useState('');
+  const [testPaidAmount, setTestPaidAmount] = useState<number | null>(null);
+  const [testError, setTestError] = useState('');
   const [verificationOpen, setVerificationOpen] = useState(false);
   const [verificationPaymentId, setVerificationPaymentId] = useState('');
   const [verificationPaymentStatus, setVerificationPaymentStatus] = useState('');
@@ -167,6 +175,25 @@ export default function DepositPage() {
   }, [packagePaymentId, packagePaymentStatus, user]);
 
   useEffect(() => {
+    if (!testPaymentId || !user || isPaymentProgressTerminal(testPaymentStatus)) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const result = await fetchPackagePaymentStatus(testPaymentId);
+        if (!cancelled) setTestPaymentStatus(result.status);
+      } catch {
+        // Keep the test result actionable while a transient read fails.
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [testPaymentId, testPaymentStatus, user]);
+
+  useEffect(() => {
     if (!verificationPaymentId || !user || isPaymentProgressTerminal(verificationPaymentStatus)) return;
     let cancelled = false;
     const refresh = async () => {
@@ -204,6 +231,47 @@ export default function DepositPage() {
     setPackageError('');
     setPackageMessage('Your previous attempt was not completed. Review the details and start a new payment.');
     setPackageStep('payment');
+  }
+
+  function resetTestPayment() {
+    setTestPaymentId('');
+    setTestPaymentStatus('');
+    setTestPaidAmount(null);
+    setTestError('');
+  }
+
+  async function handleTestPackagePayment(e: React.FormEvent) {
+    e.preventDefault();
+    setTestError('');
+    setTestPaymentId('');
+    setTestPaymentStatus('');
+    if (!user) {
+      setTestError('Sign in before starting a test payment.');
+      return;
+    }
+    const amountKes = Number(testAmountKes);
+    if (!Number.isSafeInteger(amountKes) || amountKes < 1 || amountKes > 250000) {
+      setTestError('Enter a whole KES amount between 1 and 250000.');
+      return;
+    }
+    const phoneError = validateProviderInput('mpesa', { phone: testPhone });
+    if (phoneError) {
+      setTestError(phoneError);
+      return;
+    }
+    setTestSubmitting(true);
+    try {
+      const created = await createTestPackagePayment({ tier: testTier, amountKes });
+      setTestPaidAmount(amountKes);
+      setTestPaymentId(created.transactionId);
+      const started = await startPackagePayment({ transactionId: created.transactionId, phone: testPhone.trim() });
+      setTestPaymentStatus(started.status || 'pending');
+    } catch (testPaymentError) {
+      setTestPaymentStatus('failed');
+      setTestError(testPaymentError instanceof Error ? testPaymentError.message : 'Unable to start the test payment.');
+    } finally {
+      setTestSubmitting(false);
+    }
   }
 
   function resetVerificationPayment() {
@@ -392,6 +460,28 @@ export default function DepositPage() {
           </div>
           {packageMessage && <div className="alert alert-info mt-6" data-aos="fade-in">{packageMessage}</div>}
         </div>
+
+        <section className="card max-w-2xl mx-auto mb-10 border-2 border-amber-400/70 bg-amber-50/60 dark:bg-amber-950/20" data-aos="fade-up">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] font-bold text-amber-700 dark:text-amber-300">Temporary test mode</p>
+              <h2 className="font-display text-2xl mt-1">Test a small M-Pesa price</h2>
+            </div>
+            <span className="rounded-full bg-amber-200 px-3 py-1 text-xs font-bold text-amber-900 dark:bg-amber-900/50 dark:text-amber-100">STK Push</span>
+          </div>
+          <p className="text-sm mt-3" style={{ color: 'var(--text-muted)' }}>This visible test checkout uses a custom KES amount and the real Daraja callback. It does not change the normal Pro or Elite prices.</p>
+          <form className="mt-5 space-y-4" onSubmit={handleTestPackagePayment}>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="text-sm font-semibold">Package<select className="input-field w-full mt-2" value={testTier} onChange={(event) => setTestTier(event.target.value as 'pro' | 'elite')}><option value="pro">Pro</option><option value="elite">Elite</option></select></label>
+              <label className="text-sm font-semibold">Test price (KES)<input className="input-field w-full mt-2" inputMode="numeric" min="1" max="250000" step="1" value={testAmountKes} onChange={(event) => setTestAmountKes(event.target.value)} /></label>
+              <label className="text-sm font-semibold">M-Pesa phone<input className="input-field w-full mt-2" type="tel" placeholder="0712345678" value={testPhone} onChange={(event) => setTestPhone(event.target.value)} /></label>
+            </div>
+            {testError && <div className="alert alert-error">{testError}</div>}
+            {testPaymentId && testPaymentStatus && <PaymentProgress kind="package" provider="mpesa" status={testPaymentStatus} onRetry={resetTestPayment} />}
+            {testPaymentStatus === 'success' && <p className="alert alert-success">Test payment of {formatCurrency(testPaidAmount ?? Number(testAmountKes), 'KES')} confirmed. Your {testTier === 'pro' ? 'Pro' : 'Elite'} access should now be reflected across the site.</p>}
+            <button type="submit" disabled={testSubmitting} className="w-full rounded-lg bg-amber-600 px-4 py-3 font-semibold text-white hover:bg-amber-700 disabled:opacity-60">{testSubmitting ? 'Starting test payment…' : `Pay KES ${testAmountKes || '0'} and test ${testTier === 'pro' ? 'Pro' : 'Elite'}`}</button>
+          </form>
+        </section>
 
         <section className={`card max-w-2xl mx-auto mb-10 scroll-mt-6 ${theme === 'dark' ? 'bg-stone-800 border-stone-700' : ''}`} data-aos="fade-up">
           <button
