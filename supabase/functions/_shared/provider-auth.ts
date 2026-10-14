@@ -49,12 +49,23 @@ export async function providerToken(provider: 'paypal' | 'mpesa'): Promise<strin
 
 export async function providerCredentials(provider: 'paystack' | 'paypal' | 'mpesa') {
   if (provider === 'paystack') return { secret: requiredSecret('PAYSTACK_SECRET_KEY') };
-  return {
-    accessToken: await providerToken(provider), baseUrl: providerBase(provider),
-    ...(provider === 'mpesa' ? {
+  if (provider === 'mpesa') {
+    const shortcodeType = (Deno.env.get('DARAJA_SHORTCODE_TYPE')?.trim().toLowerCase() || 'paybill');
+    if (shortcodeType !== 'paybill' && shortcodeType !== 'till') {
+      throw new HttpError('DARAJA_SHORTCODE_TYPE must be paybill or till', 503, 'configuration_error');
+    }
+    return {
+      accessToken: await providerToken(provider), baseUrl: providerBase(provider),
       shortCode: requiredSecretAny('DARAJA_SHORTCODE', 'MPESA_SHORTCODE'),
       passkey: requiredSecretAny('DARAJA_PASSKEY', 'MPESA_PASSKEY'),
-    } : {}),
+      ...(shortcodeType === 'till' ? {
+        tillNumber: requiredSecretAny('DARAJA_TILL_NUMBER', 'MPESA_TILL_NUMBER'),
+      } : {}),
+      shortcodeType,
+    };
+  }
+  return {
+    accessToken: await providerToken(provider), baseUrl: providerBase(provider),
   };
 }
 

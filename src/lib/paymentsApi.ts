@@ -67,6 +67,10 @@ export function startPackagePayment(input: { transactionId: string; email?: stri
   return invoke<PackagePaymentStart>('start-package-payment', input);
 }
 
+export function createTestPackagePayment(input: { tier: 'pro' | 'elite'; amountKes: number }) {
+  return invoke<PackagePaymentStart & { testAmountKes: number }>('create-test-package-payment', input);
+}
+
 export async function fetchPackagePaymentStatus(transactionId: string) {
   const { data, error } = await supabase
     .from('transactions')

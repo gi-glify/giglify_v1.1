@@ -21,6 +21,8 @@ export interface ProviderCredentials {
   baseUrl?: string;
   shortCode?: string;
   passkey?: string;
+  tillNumber?: string;
+  shortcodeType?: "paybill" | "till";
 }
 
 export interface ProviderRequest {
@@ -98,7 +100,7 @@ export function buildPackageProviderRequest(
     };
   }
 
-  if (!credentials.accessToken || !credentials.shortCode || !credentials.passkey || !Number.isFinite(input.amountKes) || !input.amountKes || input.amountKes <= 0 || !input.phone) {
+  if (!credentials.accessToken || !credentials.shortCode || !credentials.passkey || (credentials.shortcodeType === 'till' && !credentials.tillNumber) || !Number.isFinite(input.amountKes) || !input.amountKes || input.amountKes <= 0 || !input.phone) {
     throw new Error("M-Pesa requires Daraja credentials, amountKes, and phone");
   }
   const phone = input.phone.replace(/\D/g, '').replace(/^0/, '254');
@@ -111,10 +113,10 @@ export function buildPackageProviderRequest(
       BusinessShortCode: credentials.shortCode,
       Password: btoa(credentials.shortCode + credentials.passkey + timestamp),
       Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline',
+      TransactionType: credentials.shortcodeType === 'till' ? 'CustomerBuyGoodsOnline' : 'CustomerPayBillOnline',
       Amount: Math.round(input.amountKes),
       PartyA: phone,
-      PartyB: credentials.shortCode,
+      PartyB: credentials.shortcodeType === 'till' ? credentials.tillNumber : credentials.shortCode,
       PhoneNumber: phone,
       AccountReference: input.tuid.slice(-12),
       TransactionDesc: purpose === 'verification' ? 'Verification' : 'Package',

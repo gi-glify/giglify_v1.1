@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { supabase } from '../utils/supabase';
+import { createTestPackagePayment, fetchPackagePaymentStatus, startPackagePayment } from '../lib/paymentsApi';
 import { useTheme } from '../context/ThemeContext';
 
 type ReviewItem = { id: string; user_id: string; status: string; created_at: string; amount?: number; method?: string; reason?: string };
@@ -27,6 +28,12 @@ export default function AdminPaymentsPage() {
   const [requesterApplications, setRequesterApplications] = useState<RequesterApplication[]>([]);
   const [requesterDrafts, setRequesterDrafts] = useState<RequesterDraft[]>([]);
   const [error, setError] = useState('');
+  const [testTier, setTestTier] = useState<'pro' | 'elite'>('pro');
+  const [testAmountKes, setTestAmountKes] = useState('10');
+  const [testPhone, setTestPhone] = useState('');
+  const [testSubmitting, setTestSubmitting] = useState(false);
+  const [testTransactionId, setTestTransactionId] = useState('');
+  const [testStatus, setTestStatus] = useState('');
 
   async function load() {
     const [depositResult, payoutResult, appealResult, requesterApplicationsResult, requesterDraftsResult] = await Promise.all([
@@ -60,12 +67,55 @@ export default function AdminPaymentsPage() {
     try { await requesterReview(entityType, entityId, action); await load(); } catch (e) { setError(e instanceof Error ? e.message : 'Unable to apply requester review action.'); }
   }
 
+  useEffect(() => {
+    if (!testTransactionId || ['success', 'failed', 'cancelled', 'expired'].includes(testStatus)) return;
+    const timer = window.setInterval(() => {
+      void fetchPackagePaymentStatus(testTransactionId)
+        .then((result) => setTestStatus(result.status))
+        .catch(() => undefined);
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [testTransactionId, testStatus]);
+
+  async function startTestPayment() {
+    setError('');
+    setTestStatus('starting');
+    setTestSubmitting(true);
+    try {
+      const amountKes = Number(testAmountKes);
+      if (!Number.isSafeInteger(amountKes) || amountKes < 1 || amountKes > 250000) {
+        throw new Error('Enter a whole KES amount between 1 and 250000.');
+      }
+      if (!testPhone.trim()) throw new Error('Enter the Safaricom number to receive the STK prompt.');
+      const created = await createTestPackagePayment({ tier: testTier, amountKes });
+      setTestTransactionId(created.transactionId);
+      const started = await startPackagePayment({ transactionId: created.transactionId, phone: testPhone.trim() });
+      setTestStatus(started.status || 'pending');
+    } catch (testError) {
+      setTestStatus('failed');
+      setError(testError instanceof Error ? testError.message : 'Unable to start the test payment.');
+    } finally {
+      setTestSubmitting(false);
+    }
+  }
+
   return (
     <div className="min-h-screen transition-colors" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
       <main className="container py-8">
         <h1 className="font-display text-2xl font-bold mb-2">Payment Reviews</h1>
         <p className={`mb-8 text-sm ${theme === 'dark' ? 'text-stone-300' : 'text-stone-600'}`}>Approve verification deposits and payout requests. Every action is audited.</p>
         {error && <div className="alert alert-error mb-6">{error}</div>}
+        <section className="card mb-8 border-2 border-amber-400/60" data-aos="fade-up">
+          <h2 className="font-display text-xl mb-2">Daraja test payment</h2>
+          <p className="text-sm opacity-75 mb-5">Admin-only test flow. This does not change public package prices; it charges the custom KES amount to the phone below and runs through the real STK callback.</p>
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="text-sm font-semibold">Package<select className="input-field w-full mt-2" value={testTier} onChange={(event) => setTestTier(event.target.value as 'pro' | 'elite')}><option value="pro">Pro</option><option value="elite">Elite</option></select></label>
+            <label className="text-sm font-semibold">Test amount (KES)<input className="input-field w-full mt-2" inputMode="numeric" min="1" max="250000" step="1" value={testAmountKes} onChange={(event) => setTestAmountKes(event.target.value)} /></label>
+            <label className="text-sm font-semibold">Safaricom phone<input className="input-field w-full mt-2" type="tel" placeholder="0712345678" value={testPhone} onChange={(event) => setTestPhone(event.target.value)} /></label>
+          </div>
+          <button type="button" className="btn-primary mt-5 px-4 py-2 rounded-lg disabled:opacity-60" disabled={testSubmitting} onClick={() => void startTestPayment()}>{testSubmitting ? 'Starting test STK…' : 'Send test STK prompt'}</button>
+          {testStatus && <p className="text-sm mt-4">Test payment status: <span className="font-semibold">{testStatus}</span>{testTransactionId && <span className="opacity-70"> · {testTransactionId}</span>}</p>}
+        </section>
         <section className="card mb-8" data-aos="fade-up"><h2 className="font-display text-xl mb-4">Requester KYC applications</h2><div className="space-y-3">{requesterApplications.length === 0 && <p className="text-sm opacity-70">No requester applications ready for review.</p>}{requesterApplications.map((item) => <div key={item.id} className="rounded-lg border border-sand-200 dark:border-stone-600 p-4"><p className="font-semibold">{item.legal_name} · User {item.user_id}</p><p className="text-xs opacity-70 mt-1">Review ready {new Date(item.review_available_at).toLocaleString()}</p><p className="text-sm mt-3">{item.task_brief}</p><div className="flex gap-2 mt-3"><button className="btn-primary px-3 py-2" onClick={() => requesterAct('requester_application', item.id, 'approve')}>Approve requester</button><button className="btn-secondary px-3 py-2" onClick={() => requesterAct('requester_application', item.id, 'reject')}>Reject</button></div></div>)}</div></section>
         <section className="card mb-8" data-aos="fade-up"><h2 className="font-display text-xl mb-4">Requester task drafts</h2><div className="space-y-3">{requesterDrafts.length === 0 && <p className="text-sm opacity-70">No requester task drafts awaiting review.</p>}{requesterDrafts.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sand-200 dark:border-stone-600 p-4"><div><p className="font-semibold">{item.title}</p><p className="text-xs opacity-70">User {item.requester_id} · {item.category} · {item.difficulty} · ${item.reward.toFixed(2)}</p></div><div className="flex gap-2"><button className="btn-primary px-3 py-2" onClick={() => requesterAct('requester_task', item.id, 'approve')}>Approve</button><button className="btn-secondary px-3 py-2" onClick={() => requesterAct('requester_task', item.id, 'reject')}>Reject</button></div></div>)}</div></section>
         <section className="card mb-8"><h2 className="font-display text-xl mb-4">Verification deposits</h2><div className="space-y-3">
