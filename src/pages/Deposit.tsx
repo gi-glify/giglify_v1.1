@@ -20,7 +20,20 @@ import { type PaymentWizardStep } from '../lib/paymentWizard';
 import PaymentWizard from '../components/payment/PaymentWizard';
 import { supabase } from '../utils/supabase';
 
-const TIERS = [
+type TierDefinition = {
+  name: string;
+  tier: 'free' | 'pro' | 'elite';
+  price: number;
+  priceKes: number | null;
+  validityMonths: number | null;
+  tasksAllowed: number | null;
+  highPayingEligible: boolean;
+  benefits: string[];
+  color: string;
+  recommended?: boolean;
+};
+
+const TIERS: TierDefinition[] = [
   {
     name: 'Free',
     tier: 'free' as const,
@@ -57,7 +70,7 @@ const TIERS = [
   },
 ];
 
-function tierBenefits(tier: (typeof TIERS)[number]) {
+function tierBenefits(tier: TierDefinition) {
   if (tier.tier === 'free') return ['Basic tasks', `${tier.tasksAllowed ?? 0} tasks/month`, 'Mobile only'];
   const taskLimit = tier.tasksAllowed === null ? 'Unlimited tasks' : `${tier.tasksAllowed} tasks per period`;
   return tier.tier === 'pro'
@@ -70,7 +83,7 @@ export default function DepositPage() {
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
   const location = useLocation();
-  const [tiers, setTiers] = useState(TIERS);
+  const [tiers, setTiers] = useState<TierDefinition[]>(TIERS);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState('');
   const [verificationAmounts, setVerificationAmounts] = useState({ amountUsd: VERIFICATION_USD, amountKes: Math.round(VERIFICATION_KES) });
