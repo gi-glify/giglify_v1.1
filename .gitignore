@@ -45,9 +45,10 @@ supabase/.temp/
 # Separate admin application repository
 /giglify-admin/
 
-# Documentation is kept locally and must not be pushed.
+# Keep the release handoff visible in the repository; other local documentation is ignored.
 *.md
 *.markdown
+!README.md
 *.doc
 *.docx
 docs/
