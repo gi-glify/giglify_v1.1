@@ -4,7 +4,7 @@ export const LAUNCH_OFFERS = [
   { tier: "Max", regularPriceUsd: 99, offerPriceUsd: 15, savingsUsd: 84, detail: "All tasks · no monthly limit" },
 ] as const;
 
-export const LAUNCH_OFFER_DISMISSAL_KEY = "giglify-launch-offer-dismissed-at";
+export const LAUNCH_OFFER_DISMISSAL_KEY = "giglify-launch-offer-dashboard-dismissed-at";
 export const LAUNCH_OFFER_DISMISSAL_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function shouldShowLaunchOfferModal(storedValue: string | null, now = Date.now()): boolean {

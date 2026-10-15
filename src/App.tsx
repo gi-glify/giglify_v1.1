@@ -38,6 +38,7 @@ import CookieBanner from "./components/privacy/CookieBanner";
 import { rememberRoute } from "./utils/routeMemory";
 import { getAuthCallbackPath } from "./utils/authFlows";
 import AOS from "aos";
+import LaunchOfferModal from "./components/marketing/LaunchOfferModal";
 
 function RouteMemory({ user }: { user: boolean }) {
   const { pathname } = useLocation();
@@ -92,6 +93,7 @@ function AuthedRoutes() {
           <Route path="/thank-you" element={<ThankYouPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <LaunchOfferModal />
       </ConsentGate>
     </AppLayout>
   );
