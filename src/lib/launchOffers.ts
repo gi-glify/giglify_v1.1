@@ -5,9 +5,11 @@ export const LAUNCH_OFFERS = [
 ] as const;
 
 export const LAUNCH_OFFER_DISMISSAL_KEY = "giglify-launch-offer-dashboard-dismissed-at";
-export const LAUNCH_OFFER_DISMISSAL_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+export const LAUNCH_OFFER_DISABLED_KEY = "giglify-launch-offer-dashboard-disabled";
+export const LAUNCH_OFFER_DISMISSAL_WINDOW_MS = 2 * 60 * 60 * 1000;
 
-export function shouldShowLaunchOfferModal(storedValue: string | null, now = Date.now()): boolean {
+export function shouldShowLaunchOfferModal(storedValue: string | null, now = Date.now(), disabled = false): boolean {
+  if (disabled) return false;
   if (!storedValue) return true;
   const dismissedAt = Number(storedValue);
   return !Number.isFinite(dismissedAt) || now - dismissedAt >= LAUNCH_OFFER_DISMISSAL_WINDOW_MS;

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, BadgePercent, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { LAUNCH_OFFERS, LAUNCH_OFFER_DISMISSAL_KEY, shouldShowLaunchOfferModal } from "../../lib/launchOffers";
+import { LAUNCH_OFFERS, LAUNCH_OFFER_DISABLED_KEY, LAUNCH_OFFER_DISMISSAL_KEY, shouldShowLaunchOfferModal } from "../../lib/launchOffers";
 
 function canShowOffer(): boolean {
-  try { return shouldShowLaunchOfferModal(window.localStorage.getItem(LAUNCH_OFFER_DISMISSAL_KEY)); }
+  try { return shouldShowLaunchOfferModal(window.localStorage.getItem(LAUNCH_OFFER_DISMISSAL_KEY), Date.now(), window.localStorage.getItem(LAUNCH_OFFER_DISABLED_KEY) === "true"); }
   catch { return true; }
 }
 
@@ -31,6 +31,11 @@ export default function LaunchOfferModal() {
     setOpen(false);
   }
 
+  function disable() {
+    try { window.localStorage.setItem(LAUNCH_OFFER_DISABLED_KEY, "true"); } catch { /* Continue when storage is unavailable. */ }
+    setOpen(false);
+  }
+
   if (!open) return null;
 
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
@@ -43,7 +48,7 @@ export default function LaunchOfferModal() {
       </div>
       <div className="bg-[var(--bg-elevated)] p-5 sm:p-7">
         <div className="grid gap-3 sm:grid-cols-3">{LAUNCH_OFFERS.map((offer, index) => <article key={offer.tier} className={`launch-offer-card rounded-2xl border p-4 ${index === 1 ? "launch-offer-card-featured" : ""}`}><div className="flex items-center justify-between gap-2"><h3 className="font-display text-lg">{offer.tier}</h3>{index === 1 && <span className="rounded-full bg-primary-amber px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-navy-900">Popular</span>}</div><div className="mt-4 flex items-end gap-2"><strong className="font-display text-3xl text-brand-700 dark:text-brand-300">${offer.offerPriceUsd}</strong><span className="pb-1 text-sm text-[var(--text-muted)] line-through">${offer.regularPriceUsd}</span></div><p className="mt-1 text-xs font-semibold text-accent-green">Save ${offer.savingsUsd}</p><p className="mt-3 text-xs leading-relaxed text-[var(--text-muted)]">{offer.detail}</p><p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">1 month access</p></article>)}</div>
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"><button type="button" onClick={close} className="text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text)]">Remind me later</button><button type="button" onClick={() => { close(); navigate("/deposit#packages"); }} className="btn-primary inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold">Explore packages <ArrowRight size={17} /></button></div>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><button type="button" onClick={close} className="text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text)]">Remind me in 2 hours</button><button type="button" onClick={disable} className="text-xs font-semibold text-[var(--text-muted)] underline decoration-dotted underline-offset-4 hover:text-[var(--text)]">Don’t show again</button></div><button type="button" onClick={() => { close(); navigate("/deposit#packages"); }} className="btn-primary inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold">Explore packages <ArrowRight size={17} /></button></div>
         <p className="mt-4 text-center text-[11px] leading-relaxed text-[var(--text-muted)]">Offer availability is limited. Package access starts after verified payment.</p>
       </div>
     </section>

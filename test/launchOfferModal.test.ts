@@ -10,10 +10,11 @@ test("launch offer modal uses the approved package prices and savings", () => {
   ]);
 });
 
-test("launch offer modal returns after its seven-day dismissal window", () => {
+test("launch offer modal returns after its two-hour dismissal window unless disabled", () => {
   const now = Date.parse("2026-10-16T12:00:00.000Z");
   assert.equal(shouldShowLaunchOfferModal(null, now), true);
-  assert.equal(shouldShowLaunchOfferModal(String(now - 2 * 24 * 60 * 60 * 1000), now), false);
-  assert.equal(shouldShowLaunchOfferModal(String(now - 7 * 24 * 60 * 60 * 1000), now), true);
+  assert.equal(shouldShowLaunchOfferModal(String(now - 60 * 60 * 1000), now), false);
+  assert.equal(shouldShowLaunchOfferModal(String(now - 2 * 60 * 60 * 1000), now), true);
+  assert.equal(shouldShowLaunchOfferModal(null, now, true), false);
   assert.equal(shouldShowLaunchOfferModal("not-a-date", now), true);
 });
