@@ -8,7 +8,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { useAuthStore } from "./store/authStore";
-import { getCurrentUser, supabase } from "./utils/supabase";
+import { fetchAccountState, getCurrentUser, supabase } from "./utils/supabase";
 import { ThemeProvider } from "./context/ThemeContext";
 import AppLayout from "./components/layout/AppLayout";
 
@@ -113,11 +113,7 @@ function App() {
         setUser(null);
         setVerificationEmail(user.email || null);
       } else if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle();
+        const { profile, balance } = await fetchAccountState(user.id);
         setUser({
           id: user.id,
           email: user.email || "",
@@ -125,7 +121,7 @@ function App() {
           lastName: profile?.last_name || user.user_metadata?.last_name || "",
           createdAt: user.created_at,
           subscription: profile?.subscription || "free",
-          balance: 0,
+          balance,
           phone: profile?.phone || "",
           country: profile?.country || "",
           bio: profile?.bio || "",

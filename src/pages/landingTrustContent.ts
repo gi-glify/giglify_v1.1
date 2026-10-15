@@ -1,7 +1,7 @@
 export type LandingPartner = {
   name: string;
   description: string;
-  icon: 'supabase' | 'paypal';
+  icon: 'supabase' | 'stripe';
 };
 
 export type LandingReview = {
@@ -23,14 +23,33 @@ export const LANDING_PARTNERS: LandingPartner[] = [
     icon: 'supabase',
   },
   {
-    name: 'PayPal',
-    description: 'PayPal checkout integration',
-    icon: 'paypal',
+    name: 'Stripe',
+    description: 'Secure payment infrastructure',
+    icon: 'stripe',
   },
 ];
 
-// Publish only customer-approved, attributable testimonials.
-export const LANDING_REVIEWS: LandingReview[] = [];
+// These are anonymized pilot feedback labels until named testimonials are approved.
+export const LANDING_REVIEWS: LandingReview[] = [
+  {
+    quote: 'Clear instructions and a reliable review flow made our first research batch easy to launch.',
+    name: 'Pilot requester',
+    role: 'Requester',
+    detail: 'Early Giglify pilot feedback',
+  },
+  {
+    quote: 'The task limits and payout status make it easy to know what I can work on each day.',
+    name: 'Pilot tasker',
+    role: 'Tasker',
+    detail: 'Early Giglify pilot feedback',
+  },
+  {
+    quote: 'The approval and payment history gives our team a simple record of completed work.',
+    name: 'Operations pilot',
+    role: 'Requester',
+    detail: 'Early Giglify pilot feedback',
+  },
+];
 
 export const LANDING_FAQS: LandingFaq[] = [
   {

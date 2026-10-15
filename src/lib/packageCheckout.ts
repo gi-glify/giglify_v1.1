@@ -5,9 +5,9 @@ export type PaidPackageTier = Exclude<PackageTier, "free">;
 export function getPackageDisplay(tier: PaidPackageTier) {
   const plan = PACKAGE_PLANS[tier];
   return {
-    name: tier === "pro" ? "Pro" : "Elite",
+    name: tier === "pro" ? "Pro" : tier === "elite" ? "Elite" : "Max",
     priceUsd: plan.priceUsd,
-    validityLabel: `${plan.validityMonths} months`,
+    validityLabel: `${plan.validityMonths} month`,
   };
 }
 

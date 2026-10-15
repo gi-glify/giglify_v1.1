@@ -1,10 +1,13 @@
-export type PackageTier = "free" | "pro" | "elite";
+export type PackageTier = "free" | "pro" | "elite" | "max";
 export declare const APPROVED_PAYMENT_PROVIDERS: readonly ["mpesa", "paystack", "paypal"];
 export declare const TRANSACTION_STATUSES: readonly ["created", "pending", "processing", "success", "failed", "cancelled", "verification_required", "expired"];
 export declare const PACKAGE_PLANS: Record<PackageTier, {
     priceUsd: number;
     validityMonths: number | null;
     tasksAllowed: number | null;
+    dailyTasksAllowed: number | null;
+    weeklyTasksAllowed: number | null;
+    maxTaskRewardUsd: number | null;
     highPayingEligible: boolean;
 }>;
 export declare function isHighPayingReward(reward: number): boolean;

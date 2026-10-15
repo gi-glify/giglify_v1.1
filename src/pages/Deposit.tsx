@@ -22,11 +22,14 @@ import { supabase } from '../utils/supabase';
 
 type TierDefinition = {
   name: string;
-  tier: 'free' | 'pro' | 'elite';
+  tier: 'free' | 'pro' | 'elite' | 'max';
   price: number;
   priceKes: number | null;
   validityMonths: number | null;
   tasksAllowed: number | null;
+  dailyTasksAllowed: number | null;
+  weeklyTasksAllowed: number | null;
+  maxTaskRewardUsd: number | null;
   highPayingEligible: boolean;
   benefits: string[];
   color: string;
@@ -40,42 +43,64 @@ const TIERS: TierDefinition[] = [
     price: 0,
     priceKes: null,
     validityMonths: null,
-    tasksAllowed: 5,
+    tasksAllowed: 4,
+    dailyTasksAllowed: 1,
+    weeklyTasksAllowed: 1,
+    maxTaskRewardUsd: 4.99,
     highPayingEligible: false,
-    benefits: ['Basic tasks', '5 tasks/month', 'Mobile only'],
+    benefits: ['4 tasks/month', '1 task per 7 days', 'Tasks under $5'],
     color: 'border-stone-300',
   },
   {
     name: 'Pro',
     tier: 'pro' as const,
-    price: 45,
+    price: 19,
     priceKes: null,
-    validityMonths: 3,
-    tasksAllowed: 50,
+    validityMonths: 1,
+    tasksAllowed: 30,
+    dailyTasksAllowed: 1,
+    weeklyTasksAllowed: null,
+    maxTaskRewardUsd: 9.9,
     highPayingEligible: true,
-    benefits: ['Academic tasks', '50 tasks per period', 'Desktop + Mobile', 'Priority support', '3-month access'],
+    benefits: ['30 tasks/month', '1 task per day', 'Tasks up to $9.90', '1-month access'],
     color: 'border-navy-300',
     recommended: true,
   },
   {
     name: 'Elite',
     tier: 'elite' as const,
-    price: 120,
+    price: 49,
     priceKes: null,
-    validityMonths: 3,
-    tasksAllowed: null,
+    validityMonths: 1,
+    tasksAllowed: 90,
+    dailyTasksAllowed: 3,
+    weeklyTasksAllowed: null,
+    maxTaskRewardUsd: 20,
     highPayingEligible: true,
-    benefits: ['All tasks', 'Unlimited tasks', 'High-priority access', '24/7 support', '3-month access'],
+    benefits: ['90 tasks/month', '3 tasks per day', 'Tasks up to $20', '1-month access'],
     color: 'border-[#F5A623]',
+  },
+  {
+    name: 'Max',
+    tier: 'max' as const,
+    price: 99,
+    priceKes: null,
+    validityMonths: 1,
+    tasksAllowed: null,
+    dailyTasksAllowed: null,
+    weeklyTasksAllowed: null,
+    maxTaskRewardUsd: null,
+    highPayingEligible: true,
+    benefits: ['All tasks', 'Unlimited volume', 'No reward cap', '1-month access'],
+    color: 'border-brand-500',
   },
 ];
 
 function tierBenefits(tier: TierDefinition) {
-  if (tier.tier === 'free') return ['Basic tasks', `${tier.tasksAllowed ?? 0} tasks/month`, 'Mobile only'];
-  const taskLimit = tier.tasksAllowed === null ? 'Unlimited tasks' : `${tier.tasksAllowed} tasks per period`;
-  return tier.tier === 'pro'
-    ? ['Academic tasks', taskLimit, 'Desktop + Mobile', 'Priority support']
-    : ['All tasks', taskLimit, 'High-priority access', '24/7 support'];
+  if (tier.tier === 'free') return ['4 tasks/month', '1 task per 7 days', 'Tasks under $5'];
+  if (tier.tier === 'pro') return ['30 tasks/month', '1 task per day', 'Tasks up to $9.90', '1-month access'];
+  if (tier.tier === 'elite') return ['90 tasks/month', '3 tasks per day', 'Tasks up to $20', '1-month access'];
+  return ['All tasks', 'Unlimited volume', 'No reward cap', '1-month access'];
 }
 
 export default function DepositPage() {
@@ -118,7 +143,7 @@ export default function DepositPage() {
       if (cancelled) return;
       setTiers((current) => current.map((tier) => {
         const plan = catalog.plans.find((item) => item.tier === tier.tier);
-        return plan ? { ...tier, price: plan.priceUsd, priceKes: plan.priceKes, validityMonths: plan.validityMonths, tasksAllowed: plan.tasksAllowed, highPayingEligible: plan.highPayingEligible } : tier;
+        return plan ? { ...tier, price: plan.priceUsd, priceKes: plan.priceKes, validityMonths: plan.validityMonths, tasksAllowed: plan.tasksAllowed, dailyTasksAllowed: plan.dailyTasksAllowed, weeklyTasksAllowed: plan.weeklyTasksAllowed, maxTaskRewardUsd: plan.maxTaskRewardUsd, highPayingEligible: plan.highPayingEligible } : tier;
       }));
       setVerificationAmounts(catalog.verification);
       setCatalogLoading(false);
@@ -164,7 +189,7 @@ export default function DepositPage() {
     const packageDraft = readPaymentDraft('package');
     const verificationDraft = readPaymentDraft('verification');
     if (packageDraft) {
-      if (packageDraft.tier) setSelectedTier(packageDraft.tier === 'pro' ? 'Pro' : 'Elite');
+      if (packageDraft.tier) setSelectedTier(packageDraft.tier === 'pro' ? 'Pro' : packageDraft.tier === 'elite' ? 'Elite' : 'Max');
       if (packageDraft.provider) setPackageProvider(packageDraft.provider);
       if (packageDraft.email) setPackageEmail(packageDraft.email);
       if (packageDraft.phone) setPackagePhone(packageDraft.phone);
@@ -199,7 +224,7 @@ export default function DepositPage() {
   useEffect(() => {
     if (!user || !['success', 'completed'].includes(packagePaymentStatus)) return;
     const activatedTier = selectedTier.toLowerCase();
-    if (activatedTier !== 'pro' && activatedTier !== 'elite') return;
+    if (activatedTier !== 'pro' && activatedTier !== 'elite' && activatedTier !== 'max') return;
     if (user.subscription === activatedTier) return;
     setUser({ ...user, subscription: activatedTier });
   }, [packagePaymentStatus, selectedTier, setUser, user]);
@@ -259,7 +284,7 @@ export default function DepositPage() {
       return;
     }
     const selected = tiers.find((tier) => tier.name === tierName);
-    setPackageMessage(`${tierName} selected at $${price} for ${selected?.validityMonths ?? 3} months. Choose a provider below to continue.`);
+      setPackageMessage(`${tierName} selected at $${price} for ${selected?.validityMonths ?? 1} month. Choose a provider below to continue.`);
     window.setTimeout(() => document.getElementById('package-payment-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   }
 
@@ -306,7 +331,7 @@ export default function DepositPage() {
       `Provider: ${packageProvider}`,
       `Reference: ${packageReference || packagePaymentId}`,
       'Status: Confirmed',
-      `Access: ${selected?.validityMonths ?? 3} months`,
+      `Access: ${selected?.validityMonths ?? 1} month`,
     ].join('\n');
     const url = URL.createObjectURL(new Blob([receipt], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a');
@@ -354,7 +379,7 @@ export default function DepositPage() {
     }
     const tier = tiers.find((item) => item.name === selectedTier)?.tier;
     if (!tier) {
-      setPackageError('Choose Pro or Elite before starting a package payment.');
+      setPackageError('Choose a paid tier before starting a package payment.');
       return;
     }
 
@@ -453,7 +478,7 @@ export default function DepositPage() {
         {/* Tiers */}
         <div id="packages" className="mb-12 scroll-mt-6" data-aos="fade-up">
           <h2 className="font-display text-2xl mb-6" data-aos="fade-down">Choose Your Tier</h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
             {tiers.map((tier, index) => (
               <div
                 key={tier.name}
@@ -504,7 +529,7 @@ export default function DepositPage() {
           >
             <span className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"><CreditCard size={20} aria-hidden="true" /></span>
-              <span><span className="block font-display text-2xl">Pay for your package</span><span className="block text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Upgrade from Free to Pro or Elite</span></span>
+              <span><span className="block font-display text-2xl">Pay for your package</span><span className="block text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Upgrade from Free to Pro, Elite, or Max</span></span>
             </span>
             <span className="flex items-center gap-2 shrink-0 text-sm font-semibold text-brand-700 dark:text-brand-300"><span className="hidden sm:inline">{packageOpen ? 'Hide' : 'Show'}</span><ChevronDown size={20} aria-hidden="true" className={`transition-transform duration-300 ${packageOpen ? 'rotate-180' : ''}`} /></span>
           </button>
@@ -522,7 +547,7 @@ export default function DepositPage() {
             {packageStep === 'details' && <div className="space-y-4">
               <h3 className="font-display text-xl">Confirm your package</h3>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Review the selected package before choosing how to pay.</p>
-              <div className="rounded-xl border border-[var(--border)] p-4"><p className="font-semibold">{selectedTier}</p><p className="text-2xl font-bold mt-1">${tiers.find((tier) => tier.name === selectedTier)?.price}</p><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 3}-month access</p>{tiers.find((tier) => tier.name === selectedTier)?.priceKes !== null && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES')} with M-Pesa</p>}</div>
+              <div className="rounded-xl border border-[var(--border)] p-4"><p className="font-semibold">{selectedTier}</p><p className="text-2xl font-bold mt-1">${tiers.find((tier) => tier.name === selectedTier)?.price}</p><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 1}-month access</p>{tiers.find((tier) => tier.name === selectedTier)?.priceKes !== null && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES')} with M-Pesa</p>}</div>
             </div>}
             {packageStep === 'provider' && <div className="space-y-5">
               <div>
@@ -540,7 +565,7 @@ export default function DepositPage() {
             {packageStep === 'payment' && <div className="space-y-5">
               <h3 className="font-display text-xl">Review your payment</h3>
               <dl className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] px-4">
-                <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Package</dt><dd className="font-semibold">{selectedTier} · {tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 3} months</dd></div>
+                <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Package</dt><dd className="font-semibold">{selectedTier} · {tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 1} month</dd></div>
                 <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Payment account</dt><dd className="min-w-0 break-all text-right">{packageProvider === 'mpesa' ? packagePhone : packageEmail}</dd></div>
                 <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-right text-2xl font-bold">{packageProvider === 'mpesa' ? formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES') : formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.price || 0, 'USD')}</dd></div>
               </dl>

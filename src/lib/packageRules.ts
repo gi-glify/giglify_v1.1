@@ -1,4 +1,4 @@
-export type PackageTier = "free" | "pro" | "elite";
+export type PackageTier = "free" | "pro" | "elite" | "max";
 export const APPROVED_PAYMENT_PROVIDERS = ["mpesa", "paystack", "paypal"] as const;
 export const TRANSACTION_STATUSES = [
   "created",
@@ -16,10 +16,14 @@ export const PACKAGE_PLANS: Record<PackageTier, {
   validityMonths: number | null;
   tasksAllowed: number | null;
   highPayingEligible: boolean;
+  dailyTasksAllowed: number | null;
+  weeklyTasksAllowed: number | null;
+  maxTaskRewardUsd: number | null;
 }> = {
-  free: { priceUsd: 0, validityMonths: null, tasksAllowed: 5, highPayingEligible: false },
-  pro: { priceUsd: 45, validityMonths: 3, tasksAllowed: 50, highPayingEligible: true },
-  elite: { priceUsd: 120, validityMonths: 3, tasksAllowed: null, highPayingEligible: true },
+  free: { priceUsd: 0, validityMonths: null, tasksAllowed: 4, dailyTasksAllowed: 1, weeklyTasksAllowed: 1, maxTaskRewardUsd: 4.99, highPayingEligible: false },
+  pro: { priceUsd: 19, validityMonths: 1, tasksAllowed: 30, dailyTasksAllowed: 1, weeklyTasksAllowed: null, maxTaskRewardUsd: 9.9, highPayingEligible: true },
+  elite: { priceUsd: 49, validityMonths: 1, tasksAllowed: 90, dailyTasksAllowed: 3, weeklyTasksAllowed: null, maxTaskRewardUsd: 20, highPayingEligible: true },
+  max: { priceUsd: 99, validityMonths: 1, tasksAllowed: null, dailyTasksAllowed: null, weeklyTasksAllowed: null, maxTaskRewardUsd: null, highPayingEligible: true },
 };
 
 export function isHighPayingReward(reward: number): boolean {

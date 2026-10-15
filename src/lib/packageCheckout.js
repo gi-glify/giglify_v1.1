@@ -2,9 +2,9 @@ import { PACKAGE_PLANS } from "./packageRules.js";
 export function getPackageDisplay(tier) {
     const plan = PACKAGE_PLANS[tier];
     return {
-        name: tier === "pro" ? "Pro" : "Elite",
+        name: tier === "pro" ? "Pro" : tier === "elite" ? "Elite" : "Max",
         priceUsd: plan.priceUsd,
-        validityLabel: `${plan.validityMonths} months`,
+        validityLabel: `${plan.validityMonths} month`,
     };
 }
 export function createPackageIdempotencyKey(tier, nonce = crypto.randomUUID()) {

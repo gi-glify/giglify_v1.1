@@ -6,7 +6,7 @@ test("maps an M-Pesa pending payment to an actionable STK progress state", () =>
   assert.deepEqual(getPaymentProgress("pending", "package", "mpesa"), {
     phase: "awaiting_confirmation",
     label: "Waiting for M-Pesa confirmation",
-    description: "Check your phone and approve the STK prompt. Your payment will update automatically after provider confirmation.",
+    description: "Check your phone and approve the STK prompt. Do not submit another payment while this one is pending.",
     terminal: false,
     canRetry: false,
   });

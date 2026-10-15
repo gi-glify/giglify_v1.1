@@ -8,6 +8,7 @@ import {
   resendSignupConfirmation,
   requestPasswordReset,
   updatePassword,
+  fetchAccountState,
 } from "../utils/supabase";
 import { Moon, Sun } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
@@ -36,6 +37,19 @@ export default function AuthPage() {
   const [emailConfirmationSent, setEmailConfirmationSent] = useState(Boolean(verificationEmail));
   const [passwordResetSent, setPasswordResetSent] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
+
+  async function setAuthenticatedUser(authUser: { id: string; email?: string | null; created_at?: string; user_metadata?: Record<string, unknown> }, fallbackFirstName = "", fallbackLastName = "") {
+    const { profile, balance } = await fetchAccountState(authUser.id);
+    setUser({
+      id: authUser.id,
+      email: authUser.email || formData.email,
+      firstName: profile?.first_name || fallbackFirstName || String(authUser.user_metadata?.first_name || ""),
+      lastName: profile?.last_name || fallbackLastName || String(authUser.user_metadata?.last_name || ""),
+      createdAt: authUser.created_at || new Date().toISOString(),
+      subscription: profile?.subscription || "free",
+      balance,
+    });
+  }
 
   useEffect(() => {
     const refreshTimer = window.setTimeout(() => AOS.refreshHard(), 0);
@@ -78,15 +92,7 @@ export default function AuthPage() {
       if (authError) throw authError;
 
       if (data?.user && data.session && data.user.email_confirmed_at) {
-        setUser({
-          id: data.user.id,
-          email: data.user.email || formData.email,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          createdAt: data.user.created_at || new Date().toISOString(),
-          subscription: "free",
-          balance: 0,
-        });
+        await setAuthenticatedUser(data.user, formData.firstName, formData.lastName);
         setVerificationEmail(null);
         navigate("/dashboard");
         return;
@@ -119,15 +125,7 @@ export default function AuthPage() {
           setEmailConfirmationSent(true);
           return;
         }
-        setUser({
-          id: data.user.id,
-          email: data.user.email || formData.email,
-          firstName: data.user.user_metadata?.first_name || "",
-          lastName: data.user.user_metadata?.last_name || "",
-          createdAt: data.user.created_at || new Date().toISOString(),
-          subscription: "free",
-          balance: 0,
-        });
+        await setAuthenticatedUser(data.user);
       }
       setVerificationEmail(null);
       navigate("/dashboard");

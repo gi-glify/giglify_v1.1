@@ -5,7 +5,7 @@ export interface User {
   lastName: string;
   avatar?: string;
   createdAt: string;
-  subscription: 'free' | 'pro' | 'elite';
+  subscription: 'free' | 'pro' | 'elite' | 'max';
   balance: number;
   // Profile-completion fields — persisted to `profiles` in supabase/schema.sql
   phone?: string;

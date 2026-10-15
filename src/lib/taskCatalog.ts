@@ -6,6 +6,7 @@ export interface TaskCatalogItem extends Omit<Task, 'category' | 'difficulty'> {
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
   taskType?: 'mcq' | 'saq';
   device: 'any' | 'mobile' | 'desktop';
+  minimumTier?: 'free' | 'pro' | 'elite' | 'max';
 }
 
 export interface TaskRow {
@@ -21,6 +22,7 @@ export interface TaskRow {
   requires_desktop: boolean;
   is_active: boolean;
   task_type?: 'mcq' | 'saq';
+  minimum_tier?: 'free' | 'pro' | 'elite' | 'max';
 }
 
 export type LegacyTaskRow = Omit<TaskRow, 'task_code' | 'field'>;
@@ -38,6 +40,7 @@ export function mapTaskRow(row: TaskRow): TaskCatalogItem {
     ...(row.task_type ? { taskType: row.task_type } : {}),
     device: row.device,
     requiresDesktop: row.requires_desktop,
+    ...(row.minimum_tier ? { minimumTier: row.minimum_tier } : {}),
     status: 'available',
   };
 }

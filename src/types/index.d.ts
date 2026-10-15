@@ -5,7 +5,7 @@ export interface User {
     lastName: string;
     avatar?: string;
     createdAt: string;
-    subscription: 'free' | 'pro' | 'elite';
+    subscription: 'free' | 'pro' | 'elite' | 'max';
     balance: number;
     phone?: string;
     country?: string;

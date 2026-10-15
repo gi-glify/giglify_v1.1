@@ -50,7 +50,9 @@ export function normalizeProviderResponse(provider: ProviderName, payload: unkno
     };
   }
 
-  if (String(body.ResponseCode) !== '0') throw new Error('M-Pesa rejected the payment request');
+  if (String(body.ResponseCode) !== '0') {
+    throw new Error(text(body.ResponseDescription) ?? 'M-Pesa rejected the payment request');
+  }
   const providerRequestId = text(body.CheckoutRequestID);
   if (!providerRequestId) throw new Error("Provider response has no provider request identifier");
   return { providerRequestId };

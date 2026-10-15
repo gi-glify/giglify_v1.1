@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const [{ data: profile, error: profileError }, { data: entitlement, error: entitlementError }, { data: plan, error: planError }] = await Promise.all([
       db.from("profiles").select("subscription").eq("id", user.id).maybeSingle(),
       db.from("package_entitlements").select("tier, status, renewal_at").eq("user_id", user.id).eq("status", "active").maybeSingle(),
-      db.from("package_tiers").select("tier, price_usd, validity_months, tasks_allowed, high_paying_eligible").eq("tier", input.tier).eq("is_active", true).single(),
+      db.from("package_tiers").select("tier, price_usd, validity_months, tasks_allowed, daily_tasks_allowed, weekly_tasks_allowed, max_task_reward_usd, high_paying_eligible").eq("tier", input.tier).eq("is_active", true).single(),
     ]);
     if (profileError) throw profileError;
     if (entitlementError) throw entitlementError;

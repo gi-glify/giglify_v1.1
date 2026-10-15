@@ -6,9 +6,9 @@ import { providerCredentials, paymentCallback, requiredSecret } from './provider
 export const PAYMENT_METHODS = ["mpesa", "paystack", "paypal"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-export const VERIFICATION_USD = 3;
-export const KENYA_USD_RATE = 124.5;
-export const VERIFICATION_KES = 373.5;
+export const VERIFICATION_USD = 5;
+export const KENYA_USD_RATE = 131;
+export const VERIFICATION_KES = 655;
 
 export function isPaymentMethod(value: unknown): value is PaymentMethod {
   return typeof value === "string" && PAYMENT_METHODS.includes(value as PaymentMethod);

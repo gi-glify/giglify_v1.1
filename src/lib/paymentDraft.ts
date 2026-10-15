@@ -38,7 +38,7 @@ function sanitize(value: unknown, flow: PaymentDraftFlow): PaymentDraft | null {
     ? input.step as PaymentDraftStep
     : 'details';
   const draft: PaymentDraft = { flow, step };
-  if (typeof input.tier === 'string' && (input.tier === 'pro' || input.tier === 'elite')) draft.tier = input.tier;
+  if (typeof input.tier === 'string' && (input.tier === 'pro' || input.tier === 'elite' || input.tier === 'max')) draft.tier = input.tier;
   if (typeof input.provider === 'string' && ['mpesa', 'paystack', 'paypal'].includes(input.provider)) draft.provider = input.provider as PaymentProviderId;
   for (const field of ['accountLabel', 'email', 'phone'] as const) {
     if (typeof input[field] === 'string') draft[field] = input[field].slice(0, 160);

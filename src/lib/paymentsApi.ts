@@ -69,17 +69,21 @@ export function startPackagePayment(input: { transactionId: string; email?: stri
 
 export type PackageCatalog = {
   plans: Array<{
-    tier: 'free' | 'pro' | 'elite';
+    tier: 'free' | 'pro' | 'elite' | 'max';
     priceUsd: number;
     priceKes: number | null;
     validityMonths: number | null;
     tasksAllowed: number | null;
+    dailyTasksAllowed: number | null;
+    weeklyTasksAllowed: number | null;
+    maxTaskRewardUsd: number | null;
     highPayingEligible: boolean;
   }>;
   verification: {
     amountUsd: number;
     amountKes: number;
   };
+  expiryWarning: string | null;
 };
 
 export function fetchPackageCatalog() {
@@ -109,7 +113,7 @@ export async function fetchVerificationPaymentStatus(depositId: string) {
 export async function fetchPackageVisibility(userId: string): Promise<PackageVisibility | null> {
   const { data: entitlement, error: entitlementError } = await supabase
     .from('package_entitlements')
-    .select('id, tier, tasks_allowed, high_paying_eligible, activation_at, renewal_at, usage_period_start')
+    .select('id, tier, tasks_allowed, daily_tasks_allowed, weekly_tasks_allowed, max_task_reward_usd, high_paying_eligible, activation_at, renewal_at, usage_period_start')
     .eq('user_id', userId)
     .eq('status', 'active')
     .order('activation_at', { ascending: false })
@@ -117,14 +121,21 @@ export async function fetchPackageVisibility(userId: string): Promise<PackageVis
     .maybeSingle();
   if (entitlementError) throw entitlementError;
   if (!entitlement) return null;
-  const { count, error: usageError } = await supabase
+  const usageStart = entitlement.tier === 'free'
+    ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+    : entitlement.usage_period_start;
+  const { data: usageRows, error: usageError } = await supabase
     .from('package_usage_events')
-    .select('id', { count: 'exact', head: true })
+    .select('started_at')
     .eq('user_id', userId)
     .eq('entitlement_id', entitlement.id)
-    .gte('started_at', entitlement.usage_period_start);
+    .gte('started_at', usageStart);
   if (usageError) throw usageError;
-  return summarizePackageVisibility(entitlement, count || 0);
+  const usage = usageRows ?? [];
+  const now = Date.now();
+  const tasksUsedToday = usage.filter((row) => now - new Date(row.started_at).getTime() < 24 * 60 * 60 * 1000).length;
+  const tasksUsedThisWeek = usage.filter((row) => now - new Date(row.started_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
+  return summarizePackageVisibility(entitlement, usage.length, tasksUsedToday, tasksUsedThisWeek);
 }
 
 export function createPayoutRequest(input: { amount: number; payoutAccountId: string }) {

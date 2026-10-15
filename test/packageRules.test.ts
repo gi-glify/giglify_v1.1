@@ -9,9 +9,10 @@ import {
 
 test("uses the approved package prices and periods", () => {
   assert.deepEqual(PACKAGE_PLANS, {
-    free: { priceUsd: 0, validityMonths: null, tasksAllowed: 5, highPayingEligible: false },
-    pro: { priceUsd: 45, validityMonths: 3, tasksAllowed: 50, highPayingEligible: true },
-    elite: { priceUsd: 120, validityMonths: 3, tasksAllowed: null, highPayingEligible: true },
+    free: { priceUsd: 0, validityMonths: null, tasksAllowed: 4, dailyTasksAllowed: 1, weeklyTasksAllowed: 1, maxTaskRewardUsd: 4.99, highPayingEligible: false },
+    pro: { priceUsd: 19, validityMonths: 1, tasksAllowed: 30, dailyTasksAllowed: 1, weeklyTasksAllowed: null, maxTaskRewardUsd: 9.9, highPayingEligible: true },
+    elite: { priceUsd: 49, validityMonths: 1, tasksAllowed: 90, dailyTasksAllowed: 3, weeklyTasksAllowed: null, maxTaskRewardUsd: 20, highPayingEligible: true },
+    max: { priceUsd: 99, validityMonths: 1, tasksAllowed: null, dailyTasksAllowed: null, weeklyTasksAllowed: null, maxTaskRewardUsd: null, highPayingEligible: true },
   });
 });
 
@@ -26,9 +27,10 @@ test("only Free can change while active", () => {
   assert.equal(canChangePackage("elite"), false);
 });
 
-test("Free has no end date and paid packages end three calendar months later", () => {
+test("Free has no end date and paid packages end one calendar month later", () => {
   const start = new Date("2026-01-31T12:00:00.000Z");
   assert.equal(calculatePackageEndDate(start, "free"), null);
-  assert.equal(calculatePackageEndDate(start, "pro")?.toISOString(), "2026-05-01T12:00:00.000Z");
-  assert.equal(calculatePackageEndDate(start, "elite")?.toISOString(), "2026-05-01T12:00:00.000Z");
+  assert.equal(calculatePackageEndDate(start, "pro")?.toISOString(), "2026-03-03T12:00:00.000Z");
+  assert.equal(calculatePackageEndDate(start, "elite")?.toISOString(), "2026-03-03T12:00:00.000Z");
+  assert.equal(calculatePackageEndDate(start, "max")?.toISOString(), "2026-03-03T12:00:00.000Z");
 });

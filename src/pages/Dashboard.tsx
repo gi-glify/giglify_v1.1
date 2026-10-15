@@ -108,12 +108,13 @@ export default function DashboardPage() {
             <div><p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Package usage</p><h2 className="font-display text-2xl mt-1 capitalize">{packageVisibility.tier}</h2></div>
             <Link to="/deposit?view=packages" className="text-sm font-semibold text-brand-600 dark:text-brand-300">Manage package <ArrowRight size={14} className="inline" /></Link>
           </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
             <div><span style={{ color: 'var(--text-muted)' }}>Tasks used</span><p className="font-semibold mt-1">{packageVisibility.tasksUsed}{packageVisibility.tasksAllowed === null ? '' : ` / ${packageVisibility.tasksAllowed}`}</p></div>
             <div><span style={{ color: 'var(--text-muted)' }}>Remaining</span><p className="font-semibold mt-1">{packageVisibility.tasksRemaining === null ? 'Unlimited' : packageVisibility.tasksRemaining}</p></div>
-            <div><span style={{ color: 'var(--text-muted)' }}>High-paying tasks</span><p className="font-semibold mt-1">{packageVisibility.highPayingEligible ? 'Included' : 'Not included'}</p></div>
+            <div><span style={{ color: 'var(--text-muted)' }}>Today / week</span><p className="font-semibold mt-1">{packageVisibility.tasksUsedToday}{packageVisibility.dailyTasksAllowed === null ? '' : ` / ${packageVisibility.dailyTasksAllowed}`} · {packageVisibility.tasksUsedThisWeek}{packageVisibility.weeklyTasksAllowed === null ? '' : ` / ${packageVisibility.weeklyTasksAllowed}`}</p></div>
+            <div><span style={{ color: 'var(--text-muted)' }}>Task reward cap</span><p className="font-semibold mt-1">{packageVisibility.maxTaskRewardUsd === null ? 'Unlimited' : `Up to $${packageVisibility.maxTaskRewardUsd.toFixed(2)}`}</p></div>
           </div>
-          {packageVisibility.renewalAt && <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>Renews {new Date(packageVisibility.renewalAt).toLocaleDateString()}</p>}
+          {packageVisibility.renewalAt && <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>Package access ends {new Date(packageVisibility.renewalAt).toLocaleString()}</p>}
         </section>}
 
         <div>

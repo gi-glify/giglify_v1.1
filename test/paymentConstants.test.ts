@@ -8,9 +8,9 @@ import {
 } from '../src/lib/paymentConstants.ts';
 
 test('uses the fixed Kenya verification deposit amount', () => {
-  assert.equal(VERIFICATION_USD, 3);
-  assert.equal(KENYA_USD_RATE, 124.5);
-  assert.equal(VERIFICATION_KES, 373.5);
+  assert.equal(VERIFICATION_USD, 5);
+  assert.equal(KENYA_USD_RATE, 131);
+  assert.equal(VERIFICATION_KES, 655);
 });
 
 test('accepts only supported payment methods', () => {

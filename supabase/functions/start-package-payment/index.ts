@@ -25,12 +25,10 @@ function requiredEnv(name: string): string {
 function packageAmountKes(tier: string): number | undefined {
   const configured = Deno.env.get(`DARAJA_${tier.toUpperCase()}_AMOUNT_KES`)
     ?? Deno.env.get(`MPESA_${tier.toUpperCase()}_AMOUNT_KES`);
-  if (!configured) return undefined;
+  const fallback: Record<string, number> = { pro: 2489, elite: 6419, max: 12969 };
+  if (!configured) return fallback[tier];
   const amount = Number(configured);
-  if (!Number.isSafeInteger(amount) || amount <= 0) {
-    throw new HttpError(`DARAJA_${tier.toUpperCase()}_AMOUNT_KES must be a positive number`, 503, "configuration_error");
-  }
-  return amount;
+  return Number.isSafeInteger(amount) && amount > 0 ? amount : fallback[tier];
 }
 
 function parseBody(value: unknown): { transactionId: string; email?: string; phone?: string } {

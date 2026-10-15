@@ -1,6 +1,7 @@
 import { requireAdmin } from "../_shared/auth.ts";
 import { auditAdminAction, requestId } from "../_shared/admin-audit.ts";
 import { errorResponse, HttpError, json, options } from "../_shared/http.ts";
+import { notifyAndEmailUser } from "../_shared/user-notifications.ts";
 
 const allowedActions = ["retry", "manual_review", "approve", "reject"];
 
@@ -53,6 +54,7 @@ Deno.serve(async (req) => {
       .select("id, user_id, task_id, status, grading_status, grading_percentage, grading_decision, grading_confidence, grading_feedback, graded_at, reward_approved, reward_paid")
       .eq("id", submissionId).single();
     if (findError) throw findError;
+    const { data: task } = await db.from("tasks").select("title").eq("id", before.task_id).maybeSingle();
     let after;
     if (action === "retry") {
       if (before.grading_status !== "failed") throw new HttpError("Only failed grading jobs can be retried", 409, "stale_record");
@@ -72,6 +74,14 @@ Deno.serve(async (req) => {
       after = data;
     }
     await auditAdminAction(db, { actorUserId: user.id, action: `submission_${action}`, entityType: "task_submission", entityId: submissionId, before, after, reason: note, requestId: requestId(req) });
+    if (action === "approve") {
+      const reward = Number(after.reward_paid ?? after.reward_approved ?? before.reward_approved ?? 0).toFixed(2);
+      await notifyAndEmailUser(db, before.user_id, {
+        title: "Task approved",
+        detail: `Your task${task?.title ? ` “${task.title}”` : ""} was approved. Your reward of $${reward} has been added to your Giglify balance.`,
+        subject: "Your Giglify task was approved",
+      });
+    }
     return json({ submission: after });
   } catch (error) {
     return error instanceof SyntaxError ? errorResponse(new HttpError("Invalid JSON body", 400, "invalid_json")) : errorResponse(error);

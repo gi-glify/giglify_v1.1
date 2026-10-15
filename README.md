@@ -33,9 +33,14 @@ DARAJA_PASSKEY
 DARAJA_CALLBACK_SECRET
 DARAJA_PRO_AMOUNT_KES
 DARAJA_ELITE_AMOUNT_KES
+DARAJA_MAX_AMOUNT_KES
 PACKAGE_PAYMENT_CALLBACK_URL
 VERIFICATION_PAYMENT_CALLBACK_URL
 ```
+
+Current worker packages are one month each: Free is 4 tasks/month (one every 7 days, rewards under $5); Pro is $19 for 30/month (one/day, up to $9.90); Elite is $49 for 90/month (three/day, up to $20); and Max is $99 with unlimited tasks and no reward cap. The payout-account activation fee is $5 (KES 655 at the configured 131 KES/USD rate), and the minimum withdrawal is $70.
+
+Paid package access receives an in-product and email warning during the 24 hours before expiry. The warning is idempotent and is issued when the signed-in user opens the app during that window. Written/short-answer submissions are graded by the server-side AI grading queue against the private task rubric; approved submissions notify the worker in-app and by email.
 
 The callback secret is an application-generated secret. It is not supplied by Safaricom. Rotate any credentials that were previously exposed before accepting production traffic.
 

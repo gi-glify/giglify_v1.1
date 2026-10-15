@@ -1,7 +1,7 @@
 export const PACKAGE_PAYMENT_PROVIDERS = ["mpesa", "paystack", "paypal"] as const;
 export type PackagePaymentProvider = (typeof PACKAGE_PAYMENT_PROVIDERS)[number];
 
-export const PAID_PACKAGE_TIERS = ["pro", "elite"] as const;
+export const PAID_PACKAGE_TIERS = ["pro", "elite", "max"] as const;
 export type PaidPackageTier = (typeof PAID_PACKAGE_TIERS)[number];
 
 export function parsePackagePaymentRequest(

@@ -7,6 +7,22 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+/** Load the account fields that are not stored in the Auth user object. */
+export async function fetchAccountState(userId: string) {
+  const [{ data: profile, error: profileError }, { data: wallet, error: walletError }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+    supabase.from("wallets").select("balance").eq("user_id", userId).maybeSingle(),
+  ]);
+
+  if (profileError) console.error("Unable to load account profile:", profileError.message);
+  if (walletError) console.error("Unable to load wallet balance:", walletError.message);
+
+  return {
+    profile,
+    balance: Number(wallet?.balance ?? 0),
+  };
+}
+
 export const signUpWithEmail = async (email: string, password: string, firstName: string, lastName: string) => {
   const { data, error } = await supabase.auth.signUp({
     email,

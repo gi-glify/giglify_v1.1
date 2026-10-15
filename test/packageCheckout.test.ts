@@ -5,13 +5,18 @@ import { createPackageIdempotencyKey, getPackageDisplay } from "../src/lib/packa
 test("exposes approved paid package display values", () => {
   assert.deepEqual(getPackageDisplay("pro"), {
     name: "Pro",
-    priceUsd: 45,
-    validityLabel: "3 months",
+    priceUsd: 19,
+    validityLabel: "1 month",
   });
   assert.deepEqual(getPackageDisplay("elite"), {
     name: "Elite",
-    priceUsd: 120,
-    validityLabel: "3 months",
+    priceUsd: 49,
+    validityLabel: "1 month",
+  });
+  assert.deepEqual(getPackageDisplay("max"), {
+    name: "Max",
+    priceUsd: 99,
+    validityLabel: "1 month",
   });
 });
 

@@ -7,6 +7,8 @@ import { getProfileCompletion, PROFILE_TASK_LIMIT_THRESHOLD, DAILY_TASK_LIMIT_BE
 import { fetchTasks } from '../lib/taskQuestionsApi';
 import type { TaskCatalogItem } from '../lib/taskCatalog';
 import { fetchSavedTaskIds, saveTask, unsaveTask } from '../lib/savedTasks';
+import { fetchPackageVisibility } from '../lib/paymentsApi';
+import type { PackageVisibility } from '../lib/packageVisibility';
 
 type TaskDevice = 'any' | 'mobile' | 'desktop';
 
@@ -50,6 +52,7 @@ export default function TasksPage() {
   const [savedTaskIds, setSavedTaskIds] = useState<Set<string>>(new Set());
   const [savedOnly, setSavedOnly] = useState(false);
   const [savingTaskId, setSavingTaskId] = useState<string | null>(null);
+  const [packageVisibility, setPackageVisibility] = useState<PackageVisibility | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,8 +76,23 @@ export default function TasksPage() {
     return () => { cancelled = true; };
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    void fetchPackageVisibility(user.id).then(setPackageVisibility).catch(() => setPackageVisibility(null));
+  }, [user?.id]);
+
   const completion = getProfileCompletion(user);
   const gated = completion < PROFILE_TASK_LIMIT_THRESHOLD;
+  const tierRank: Record<string, number> = { free: 0, pro: 1, elite: 2, max: 3 };
+  const canAccessTask = (task: TaskCatalogItem) => {
+    if (gated || !packageVisibility) return false;
+    if ((tierRank[packageVisibility.tier] ?? -1) < (tierRank[task.minimumTier || 'free'] ?? 0)) return false;
+    if (packageVisibility.maxTaskRewardUsd !== null && task.reward > packageVisibility.maxTaskRewardUsd) return false;
+    if (packageVisibility.tasksRemaining !== null && packageVisibility.tasksRemaining <= 0) return false;
+    if (packageVisibility.dailyTasksAllowed !== null && packageVisibility.tasksUsedToday >= packageVisibility.dailyTasksAllowed) return false;
+    if (packageVisibility.weeklyTasksAllowed !== null && packageVisibility.tasksUsedThisWeek >= packageVisibility.weeklyTasksAllowed) return false;
+    return true;
+  };
 
   const toggle = <T,>(set: Set<T>, value: T, setter: (s: Set<T>) => void) => {
     const next = new Set(set);
@@ -325,14 +343,12 @@ export default function TasksPage() {
                       {savedTaskIds.has(task.id) ? 'Saved' : 'Save'}
                     </button>
                     <p className="font-display text-2xl font-bold text-green-600 dark:text-green-400">+${task.reward}</p>
-                    {task.taskCode && !gated ? (
+                    {task.taskCode && canAccessTask(task) ? (
                       <Link to={`/tasks/${encodeURIComponent(task.taskCode)}`} className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto">
                         Start <ArrowRight size={14} />
                       </Link>
                     ) : (
-                      <button disabled className="mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
-                        Start <ArrowRight size={14} />
-                      </button>
+                      <Link to="/deposit#packages" className="mt-2 btn-secondary text-sm px-3 py-1 flex items-center gap-1 ml-auto">Unlock <ArrowRight size={14} /></Link>
                     )}
                   </div>
                 </div>
