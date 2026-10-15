@@ -137,6 +137,26 @@ button {
   transition: all 0.3s ease;
 }
 
+.launch-offer-modal {
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  background: var(--bg-elevated);
+}
+
+.launch-offer-glow {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  right: -80px;
+  top: -120px;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, .23);
+  filter: blur(4px);
+}
+
+.launch-offer-card { border-color: var(--border); background: color-mix(in srgb, var(--bg-elevated) 86%, var(--accent)); }
+.launch-offer-card-featured { border-color: color-mix(in srgb, var(--accent) 70%, var(--border)); box-shadow: 0 8px 22px rgba(245, 166, 35, .13); }
+
 input,
 textarea,
 select {

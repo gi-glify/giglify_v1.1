@@ -54,3 +54,9 @@ verify_jwt = false
 
 [functions.admin-email-inbox]
 verify_jwt = true
+
+[functions.admin-bulk-email]
+verify_jwt = true
+
+[functions.email-preferences]
+verify_jwt = false

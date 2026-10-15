@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import AOS from "aos";
 import { getLastRoute } from "../utils/routeMemory";
+import LaunchOfferModal from "../components/marketing/LaunchOfferModal";
 import {
   LANDING_PARTNERS,
   LANDING_FAQS,
@@ -649,6 +650,7 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+      <LaunchOfferModal />
     </div>
   );
 }
