@@ -9,7 +9,7 @@ import {
   X,
   Star,
 } from "lucide-react";
-import { SiPaypal, SiSupabase } from "react-icons/si";
+import { SiStripe, SiSupabase } from "react-icons/si";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import AOS from "aos";
@@ -23,7 +23,7 @@ import {
 
 const partnerIcons: Record<LandingPartner["icon"], typeof SiSupabase> = {
   supabase: SiSupabase,
-  paypal: SiPaypal,
+  stripe: SiStripe,
 };
 
 export default function Landing() {

@@ -49,7 +49,7 @@ const STATUS_TONES: Record<string, string> = {
 };
 
 function StatusBadge({ status }: { status: string }) {
-  return <span className={`badge ${STATUS_TONES[status] || 'badge-blue'} capitalize`}>{status.replaceAll('_', ' ')}</span>;
+  return <span className={`badge ${STATUS_TONES[status] || 'badge-blue'} capitalize`}>{status.replace(/_/g, ' ')}</span>;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -133,10 +133,10 @@ export default function AdminPaymentsPage() {
       return;
     }
     setLoading(true);
-    supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle().then(({ data, error: profileError }) => {
+    void Promise.resolve(supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle()).then(({ data, error: profileError }) => {
       if (profileError) throw profileError;
       setIsAdmin(Boolean(data?.is_admin));
-    }).catch((profileError) => {
+    }).catch((profileError: unknown) => {
       setIsAdmin(false);
       setError(profileError instanceof Error ? profileError.message : 'Unable to verify admin access.');
       setLoading(false);
