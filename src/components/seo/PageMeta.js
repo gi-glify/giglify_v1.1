@@ -15,6 +15,9 @@ const pages = {
     "/dashboard": { title: "Dashboard | Giglify", description: "View your Giglify earnings, progress, and available tasks.", private: true },
     "/tasks": { title: "Available tasks | Giglify", description: "Browse available Giglify microtasks and start earning.", private: true },
     "/task-tracking": { title: "My task progress | Giglify", description: "Track your Giglify tasks from started to completed.", private: true },
+    "/verify": { title: "Verify payout account | Giglify", description: "Verify your payout account before requesting withdrawals.", private: true },
+    "/deposit": { title: "Packages and verification | Giglify", description: "Manage Giglify packages and verify your payout account.", private: true },
+    "/admin/payments": { title: "Payment operations | Giglify", description: "Review Giglify payments, requester access, and payout operations.", private: true },
     "/profile": { title: "Your profile | Giglify", description: "Manage your Giglify profile and verification information.", private: true },
     "/financials": { title: "Wallet and payouts | Giglify", description: "Review your Giglify balance and payout activity.", private: true },
     "/notifications": { title: "Notifications | Giglify", description: "Review your latest Giglify notifications.", private: true },
@@ -26,7 +29,8 @@ const pages = {
 export default function PageMeta() {
     const { pathname } = useLocation();
     useEffect(() => {
-        const page = pages[pathname] || (pathname.startsWith("/tasks/") ? { title: "Task | Giglify", description: "Complete a Giglify task.", private: true } : { title: "Page not found | Giglify", description: "The requested Giglify page could not be found." });
+        const normalizedPathname = pathname !== "/" ? pathname.replace(/\/+$/, "") : "/";
+        const page = pages[normalizedPathname] || (normalizedPathname.startsWith("/tasks/") ? { title: "Task | Giglify", description: "Complete a Giglify task.", private: true } : { title: "Page not found | Giglify", description: "The requested Giglify page could not be found." });
         document.title = page.title;
         const setMeta = (selector, attribute, content) => {
             let element = document.head.querySelector(selector);
@@ -39,13 +43,13 @@ export default function PageMeta() {
         setMeta('meta[name="description"]', "name", page.description);
         setMeta('meta[property="og:title"]', "property", page.title);
         setMeta('meta[property="og:description"]', "property", page.description);
-        setMeta('meta[property="og:url"]', "property", `${SITE_URL}${pathname}`);
+        setMeta('meta[property="og:url"]', "property", `${SITE_URL}${normalizedPathname}`);
         setMeta('meta[property="og:image"]', "property", DEFAULT_IMAGE);
         setMeta('meta[name="twitter:title"]', "name", page.title);
         setMeta('meta[name="twitter:description"]', "name", page.description);
         setMeta('meta[name="twitter:image"]', "name", DEFAULT_IMAGE);
         setMeta('meta[name="robots"]', "name", page.private ? "noindex, nofollow" : "index, follow");
-        trackPageView(pathname);
+        trackPageView(normalizedPathname);
     }, [pathname]);
     return null;
 }

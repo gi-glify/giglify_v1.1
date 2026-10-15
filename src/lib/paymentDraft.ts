@@ -34,9 +34,12 @@ function key(flow: PaymentDraftFlow) {
 function sanitize(value: unknown, flow: PaymentDraftFlow): PaymentDraft | null {
   if (!value || typeof value !== 'object') return null;
   const input = value as Record<string, unknown>;
-  const step = typeof input.step === 'string' && STEPS.has(input.step as PaymentDraftStep)
+  const requestedStep = typeof input.step === 'string' && STEPS.has(input.step as PaymentDraftStep)
     ? input.step as PaymentDraftStep
     : 'details';
+  // A result step has no resumable payment ID in the safe draft. Reopen the
+  // provider step instead of restoring an empty, non-actionable final screen.
+  const step = requestedStep === 'result' ? 'provider' : requestedStep;
   const draft: PaymentDraft = { flow, step };
   if (typeof input.tier === 'string' && (input.tier === 'pro' || input.tier === 'elite' || input.tier === 'max')) draft.tier = input.tier;
   if (typeof input.provider === 'string' && ['mpesa', 'paystack', 'paypal'].includes(input.provider)) draft.provider = input.provider as PaymentProviderId;

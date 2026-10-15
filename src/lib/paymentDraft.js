@@ -15,9 +15,10 @@ function sanitize(value, flow) {
     if (!value || typeof value !== 'object')
         return null;
     const input = value;
-    const step = typeof input.step === 'string' && STEPS.has(input.step)
+    const requestedStep = typeof input.step === 'string' && STEPS.has(input.step)
         ? input.step
         : 'details';
+    const step = requestedStep === 'result' ? 'provider' : requestedStep;
     const draft = { flow, step };
     if (typeof input.tier === 'string' && (input.tier === 'pro' || input.tier === 'elite'))
         draft.tier = input.tier;

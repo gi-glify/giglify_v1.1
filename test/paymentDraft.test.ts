@@ -36,6 +36,12 @@ test("drops malformed drafts and supports clearing a flow", () => {
   assert.equal(readPaymentDraft("verification", storage), null);
 });
 
+test("does not restore an empty result step without a resumable payment", () => {
+  const storage = createStorage();
+  writePaymentDraft("verification", { flow: "verification", step: "result" }, storage);
+  assert.equal(readPaymentDraft("verification", storage)?.step, "provider");
+});
+
 test("parses explicit payment entry intent and defaults safely", () => {
   assert.equal(parsePaymentIntent("?view=packages", undefined), "packages");
   assert.equal(parsePaymentIntent("?view=verification", undefined), "verification");
