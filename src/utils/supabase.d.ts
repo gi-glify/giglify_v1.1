@@ -1,5 +1,10 @@
 import type { SocialProviderId } from './socialAuth';
 export declare const supabase: import("@supabase/supabase-js").SupabaseClient<any, "public", "public", any, any>;
+/** Load the account fields that are not stored in the Auth user object. */
+export declare function fetchAccountState(userId: string): Promise<{
+    profile: any;
+    balance: number;
+}>;
 export declare const signUpWithEmail: (email: string, password: string, firstName: string, lastName: string) => Promise<{
     data: {
         user: import("@supabase/auth-js").User | null;

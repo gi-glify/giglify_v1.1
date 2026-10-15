@@ -9,6 +9,11 @@ export type LandingReview = {
     role: string;
     detail: string;
 };
+export type LandingFaq = {
+    question: string;
+    answer: string;
+};
 export declare const LANDING_PARTNERS: LandingPartner[];
 export declare const LANDING_REVIEWS: LandingReview[];
+export declare const LANDING_FAQS: LandingFaq[];
 //# sourceMappingURL=landingTrustContent.d.ts.map

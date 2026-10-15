@@ -8,6 +8,7 @@ export type TransactionRow = {
     amount: number | string;
     currency: string;
     status: string;
+    package_tier?: string | null;
     user_message?: string | null;
     created_at: string;
 };

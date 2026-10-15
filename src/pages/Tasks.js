@@ -1,11 +1,13 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ArrowRight, Clock3, Laptop, Smartphone, Globe2 } from 'lucide-react';
+import { Search, ArrowRight, Bookmark, BookmarkCheck, Clock3, Laptop, Smartphone, Globe2 } from 'lucide-react';
 import { TaskListSkeleton } from '../components/ui/Skeleton';
 import { useAuthStore } from '../store/authStore';
 import { getProfileCompletion, PROFILE_TASK_LIMIT_THRESHOLD, DAILY_TASK_LIMIT_BELOW_THRESHOLD } from '../utils/profileCompletion';
 import { fetchTasks } from '../lib/taskQuestionsApi';
+import { fetchSavedTaskIds, saveTask, unsaveTask } from '../lib/savedTasks';
+import { fetchPackageVisibility } from '../lib/paymentsApi';
 const DIFFICULTIES = ['easy', 'medium', 'hard', 'expert'];
 const QUESTION_TYPES = [
     { value: 'mcq', label: 'MCQ' },
@@ -42,6 +44,10 @@ export default function TasksPage() {
     const [questionType, setQuestionType] = useState(new Set());
     const [device, setDevice] = useState(new Set());
     const [payBand, setPayBand] = useState(new Set());
+    const [savedTaskIds, setSavedTaskIds] = useState(new Set());
+    const [savedOnly, setSavedOnly] = useState(false);
+    const [savingTaskId, setSavingTaskId] = useState(null);
+    const [packageVisibility, setPackageVisibility] = useState(null);
     useEffect(() => {
         let cancelled = false;
         fetchTasks().then(({ tasks: fetchedTasks, error: fetchError }) => {
@@ -53,8 +59,42 @@ export default function TasksPage() {
         });
         return () => { cancelled = true; };
     }, []);
+    useEffect(() => {
+        if (!user?.id)
+            return;
+        let cancelled = false;
+        void fetchSavedTaskIds(user.id).then((ids) => {
+            if (!cancelled)
+                setSavedTaskIds(ids);
+        }).catch(() => {
+            if (!cancelled)
+                setSavedTaskIds(new Set());
+        });
+        return () => { cancelled = true; };
+    }, [user?.id]);
+    useEffect(() => {
+        if (!user?.id)
+            return;
+        void fetchPackageVisibility(user.id).then(setPackageVisibility).catch(() => setPackageVisibility(null));
+    }, [user?.id]);
     const completion = getProfileCompletion(user);
     const gated = completion < PROFILE_TASK_LIMIT_THRESHOLD;
+    const tierRank = { free: 0, pro: 1, elite: 2, max: 3 };
+    const canAccessTask = (task) => {
+        if (gated || !packageVisibility)
+            return false;
+        if ((tierRank[packageVisibility.tier] ?? -1) < (tierRank[task.minimumTier || 'free'] ?? 0))
+            return false;
+        if (packageVisibility.maxTaskRewardUsd !== null && task.reward > packageVisibility.maxTaskRewardUsd)
+            return false;
+        if (packageVisibility.tasksRemaining !== null && packageVisibility.tasksRemaining <= 0)
+            return false;
+        if (packageVisibility.dailyTasksAllowed !== null && packageVisibility.tasksUsedToday >= packageVisibility.dailyTasksAllowed)
+            return false;
+        if (packageVisibility.weeklyTasksAllowed !== null && packageVisibility.tasksUsedThisWeek >= packageVisibility.weeklyTasksAllowed)
+            return false;
+        return true;
+    };
     const toggle = (set, value, setter) => {
         const next = new Set(set);
         next.has(value) ? next.delete(value) : next.add(value);
@@ -67,11 +107,47 @@ export default function TasksPage() {
         setQuestionType(new Set());
         setDevice(new Set());
         setPayBand(new Set());
+        setSavedOnly(false);
     };
-    const hasFilters = Boolean(search.trim()) || category.size > 0 || questionType.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0;
+    const hasFilters = Boolean(search.trim()) || category.size > 0 || questionType.size > 0 || difficulty.size > 0 || device.size > 0 || payBand.size > 0 || savedOnly;
+    async function toggleSavedTask(taskId) {
+        if (!user?.id || savingTaskId)
+            return;
+        const wasSaved = savedTaskIds.has(taskId);
+        setSavingTaskId(taskId);
+        setSavedTaskIds((current) => {
+            const next = new Set(current);
+            if (wasSaved)
+                next.delete(taskId);
+            else
+                next.add(taskId);
+            return next;
+        });
+        try {
+            if (wasSaved)
+                await unsaveTask(user.id, taskId);
+            else
+                await saveTask(user.id, taskId);
+        }
+        catch {
+            setSavedTaskIds((current) => {
+                const next = new Set(current);
+                if (wasSaved)
+                    next.add(taskId);
+                else
+                    next.delete(taskId);
+                return next;
+            });
+        }
+        finally {
+            setSavingTaskId(null);
+        }
+    }
     const filtered = useMemo(() => {
         return tasks.filter((task) => {
             const q = search.trim().toLowerCase();
+            if (savedOnly && !savedTaskIds.has(task.id))
+                return false;
             if (q && !task.title.toLowerCase().includes(q) && !task.description.toLowerCase().includes(q))
                 return false;
             const normalizedCategory = task.category.toLowerCase().replace(/[_\s]+/g, '-');
@@ -92,10 +168,10 @@ export default function TasksPage() {
             }
             return true;
         });
-    }, [tasks, search, category, questionType, difficulty, device, payBand]);
+    }, [tasks, search, category, questionType, difficulty, device, payBand, savedOnly, savedTaskIds]);
     return (_jsx("div", { className: "min-h-screen", style: { background: 'var(--bg)', color: 'var(--text)' }, children: _jsxs("main", { className: "container py-8", children: [_jsx("h1", { className: "font-display text-2xl mb-1", "data-aos": "fade-down", children: "Available Tasks" }), _jsxs("p", { className: "text-sm mb-6", style: { color: 'var(--text-muted)' }, children: [tasks.length, " task", tasks.length === 1 ? '' : 's', " available"] }), gated && (_jsxs("div", { className: "alert alert-info text-sm flex flex-wrap items-center justify-between gap-2", "data-aos": "fade-in", children: [_jsxs("span", { children: ["Your profile is ", completion, "% complete. Below ", PROFILE_TASK_LIMIT_THRESHOLD, "%, you're limited to", ' ', DAILY_TASK_LIMIT_BELOW_THRESHOLD, " task", DAILY_TASK_LIMIT_BELOW_THRESHOLD === 1 ? '' : 's', "/day."] }), _jsx(Link, { to: "/profile", className: "btn-secondary text-xs px-3 py-1.5 whitespace-nowrap", children: "Complete profile" })] })), _jsxs("div", { className: "relative mb-4", "data-aos": "fade-up", children: [_jsx(Search, { size: 18, className: "absolute left-3 top-1/2 -translate-y-1/2", style: { color: 'var(--text-muted)' } }), _jsx("input", { value: search, onChange: (e) => setSearch(e.target.value), placeholder: "Search tasks by title or description\u2026", className: "input-field pl-10" })] }), _jsxs("div", { className: "flex flex-wrap items-end gap-4 mb-6", "data-aos": "fade-up", "data-aos-delay": "60", children: [_jsx("button", { type: "button", onClick: clearFilters, disabled: !hasFilters, className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${!hasFilters
                                 ? 'bg-brand-600 text-white border-brand-600'
-                                : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'} disabled:cursor-default disabled:opacity-100`, children: "All tasks" }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Category" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: CATEGORIES.map((item) => (_jsx("button", { onClick: () => toggle(category, item.value, setCategory), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${category.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: item.label }, item.value))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Question type" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: QUESTION_TYPES.map((item) => (_jsx("button", { type: "button", onClick: () => toggle(questionType, item.value, setQuestionType), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${questionType.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: item.label }, item.value))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Difficulty" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: DIFFICULTIES.map((d) => (_jsx("button", { onClick: () => toggle(difficulty, d, setDifficulty), className: `text-xs px-3 py-1.5 rounded-full border font-semibold capitalize transition-colors ${difficulty.has(d) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: d }, d))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Pay" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: PAY_BANDS.map((b) => (_jsx("button", { onClick: () => toggle(payBand, b.label, setPayBand), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${payBand.has(b.label) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: b.label }, b.label))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Device" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: DEVICES.map((d) => (_jsxs("button", { onClick: () => {
+                                : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'} disabled:cursor-default disabled:opacity-100`, children: "All tasks" }), _jsxs("button", { type: "button", onClick: () => setSavedOnly((current) => !current), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors flex items-center gap-1.5 ${savedOnly ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: [_jsx(Bookmark, { size: 13 }), " Saved (", savedTaskIds.size, ")"] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Category" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: CATEGORIES.map((item) => (_jsx("button", { onClick: () => toggle(category, item.value, setCategory), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${category.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: item.label }, item.value))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Question type" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: QUESTION_TYPES.map((item) => (_jsx("button", { type: "button", onClick: () => toggle(questionType, item.value, setQuestionType), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${questionType.has(item.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: item.label }, item.value))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Difficulty" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: DIFFICULTIES.map((d) => (_jsx("button", { onClick: () => toggle(difficulty, d, setDifficulty), className: `text-xs px-3 py-1.5 rounded-full border font-semibold capitalize transition-colors ${difficulty.has(d) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: d }, d))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Pay" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: PAY_BANDS.map((b) => (_jsx("button", { onClick: () => toggle(payBand, b.label, setPayBand), className: `text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors ${payBand.has(b.label) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: b.label }, b.label))) })] }), _jsxs("div", { children: [_jsx("p", { className: "text-xs font-semibold mb-1.5", style: { color: 'var(--text-muted)' }, children: "Device" }), _jsx("div", { className: "flex gap-1.5 flex-wrap", children: DEVICES.map((d) => (_jsxs("button", { onClick: () => {
                                             if (d.value === 'any') {
                                                 setDevice(device.has('any') ? new Set() : new Set(['any']));
                                                 return;
@@ -104,6 +180,6 @@ export default function TasksPage() {
                                             next.delete('any');
                                             next.has(d.value) ? next.delete(d.value) : next.add(d.value);
                                             setDevice(next);
-                                        }, className: `text-xs px-3 py-1.5 rounded-full border font-semibold flex items-center gap-1 transition-colors ${device.has(d.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: [_jsx(d.icon, { size: 12 }), " ", d.label] }, d.value))) })] })] }), loading ? (_jsx(TaskListSkeleton, { count: 4 })) : error ? (_jsxs("div", { className: "alert alert-error text-sm", children: ["Unable to load tasks: ", error] })) : filtered.length === 0 ? (_jsx("div", { className: "card text-center py-10", style: { color: 'var(--text-muted)' }, children: tasks.length === 0 ? 'No tasks are available right now.' : 'No tasks match your filters. Try clearing a few.' })) : (_jsx("div", { className: "grid gap-4", children: filtered.map((task, index) => (_jsx("div", { className: "card hover:shadow-md cursor-pointer transition-all transform hover:scale-[1.01]", "data-aos": "fade-up", "data-aos-delay": Math.min(index * 60, 300), children: _jsxs("div", { className: "flex justify-between items-start gap-4", children: [_jsxs("div", { className: "flex-1 min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 mb-2 flex-wrap", children: [_jsx("h3", { className: "font-semibold", children: task.title }), _jsx("span", { className: `badge ${task.category === 'academic' || task.category === 'research' ? 'badge-blue' : 'badge-purple'}`, children: task.category.replace('-', ' ') }), _jsx("span", { className: "badge badge-yellow", children: task.taskType?.toUpperCase() || 'SAQ' }), _jsx("span", { className: `badge ${task.difficulty === 'easy' ? 'badge-green' : task.difficulty === 'medium' ? 'badge-yellow' : 'badge-red'}`, children: task.difficulty }), task.device !== 'any' && (_jsxs("span", { className: "badge badge-blue flex items-center gap-1", children: [task.device === 'desktop' ? _jsx(Laptop, { size: 11 }) : _jsx(Smartphone, { size: 11 }), " ", task.device] }))] }), _jsx("p", { className: "text-sm mb-2", style: { color: 'var(--text-muted)' }, children: task.description }), _jsxs("div", { className: "text-xs inline-flex items-center gap-1", style: { color: 'var(--text-muted)' }, children: [_jsx(Clock3, { size: 12, "aria-hidden": "true" }), task.estimatedTime, " min"] })] }), _jsxs("div", { className: "text-right shrink-0", children: [_jsxs("p", { className: "font-display text-2xl font-bold text-green-600 dark:text-green-400", children: ["+$", task.reward] }), task.taskCode && !gated ? (_jsxs(Link, { to: `/tasks/${encodeURIComponent(task.taskCode)}`, className: "mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto", children: ["Start ", _jsx(ArrowRight, { size: 14 })] })) : (_jsxs("button", { disabled: true, className: "mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto disabled:opacity-50 disabled:cursor-not-allowed", children: ["Start ", _jsx(ArrowRight, { size: 14 })] }))] })] }) }, task.id))) }))] }) }));
+                                        }, className: `text-xs px-3 py-1.5 rounded-full border font-semibold flex items-center gap-1 transition-colors ${device.has(d.value) ? 'bg-brand-600 text-white border-brand-600' : 'border-[var(--border)] hover:bg-black/5 dark:hover:bg-white/5'}`, children: [_jsx(d.icon, { size: 12 }), " ", d.label] }, d.value))) })] })] }), loading ? (_jsx(TaskListSkeleton, { count: 4 })) : error ? (_jsxs("div", { className: "alert alert-error text-sm", children: ["Unable to load tasks: ", error] })) : filtered.length === 0 ? (_jsx("div", { className: "card text-center py-10", style: { color: 'var(--text-muted)' }, children: tasks.length === 0 ? 'No tasks are available right now.' : 'No tasks match your filters. Try clearing a few.' })) : (_jsx("div", { className: "grid gap-4", children: filtered.map((task, index) => (_jsx("div", { className: "card hover:shadow-md cursor-pointer transition-all transform hover:scale-[1.01]", "data-aos": "fade-up", "data-aos-delay": Math.min(index * 60, 300), children: _jsxs("div", { className: "flex justify-between items-start gap-4", children: [_jsxs("div", { className: "flex-1 min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 mb-2 flex-wrap", children: [_jsx("h3", { className: "font-semibold", children: task.title }), _jsx("span", { className: `badge ${task.category === 'academic' || task.category === 'research' ? 'badge-blue' : 'badge-purple'}`, children: task.category.replace('-', ' ') }), _jsx("span", { className: "badge badge-yellow", children: task.taskType?.toUpperCase() || 'SAQ' }), _jsx("span", { className: `badge ${task.difficulty === 'easy' ? 'badge-green' : task.difficulty === 'medium' ? 'badge-yellow' : 'badge-red'}`, children: task.difficulty }), task.device !== 'any' && (_jsxs("span", { className: "badge badge-blue flex items-center gap-1", children: [task.device === 'desktop' ? _jsx(Laptop, { size: 11 }) : _jsx(Smartphone, { size: 11 }), " ", task.device] }))] }), _jsx("p", { className: "text-sm mb-2", style: { color: 'var(--text-muted)' }, children: task.description }), _jsxs("div", { className: "text-xs inline-flex items-center gap-1", style: { color: 'var(--text-muted)' }, children: [_jsx(Clock3, { size: 12, "aria-hidden": "true" }), task.estimatedTime, " min"] })] }), _jsxs("div", { className: "text-right shrink-0", children: [_jsxs("button", { type: "button", "aria-label": savedTaskIds.has(task.id) ? `Remove ${task.title} from saved tasks` : `Save ${task.title}`, title: savedTaskIds.has(task.id) ? 'Remove from saved tasks' : 'Save task', disabled: !user?.id || savingTaskId === task.id, onClick: () => void toggleSavedTask(task.id), className: "mb-2 ml-auto flex items-center gap-1 text-xs font-semibold text-brand-700 dark:text-brand-300 disabled:opacity-50", children: [savedTaskIds.has(task.id) ? _jsx(BookmarkCheck, { size: 16 }) : _jsx(Bookmark, { size: 16 }), savedTaskIds.has(task.id) ? 'Saved' : 'Save'] }), _jsxs("p", { className: "font-display text-2xl font-bold text-green-600 dark:text-green-400", children: ["+$", task.reward] }), task.taskCode && canAccessTask(task) ? (_jsxs(Link, { to: `/tasks/${encodeURIComponent(task.taskCode)}`, className: "mt-2 btn-primary text-sm px-3 py-1 flex items-center gap-1 ml-auto", children: ["Start ", _jsx(ArrowRight, { size: 14 })] })) : (_jsxs(Link, { to: "/deposit#packages", className: "mt-2 btn-secondary text-sm px-3 py-1 flex items-center gap-1 ml-auto", children: ["Unlock ", _jsx(ArrowRight, { size: 14 })] }))] })] }) }, task.id))) }))] }) }));
 }
 //# sourceMappingURL=Tasks.js.map

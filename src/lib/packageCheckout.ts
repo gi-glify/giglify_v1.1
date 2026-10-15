@@ -7,6 +7,7 @@ export function getPackageDisplay(tier: PaidPackageTier) {
   return {
     name: tier === "pro" ? "Pro" : tier === "elite" ? "Elite" : "Max",
     priceUsd: plan.priceUsd,
+    offerPriceUsd: plan.offerPriceUsd,
     validityLabel: `${plan.validityMonths} month`,
   };
 }

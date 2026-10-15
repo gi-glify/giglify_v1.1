@@ -1,17 +1,8 @@
-const TERMINAL_STATUSES = new Set(['success', 'completed', 'verified', 'held', 'failed', 'cancelled', 'expired', 'refunded']);
+const TERMINAL_STATUSES = new Set(['success', 'completed', 'verified', 'held', 'failed', 'cancelled', 'expired', 'refunded', 'rejected']);
 export function isPaymentProgressTerminal(status) {
     return TERMINAL_STATUSES.has(status || '');
 }
 export function getPaymentProgress(status, kind, provider) {
-    if (status === 'failed' || status === 'expired') {
-        return {
-            phase: 'failed',
-            label: 'Payment was not completed',
-            description: 'The provider did not confirm this payment. You can start a new attempt when you are ready.',
-            terminal: true,
-            canRetry: true,
-        };
-    }
     if (status === 'rejected' || status === 'refunded') {
         return {
             phase: 'failed',
@@ -19,6 +10,15 @@ export function getPaymentProgress(status, kind, provider) {
             description: kind === 'verification'
                 ? 'This verification attempt is closed. Review your payment details and start a new attempt.'
                 : 'This payment attempt is closed. Start a new attempt when you are ready.',
+            terminal: true,
+            canRetry: true,
+        };
+    }
+    if (status === 'failed' || status === 'expired') {
+        return {
+            phase: 'failed',
+            label: 'Payment was not completed',
+            description: 'The provider did not confirm this payment. You can start a new attempt when you are ready.',
             terminal: true,
             canRetry: true,
         };
@@ -45,7 +45,7 @@ export function getPaymentProgress(status, kind, provider) {
         return {
             phase: 'complete',
             label: kind === 'package' ? 'Package payment confirmed' : 'Payout account verified',
-            description: kind === 'package' ? 'Your package access will update automatically.' : 'Your payout account is ready for withdrawals.',
+            description: kind === 'package' ? 'Your package entitlement is active. Open your dashboard to see the tier, limits, and renewal date.' : 'Your payout account is ready for withdrawals.',
             terminal: true,
             canRetry: false,
         };

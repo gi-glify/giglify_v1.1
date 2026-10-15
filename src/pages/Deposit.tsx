@@ -24,6 +24,10 @@ type TierDefinition = {
   name: string;
   tier: 'free' | 'pro' | 'elite' | 'max';
   price: number;
+  offerPrice: number | null;
+  offerAvailable: boolean;
+  offerDiscount: number;
+  originalPriceKes: number | null;
   priceKes: number | null;
   validityMonths: number | null;
   tasksAllowed: number | null;
@@ -41,6 +45,10 @@ const TIERS: TierDefinition[] = [
     name: 'Free',
     tier: 'free' as const,
     price: 0,
+    offerPrice: null,
+    offerAvailable: false,
+    offerDiscount: 0,
+    originalPriceKes: null,
     priceKes: null,
     validityMonths: null,
     tasksAllowed: 4,
@@ -55,7 +63,11 @@ const TIERS: TierDefinition[] = [
     name: 'Pro',
     tier: 'pro' as const,
     price: 19,
-    priceKes: null,
+    offerPrice: 3,
+    offerAvailable: true,
+    offerDiscount: 16,
+    originalPriceKes: 2489,
+    priceKes: 393,
     validityMonths: 1,
     tasksAllowed: 30,
     dailyTasksAllowed: 1,
@@ -70,7 +82,11 @@ const TIERS: TierDefinition[] = [
     name: 'Elite',
     tier: 'elite' as const,
     price: 49,
-    priceKes: null,
+    offerPrice: 7,
+    offerAvailable: true,
+    offerDiscount: 42,
+    originalPriceKes: 6419,
+    priceKes: 917,
     validityMonths: 1,
     tasksAllowed: 90,
     dailyTasksAllowed: 3,
@@ -84,7 +100,11 @@ const TIERS: TierDefinition[] = [
     name: 'Max',
     tier: 'max' as const,
     price: 99,
-    priceKes: null,
+    offerPrice: 10,
+    offerAvailable: true,
+    offerDiscount: 89,
+    originalPriceKes: 12969,
+    priceKes: 1310,
     validityMonths: 1,
     tasksAllowed: null,
     dailyTasksAllowed: null,
@@ -101,6 +121,10 @@ function tierBenefits(tier: TierDefinition) {
   if (tier.tier === 'pro') return ['30 tasks/month', '1 task per day', 'Tasks up to $9.90', '1-month access'];
   if (tier.tier === 'elite') return ['90 tasks/month', '3 tasks per day', 'Tasks up to $20', '1-month access'];
   return ['All tasks', 'Unlimited volume', 'No reward cap', '1-month access'];
+}
+
+function tierPayablePrice(tier: TierDefinition): number {
+  return tier.offerAvailable && tier.offerPrice !== null ? tier.offerPrice : tier.price;
 }
 
 export default function DepositPage() {
@@ -143,7 +167,7 @@ export default function DepositPage() {
       if (cancelled) return;
       setTiers((current) => current.map((tier) => {
         const plan = catalog.plans.find((item) => item.tier === tier.tier);
-        return plan ? { ...tier, price: plan.priceUsd, priceKes: plan.priceKes, validityMonths: plan.validityMonths, tasksAllowed: plan.tasksAllowed, dailyTasksAllowed: plan.dailyTasksAllowed, weeklyTasksAllowed: plan.weeklyTasksAllowed, maxTaskRewardUsd: plan.maxTaskRewardUsd, highPayingEligible: plan.highPayingEligible } : tier;
+        return plan ? { ...tier, price: plan.priceUsd, offerPrice: plan.offerPriceUsd, offerAvailable: plan.offerAvailable, offerDiscount: plan.offerDiscountUsd, originalPriceKes: plan.originalPriceKes, priceKes: plan.priceKes, validityMonths: plan.validityMonths, tasksAllowed: plan.tasksAllowed, dailyTasksAllowed: plan.dailyTasksAllowed, weeklyTasksAllowed: plan.weeklyTasksAllowed, maxTaskRewardUsd: plan.maxTaskRewardUsd, highPayingEligible: plan.highPayingEligible } : tier;
       }));
       setVerificationAmounts(catalog.verification);
       setCatalogLoading(false);
@@ -275,16 +299,20 @@ export default function DepositPage() {
     };
   }, [verificationPaymentId, verificationPaymentStatus, user]);
 
-  function handleTierSelect(tierName: string, price: number) {
+  function handleTierSelect(tierName: string) {
     setSelectedTier(tierName);
     setPackageOpen(true);
     setPackageStep('details');
-    if (price === 0) {
+    const selected = tiers.find((tier) => tier.name === tierName);
+    const payablePrice = selected ? tierPayablePrice(selected) : 0;
+    const priceLabel = selected?.offerAvailable && selected.offerPrice !== null
+      ? `$${payablePrice} one-time offer (regularly $${selected.price})`
+      : `$${payablePrice}`;
+    if (payablePrice === 0) {
       setPackageMessage('You are already on the Free plan. Choose a paid tier to begin an upgrade flow.');
       return;
     }
-    const selected = tiers.find((tier) => tier.name === tierName);
-      setPackageMessage(`${tierName} selected at $${price} for ${selected?.validityMonths ?? 1} month. Choose a provider below to continue.`);
+      setPackageMessage(`${tierName} selected at ${priceLabel} for ${selected?.validityMonths ?? 1} month. Choose a provider below to continue.`);
     window.setTimeout(() => document.getElementById('package-payment-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   }
 
@@ -322,7 +350,7 @@ export default function DepositPage() {
     const selected = tiers.find((tier) => tier.name === selectedTier);
     const amount = packageProvider === 'mpesa'
       ? formatCurrency(selected?.priceKes || 0, 'KES')
-      : formatCurrency(selected?.price || 0, 'USD');
+      : formatCurrency(selected ? tierPayablePrice(selected) : 0, 'USD');
     const receipt = [
       'Giglify payment receipt',
       `Date: ${new Date().toLocaleString()}`,
@@ -493,9 +521,9 @@ export default function DepositPage() {
                   </div>
                 )}
                 <h3 className="font-display text-xl mb-2">{tier.name}</h3>
-                <p className="font-display text-3xl font-bold mb-1">${tier.price}</p>
-                {tier.price > 0 && <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>for {tier.validityMonths ?? 3} months</p>}
-                {tier.price > 0 && tier.priceKes !== null && <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{formatCurrency(tier.priceKes, 'KES')} with M-Pesa</p>}
+                {tier.offerAvailable && tier.offerPrice !== null ? <div className="mb-1"><p className="font-display text-3xl font-bold text-brand-700 dark:text-brand-300">${tier.offerPrice}</p><p className="text-sm line-through" style={{ color: 'var(--text-muted)' }}>Regularly ${tier.price}</p><p className="text-xs font-semibold text-brand-700 dark:text-brand-300">Limited one-time offer · Save ${tier.offerDiscount}</p></div> : <p className="font-display text-3xl font-bold mb-1">${tier.price}</p>}
+                {tier.price > 0 && <p className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>for {tier.validityMonths ?? 1} month{(tier.validityMonths ?? 1) === 1 ? '' : 's'}</p>}
+                {tier.price > 0 && tier.priceKes !== null && <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>{tier.offerAvailable && tier.originalPriceKes !== null && <span className="line-through mr-1">{formatCurrency(tier.originalPriceKes, 'KES')}</span>}{formatCurrency(tier.priceKes, 'KES')} with M-Pesa</p>}
                 {tier.price === 0 && <div className="mb-4" />}
                 <ul className="space-y-2 mb-6">
                   {tierBenefits(tier).map((benefit) => (
@@ -504,7 +532,7 @@ export default function DepositPage() {
                     </li>
                   ))}
                 </ul>
-                <button onClick={() => handleTierSelect(tier.name, tier.price)} className={`w-full btn-primary py-2 rounded-lg font-semibold transition-all ${
+                <button onClick={() => handleTierSelect(tier.name)} className={`w-full btn-primary py-2 rounded-lg font-semibold transition-all ${
                   tier.recommended ? 'bg-navy-700 text-white hover:bg-navy-800' : ''
                 }`}>
                   {tier.price === 0 ? 'Current Plan' : selectedTier === tier.name ? 'Selected' : 'Upgrade'}
@@ -546,7 +574,7 @@ export default function DepositPage() {
             {packageStep === 'details' && <div className="space-y-4">
               <h3 className="font-display text-xl">Confirm your package</h3>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Review the selected package before choosing how to pay.</p>
-              <div className="rounded-xl border border-[var(--border)] p-4"><p className="font-semibold">{selectedTier}</p><p className="text-2xl font-bold mt-1">${tiers.find((tier) => tier.name === selectedTier)?.price}</p><p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 1}-month access</p>{tiers.find((tier) => tier.name === selectedTier)?.priceKes !== null && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES')} with M-Pesa</p>}</div>
+              <div className="rounded-xl border border-[var(--border)] p-4"><p className="font-semibold">{selectedTier}</p>{(() => { const selected = tiers.find((tier) => tier.name === selectedTier); return selected?.offerAvailable && selected.offerPrice !== null ? <><p className="text-2xl font-bold mt-1">${selected.offerPrice}</p><p className="text-sm line-through" style={{ color: 'var(--text-muted)' }}>Regularly ${selected.price} · Save ${selected.offerDiscount}</p></> : <p className="text-2xl font-bold mt-1">${selected?.price}</p>; })()}<p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 1}-month access</p>{tiers.find((tier) => tier.name === selectedTier)?.priceKes !== null && <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>{formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES')} with M-Pesa</p>}</div>
             </div>}
             {packageStep === 'provider' && <div className="space-y-5">
               <div>
@@ -566,12 +594,12 @@ export default function DepositPage() {
               <dl className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] px-4">
                 <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Package</dt><dd className="font-semibold">{selectedTier} · {tiers.find((tier) => tier.name === selectedTier)?.validityMonths ?? 1} month</dd></div>
                 <div className="flex justify-between gap-4 py-3"><dt className="text-[var(--text-muted)]">Payment account</dt><dd className="min-w-0 break-all text-right">{packageProvider === 'mpesa' ? packagePhone : packageEmail}</dd></div>
-                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-right text-2xl font-bold">{packageProvider === 'mpesa' ? formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES') : formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.price || 0, 'USD')}</dd></div>
+                <div className="flex items-center justify-between gap-4 py-4"><dt className="font-semibold">Total due</dt><dd className="text-right text-2xl font-bold">{packageProvider === 'mpesa' ? formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES') : formatCurrency(tierPayablePrice(tiers.find((tier) => tier.name === selectedTier) || TIERS[0]), 'USD')}</dd></div>
               </dl>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{packageProvider === 'mpesa' ? 'Confirm the payment prompt on your phone, then return here to see your status.' : 'Continue to your payment provider to complete checkout, then return here to see your status.'}</p>
               {packageCheckoutUrl && <a className="btn-secondary block text-center py-3 rounded-lg font-semibold" href={packageCheckoutUrl} target="_blank" rel="noreferrer">{getCheckoutLabel(packageProvider)}</a>}
               {packageError && <div className="alert alert-error">{packageError}</div>}
-              <button type="submit" disabled={packageSubmitting || catalogLoading || Boolean(catalogError) || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">{packageSubmitting ? 'Starting package payment...' : `Pay ${packageProvider === 'mpesa' ? formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES') : formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.price || 0, 'USD')}`}</button>
+              <button type="submit" disabled={packageSubmitting || catalogLoading || Boolean(catalogError) || selectedTier === 'Free'} className="w-full btn-primary py-3 rounded-lg font-semibold disabled:opacity-60">{packageSubmitting ? 'Starting package payment...' : `Pay ${packageProvider === 'mpesa' ? formatCurrency(tiers.find((tier) => tier.name === selectedTier)?.priceKes || 0, 'KES') : formatCurrency(tierPayablePrice(tiers.find((tier) => tier.name === selectedTier) || TIERS[0]), 'USD')}`}</button>
             </div>}
             {packageStep === 'result' && <div className="space-y-4">
               {packagePaymentId && packagePaymentStatus && <PaymentProgress kind="package" provider={packageProvider} status={packagePaymentStatus} reference={packageReference} onRetry={resetPackagePayment} />}

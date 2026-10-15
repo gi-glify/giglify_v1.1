@@ -5,12 +5,8 @@ import { notifyAndEmailUser } from "../_shared/user-notifications.ts";
 
 const KES_PER_USD = 131;
 
-function packageAmountKes(tier: string, priceUsd: number): number {
-  const configured = Deno.env.get(`DARAJA_${tier.toUpperCase()}_AMOUNT_KES`)
-    ?? Deno.env.get(`MPESA_${tier.toUpperCase()}_AMOUNT_KES`);
-  const amount = configured ? Number(configured) : priceUsd * KES_PER_USD;
-  if (!Number.isSafeInteger(amount) || amount <= 0) return Math.round(priceUsd * KES_PER_USD);
-  return amount;
+function packageAmountKes(priceUsd: number): number {
+  return Math.round(priceUsd * KES_PER_USD);
 }
 
 Deno.serve(async (req) => {
@@ -22,10 +18,19 @@ Deno.serve(async (req) => {
     const { user, db } = await requireUser(req);
     const { data: plans, error } = await db
       .from("package_tiers")
-      .select("tier, price_usd, validity_months, tasks_allowed, daily_tasks_allowed, weekly_tasks_allowed, max_task_reward_usd, high_paying_eligible")
+      .select("tier, price_usd, offer_price_usd, validity_months, tasks_allowed, daily_tasks_allowed, weekly_tasks_allowed, max_task_reward_usd, high_paying_eligible")
       .eq("is_active", true)
       .order("price_usd", { ascending: true });
     if (error) throw error;
+
+    const { count: completedPackageCount, error: completedPackageError } = await db
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("transaction_type", "package_purchase")
+      .in("status", ["success", "completed"]);
+    if (completedPackageError) throw completedPackageError;
+    const offerAvailable = (completedPackageCount ?? 0) === 0;
 
     const { data: entitlement } = await db.from("package_entitlements")
       .select("tier, renewal_at")
@@ -50,7 +55,11 @@ Deno.serve(async (req) => {
       plans: (plans ?? []).map((plan) => ({
         tier: plan.tier,
         priceUsd: Number(plan.price_usd),
-        priceKes: plan.tier === "free" ? null : packageAmountKes(plan.tier, Number(plan.price_usd)),
+        offerPriceUsd: plan.offer_price_usd === null ? null : Number(plan.offer_price_usd),
+        offerAvailable: offerAvailable && plan.offer_price_usd !== null,
+        offerDiscountUsd: offerAvailable && plan.offer_price_usd !== null ? Number(plan.price_usd) - Number(plan.offer_price_usd) : 0,
+        originalPriceKes: plan.tier === "free" ? null : packageAmountKes(Number(plan.price_usd)),
+        priceKes: plan.tier === "free" ? null : packageAmountKes(offerAvailable && plan.offer_price_usd !== null ? Number(plan.offer_price_usd) : Number(plan.price_usd)),
         validityMonths: plan.validity_months,
         tasksAllowed: plan.tasks_allowed,
         dailyTasksAllowed: plan.daily_tasks_allowed,

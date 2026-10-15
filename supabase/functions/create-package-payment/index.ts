@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const [{ data: profile, error: profileError }, { data: entitlement, error: entitlementError }, { data: plan, error: planError }] = await Promise.all([
       db.from("profiles").select("subscription").eq("id", user.id).maybeSingle(),
       db.from("package_entitlements").select("tier, status, renewal_at").eq("user_id", user.id).eq("status", "active").maybeSingle(),
-      db.from("package_tiers").select("tier, price_usd, validity_months, tasks_allowed, daily_tasks_allowed, weekly_tasks_allowed, max_task_reward_usd, high_paying_eligible").eq("tier", input.tier).eq("is_active", true).single(),
+      db.from("package_tiers").select("tier, price_usd, offer_price_usd, validity_months, tasks_allowed, daily_tasks_allowed, weekly_tasks_allowed, max_task_reward_usd, high_paying_eligible").eq("tier", input.tier).eq("is_active", true).single(),
     ]);
     if (profileError) throw profileError;
     if (entitlementError) throw entitlementError;
@@ -36,6 +36,16 @@ Deno.serve(async (req) => {
       throw new HttpError("Your active paid package cannot be changed until its period ends", 409, "active_package");
     }
 
+    const { count: completedPackageCount, error: completedPackageError } = await db
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("transaction_type", "package_purchase")
+      .in("status", ["success", "completed"]);
+    if (completedPackageError) throw completedPackageError;
+    const offerApplied = (completedPackageCount ?? 0) === 0 && plan.offer_price_usd !== null;
+    const amountUsd = offerApplied ? Number(plan.offer_price_usd) : Number(plan.price_usd);
+
     const now = new Date().toISOString();
     const { data: transaction, error: transactionError } = await db
       .from("transactions")
@@ -45,8 +55,9 @@ Deno.serve(async (req) => {
         user_id: user.id,
         transaction_type: "package_purchase",
         package_tier: plan.tier,
-        amount: plan.price_usd,
+        amount: amountUsd,
         currency: "USD",
+        package_offer_applied: offerApplied,
         provider: input.provider,
         idempotency_key: input.idempotencyKey,
         status: "pending",
@@ -58,7 +69,7 @@ Deno.serve(async (req) => {
       if (transactionError.code === "23505") {
         const { data: existing, error: existingError } = await db
           .from("transactions")
-          .select("id, tuid, package_tier, amount, currency, provider, status, created_at")
+          .select("id, tuid, package_tier, amount, currency, provider, package_offer_applied, status, created_at")
           .eq("user_id", user.id)
           .eq("idempotency_key", input.idempotencyKey)
           .single();
@@ -68,6 +79,7 @@ Deno.serve(async (req) => {
           tuid: existing.tuid,
           tier: existing.package_tier,
           amount: Number(existing.amount),
+          offerApplied: Boolean(existing.package_offer_applied),
           currency: existing.currency,
           provider: existing.provider,
           status: existing.status,
@@ -109,6 +121,8 @@ Deno.serve(async (req) => {
       attemptNumber: attempt.attempt_number,
       tier: transaction.package_tier,
       amount: Number(transaction.amount),
+      originalAmount: Number(plan.price_usd),
+      offerApplied,
       currency: transaction.currency,
       provider: transaction.provider,
       status: transaction.status,

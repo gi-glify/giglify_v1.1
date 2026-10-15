@@ -48,3 +48,9 @@ verify_jwt = false
 
 [functions.resolve-payment-return]
 verify_jwt = false
+
+[functions.resend-inbound-email]
+verify_jwt = false
+
+[functions.admin-email-inbox]
+verify_jwt = true

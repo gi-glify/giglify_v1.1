@@ -8,7 +8,7 @@ import { normalizeMcqAnswer } from '../utils/authFlows';
 export async function fetchTasks() {
     const primary = await supabase
         .from('tasks')
-        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active, task_type')
+        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active, task_type, minimum_tier')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
     if (!primary.error) {
@@ -18,7 +18,7 @@ export async function fetchTasks() {
     // task_type column before falling back to the original task catalog.
     const withoutType = await supabase
         .from('tasks')
-        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active')
+        .select('id, task_code, title, description, category, reward, estimated_time_minutes, difficulty, device, requires_desktop, is_active, minimum_tier')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
     if (!withoutType.error) {

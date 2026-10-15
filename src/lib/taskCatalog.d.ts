@@ -5,6 +5,7 @@ export interface TaskCatalogItem extends Omit<Task, 'category' | 'difficulty'> {
     difficulty: 'easy' | 'medium' | 'hard' | 'expert';
     taskType?: 'mcq' | 'saq';
     device: 'any' | 'mobile' | 'desktop';
+    minimumTier?: 'free' | 'pro' | 'elite' | 'max';
 }
 export interface TaskRow {
     id: string;
@@ -19,6 +20,7 @@ export interface TaskRow {
     requires_desktop: boolean;
     is_active: boolean;
     task_type?: 'mcq' | 'saq';
+    minimum_tier?: 'free' | 'pro' | 'elite' | 'max';
 }
 export type LegacyTaskRow = Omit<TaskRow, 'task_code' | 'field'>;
 export declare function mapTaskRow(row: TaskRow): TaskCatalogItem;

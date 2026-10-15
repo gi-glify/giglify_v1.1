@@ -15,6 +15,9 @@ export function createPackagePayment(input) {
 export function startPackagePayment(input) {
     return invoke('start-package-payment', input);
 }
+export function fetchPackageCatalog() {
+    return invoke('package-catalog');
+}
 export async function fetchPackagePaymentStatus(transactionId) {
     const { data, error } = await supabase
         .from('transactions')
@@ -38,7 +41,7 @@ export async function fetchVerificationPaymentStatus(depositId) {
 export async function fetchPackageVisibility(userId) {
     const { data: entitlement, error: entitlementError } = await supabase
         .from('package_entitlements')
-        .select('id, tier, tasks_allowed, high_paying_eligible, activation_at, renewal_at, usage_period_start')
+        .select('id, tier, tasks_allowed, daily_tasks_allowed, weekly_tasks_allowed, max_task_reward_usd, high_paying_eligible, activation_at, renewal_at, usage_period_start')
         .eq('user_id', userId)
         .eq('status', 'active')
         .order('activation_at', { ascending: false })
@@ -48,15 +51,22 @@ export async function fetchPackageVisibility(userId) {
         throw entitlementError;
     if (!entitlement)
         return null;
-    const { count, error: usageError } = await supabase
+    const usageStart = entitlement.tier === 'free'
+        ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+        : entitlement.usage_period_start;
+    const { data: usageRows, error: usageError } = await supabase
         .from('package_usage_events')
-        .select('id', { count: 'exact', head: true })
+        .select('started_at')
         .eq('user_id', userId)
         .eq('entitlement_id', entitlement.id)
-        .gte('started_at', entitlement.usage_period_start);
+        .gte('started_at', usageStart);
     if (usageError)
         throw usageError;
-    return summarizePackageVisibility(entitlement, count || 0);
+    const usage = usageRows ?? [];
+    const now = Date.now();
+    const tasksUsedToday = usage.filter((row) => now - new Date(row.started_at).getTime() < 24 * 60 * 60 * 1000).length;
+    const tasksUsedThisWeek = usage.filter((row) => now - new Date(row.started_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
+    return summarizePackageVisibility(entitlement, usage.length, tasksUsedToday, tasksUsedThisWeek);
 }
 export function createPayoutRequest(input) {
     return invoke('create-payout-request', input);

@@ -1,5 +1,5 @@
 -- Production billing and worker-access rules.
--- Prices are USD; Daraja amounts are configured separately in KES at 131 KES/USD.
+-- Prices are USD; Daraja package amounts are derived at 131 KES/USD by the payment functions.
 
 alter table public.package_tiers
   add column if not exists daily_tasks_allowed integer,

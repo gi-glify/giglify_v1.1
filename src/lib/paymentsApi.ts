@@ -11,6 +11,8 @@ export type PackagePaymentStart = {
   paymentAttemptId?: string;
   tier: PaidPackageTier;
   amount: number;
+  originalAmount?: number;
+  offerApplied?: boolean;
   currency: string;
   provider: PackagePaymentProvider;
   status: string;
@@ -71,6 +73,10 @@ export type PackageCatalog = {
   plans: Array<{
     tier: 'free' | 'pro' | 'elite' | 'max';
     priceUsd: number;
+    offerPriceUsd: number | null;
+    offerAvailable: boolean;
+    offerDiscountUsd: number;
+    originalPriceKes: number | null;
     priceKes: number | null;
     validityMonths: number | null;
     tasksAllowed: number | null;

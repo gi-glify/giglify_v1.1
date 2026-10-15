@@ -24,7 +24,7 @@ export function mapTransactionRow(row) {
         currency: row.currency === 'KES' ? 'KES' : 'USD',
         status: displayStatus(row.status),
         timestamp: row.created_at,
-        description: row.user_message || row.transaction_type?.split('_').join(' ') || 'Transaction',
+        description: row.user_message || (row.transaction_type === 'package_purchase' && row.package_tier ? `${row.package_tier} package` : row.transaction_type?.split('_').join(' ')) || 'Transaction',
     };
 }
 export async function fetchUserTransactions(userId, page = 0, pageSize = 20, filter = 'all') {
@@ -32,7 +32,7 @@ export async function fetchUserTransactions(userId, page = 0, pageSize = 20, fil
     const to = from + pageSize;
     let query = supabase
         .from('transactions')
-        .select('id, user_id, tuid, transaction_type, provider, amount, currency, status, user_message, created_at', { count: 'exact' })
+        .select('id, user_id, tuid, transaction_type, package_tier, provider, amount, currency, status, user_message, created_at', { count: 'exact' })
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .range(from, to);

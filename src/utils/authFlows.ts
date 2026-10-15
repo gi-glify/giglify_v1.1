@@ -8,7 +8,7 @@ export function getAuthCallbackPath(search: string, hash: string) {
 
   const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
   if (hashParams.get('type') === 'recovery') return '/auth?reset=1';
-  if (hashParams.get('type') === 'signup' && hashParams.has('access_token')) return '/dashboard';
+  if (hashParams.has('access_token') && hashParams.get('type') !== 'recovery') return '/dashboard';
   return null;
 }
 

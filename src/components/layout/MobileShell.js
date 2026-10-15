@@ -35,6 +35,8 @@ const DRAWER_LINKS = [
     { label: "Contact team", path: "/contact", icon: Mail },
     { label: "Privacy", path: "/about#privacy", icon: ShieldCheck },
     { label: "Data policy", path: "/about#data-policy", icon: FileText },
+    { label: "Refunds", path: "/about#refunds", icon: FileText },
+    { label: "Acceptable use", path: "/about#acceptable-use", icon: ShieldCheck },
     { label: "Terms", path: "/terms-of-use", icon: ExternalLink },
 ];
 export function MobileBottomNav({ onLogout }) {

@@ -8,14 +8,21 @@ import {
 
 test('sends signup confirmation back to the current app origin', () => {
   assert.equal(
-    getEmailRedirectUrl('https://giglify.co.ke', '/dashboard'),
-    'https://giglify.co.ke/dashboard',
+    getEmailRedirectUrl('https://giglify.co.ke', '/'),
+    'https://giglify.co.ke/',
   );
 });
 
 test('routes signup hash callbacks to the dashboard', () => {
   assert.equal(
     getAuthCallbackPath('', '#access_token=token&type=signup'),
+    '/dashboard',
+  );
+});
+
+test('routes social auth hash callbacks to the dashboard', () => {
+  assert.equal(
+    getAuthCallbackPath('', '#access_token=token&type=oauth'),
     '/dashboard',
   );
 });

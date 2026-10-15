@@ -43,7 +43,7 @@ function FormattedAssistantMessage({ content }) {
  */
 async function sendToAssistant(message, history) {
     const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: { message, history },
+        body: { message, history: history.slice(-12).map(({ role, content }) => ({ role, content: content.slice(0, 2000) })) },
     });
     if (error) {
         let detail = error.message;

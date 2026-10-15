@@ -8,6 +8,8 @@ export type PackagePaymentStart = {
     paymentAttemptId?: string;
     tier: PaidPackageTier;
     amount: number;
+    originalAmount?: number;
+    offerApplied?: boolean;
     currency: string;
     provider: PackagePaymentProvider;
     status: string;
@@ -56,6 +58,29 @@ export declare function startPackagePayment(input: {
     email?: string;
     phone?: string;
 }): Promise<PackagePaymentStart>;
+export type PackageCatalog = {
+    plans: Array<{
+        tier: 'free' | 'pro' | 'elite' | 'max';
+        priceUsd: number;
+        offerPriceUsd: number | null;
+        offerAvailable: boolean;
+        offerDiscountUsd: number;
+        originalPriceKes: number | null;
+        priceKes: number | null;
+        validityMonths: number | null;
+        tasksAllowed: number | null;
+        dailyTasksAllowed: number | null;
+        weeklyTasksAllowed: number | null;
+        maxTaskRewardUsd: number | null;
+        highPayingEligible: boolean;
+    }>;
+    verification: {
+        amountUsd: number;
+        amountKes: number;
+    };
+    expiryWarning: string | null;
+};
+export declare function fetchPackageCatalog(): Promise<PackageCatalog>;
 export declare function fetchPackagePaymentStatus(transactionId: string): Promise<{
     status: string;
     provider: PackagePaymentProvider;

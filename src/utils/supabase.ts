@@ -28,7 +28,7 @@ export const signUpWithEmail = async (email: string, password: string, firstName
     email,
     password,
     options: {
-      emailRedirectTo: getEmailRedirectUrl(window.location.origin, '/dashboard'),
+      emailRedirectTo: getEmailRedirectUrl(window.location.origin, '/'),
       data: {
         first_name: firstName,
         last_name: lastName,
@@ -42,13 +42,13 @@ export const resendSignupConfirmation = async (email: string) => {
   return supabase.auth.resend({
     type: 'signup',
     email,
-    options: { emailRedirectTo: getEmailRedirectUrl(window.location.origin, '/dashboard') },
+    options: { emailRedirectTo: getEmailRedirectUrl(window.location.origin, '/') },
   });
 };
 
 export const requestPasswordReset = async (email: string) => {
   return supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: getEmailRedirectUrl(window.location.origin, '/auth?reset=1'),
+    redirectTo: getEmailRedirectUrl(window.location.origin, '/?reset=1'),
   });
 };
 
@@ -68,7 +68,7 @@ export const signInWithSocial = async (provider: SocialProviderId) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`
+      redirectTo: `${window.location.origin}/`
     }
   });
   return { data, error };

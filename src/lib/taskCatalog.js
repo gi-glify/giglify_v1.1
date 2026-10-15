@@ -11,6 +11,7 @@ export function mapTaskRow(row) {
         ...(row.task_type ? { taskType: row.task_type } : {}),
         device: row.device,
         requiresDesktop: row.requires_desktop,
+        ...(row.minimum_tier ? { minimumTier: row.minimum_tier } : {}),
         status: 'available',
     };
 }

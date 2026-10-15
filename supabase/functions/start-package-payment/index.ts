@@ -22,13 +22,8 @@ function requiredEnv(name: string): string {
   return value;
 }
 
-function packageAmountKes(tier: string): number | undefined {
-  const configured = Deno.env.get(`DARAJA_${tier.toUpperCase()}_AMOUNT_KES`)
-    ?? Deno.env.get(`MPESA_${tier.toUpperCase()}_AMOUNT_KES`);
-  const fallback: Record<string, number> = { pro: 2489, elite: 6419, max: 12969 };
-  if (!configured) return fallback[tier];
-  const amount = Number(configured);
-  return Number.isSafeInteger(amount) && amount > 0 ? amount : fallback[tier];
+function packageAmountKes(priceUsd: number): number {
+  return Math.round(priceUsd * 131);
 }
 
 function parseBody(value: unknown): { transactionId: string; email?: string; phone?: string } {
@@ -122,7 +117,7 @@ Deno.serve(async (req) => {
       provider,
       tuid: transaction.tuid,
       amountUsd: Number(transaction.amount),
-      amountKes: provider === "mpesa" ? packageAmountKes(transaction.package_tier) : undefined,
+      amountKes: provider === "mpesa" ? packageAmountKes(Number(transaction.amount)) : undefined,
       email: email || user.email || "",
       phone,
       idempotencyKey: `${transaction.tuid}:${attempt.attempt_number}`,
@@ -134,7 +129,7 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
     const { data: claimed, error: processingAttemptError } = await db.from("payment_attempts").update({
       request_status: "processing",
-      expected_amount: provider === 'mpesa' ? Math.round(packageAmountKes(transaction.package_tier)!) : Number(transaction.amount),
+      expected_amount: provider === 'mpesa' ? packageAmountKes(Number(transaction.amount)) : Number(transaction.amount),
       expected_currency: provider === 'mpesa' ? 'KES' : transaction.currency,
       updated_at: now,
     }).eq("id", attempt.id).eq("request_status", "created").select('id').maybeSingle();

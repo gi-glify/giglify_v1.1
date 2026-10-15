@@ -6,16 +6,19 @@ test("exposes approved paid package display values", () => {
   assert.deepEqual(getPackageDisplay("pro"), {
     name: "Pro",
     priceUsd: 19,
+    offerPriceUsd: 3,
     validityLabel: "1 month",
   });
   assert.deepEqual(getPackageDisplay("elite"), {
     name: "Elite",
     priceUsd: 49,
+    offerPriceUsd: 7,
     validityLabel: "1 month",
   });
   assert.deepEqual(getPackageDisplay("max"), {
     name: "Max",
     priceUsd: 99,
+    offerPriceUsd: 10,
     validityLabel: "1 month",
   });
 });
