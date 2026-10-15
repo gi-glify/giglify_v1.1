@@ -25,10 +25,12 @@ export function getPaymentProgress(
   if (status === 'rejected' || status === 'refunded') {
     return {
       phase: 'failed',
-      label: status === 'refunded' ? 'Payment refunded' : 'Verification not approved',
-      description: 'Contact support for details before making another payment.',
+      label: status === 'refunded' ? 'Payment refunded' : kind === 'verification' ? 'Verification payment was not approved' : 'Payment was not approved',
+      description: kind === 'verification'
+        ? 'This verification attempt is closed. Review your payment details and start a new attempt.'
+        : 'This payment attempt is closed. Start a new attempt when you are ready.',
       terminal: true,
-      canRetry: false,
+      canRetry: true,
     };
   }
   if (status === 'failed' || status === 'expired') {

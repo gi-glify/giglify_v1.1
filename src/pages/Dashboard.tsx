@@ -75,7 +75,7 @@ export default function DashboardPage() {
                 <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-muted)' }}>
                   Total Earnings
                 </h3>
-                <p className="font-display text-3xl font-bold">${user?.balance || 0}.00</p>
+                <p className="font-display text-3xl font-bold">${(user?.balance ?? 0).toFixed(2)}</p>
                 <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>USD</p>
               </div>
 

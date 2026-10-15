@@ -12,6 +12,17 @@ export function getPaymentProgress(status, kind, provider) {
             canRetry: true,
         };
     }
+    if (status === 'rejected' || status === 'refunded') {
+        return {
+            phase: 'failed',
+            label: status === 'refunded' ? 'Payment refunded' : kind === 'verification' ? 'Verification payment was not approved' : 'Payment was not approved',
+            description: kind === 'verification'
+                ? 'This verification attempt is closed. Review your payment details and start a new attempt.'
+                : 'This payment attempt is closed. Start a new attempt when you are ready.',
+            terminal: true,
+            canRetry: true,
+        };
+    }
     if (status === 'cancelled') {
         return {
             phase: 'cancelled',
@@ -44,8 +55,8 @@ export function getPaymentProgress(status, kind, provider) {
             phase: 'awaiting_confirmation',
             label: provider === 'mpesa' ? 'Waiting for M-Pesa confirmation' : 'Waiting for provider confirmation',
             description: provider === 'mpesa'
-                ? 'Check your phone and approve the STK prompt. Your payment will update automatically after provider confirmation.'
-                : 'Complete the provider checkout. This page will update automatically after confirmation.',
+                ? 'Check your phone and approve the STK prompt. Do not submit another payment while this one is pending.'
+                : 'Complete the provider checkout. Do not start another payment while this one is pending.',
             terminal: false,
             canRetry: false,
         };

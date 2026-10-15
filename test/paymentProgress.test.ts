@@ -30,3 +30,9 @@ test("maps failed and completed provider statuses to terminal states", () => {
   assert.equal(isPaymentProgressTerminal("failed"), true);
   assert.equal(isPaymentProgressTerminal("processing"), false);
 });
+
+test("keeps rejected verification payments retryable", () => {
+  const progress = getPaymentProgress("rejected", "verification", "mpesa");
+  assert.equal(progress.phase, "failed");
+  assert.equal(progress.canRetry, true);
+});

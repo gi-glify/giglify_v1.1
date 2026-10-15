@@ -303,7 +303,7 @@ export default function DepositPage() {
     setVerificationPaymentStatus('');
     setCheckoutUrl('');
     setError('');
-    setMessage('Your previous attempt was not completed. Review the details and start a new verification payment.');
+    setMessage('Your previous attempt was not completed. Review the payment account and start a new verification payment.');
     setVerificationStep('payment');
   }
 
@@ -458,7 +458,6 @@ export default function DepositPage() {
       setVerificationPaymentStatus(result.status || 'pending');
       setMessage('Verification payment created. Complete the provider payment, then wait for admin approval.');
       setCheckoutUrl(result.checkoutUrl || '');
-      setAccountValue('');
       setVerificationStep('result');
     } catch (err) {
       setVerificationPaymentStatus('failed');
