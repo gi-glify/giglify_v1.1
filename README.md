@@ -36,7 +36,7 @@ PACKAGE_PAYMENT_CALLBACK_URL
 VERIFICATION_PAYMENT_CALLBACK_URL
 ```
 
-Current worker packages are one month each: Free is 4 tasks/month (one every 7 days, rewards under $5); Pro is normally $19, with a one-time launch offer of $3; Elite is normally $49, with a one-time launch offer of $7; and Max is normally $99, with a one-time launch offer of $10. After a user completes one paid package purchase, later package purchases use the regular price. M-Pesa package amounts use 131 KES/USD, so launch pricing is KES 393, KES 917, and KES 1,310. The payout-account activation fee is $5 (KES 655 at the configured 131 KES/USD rate), and the minimum withdrawal is $70.
+Current worker packages are one month each: Free is 4 tasks/month (one every 7 days, rewards under $5); Pro is normally $19, with a one-time launch offer of $5; Elite is normally $49, with a one-time launch offer of $7; and Max is normally $99, with a one-time launch offer of $15. After a user completes one paid package purchase, later package purchases use the regular price. M-Pesa package amounts use 131 KES/USD, so launch pricing is KES 655, KES 917, and KES 1,965. The payout-account activation fee is $5 (KES 655 at the configured 131 KES/USD rate), and the minimum withdrawal is $70.
 
 Paid package access receives an in-product and email warning during the 24 hours before expiry. The warning is idempotent and is issued when the signed-in user opens the app during that window. Written/short-answer submissions are graded by the server-side AI grading queue against the private task rubric; approved submissions notify the worker in-app and by email.
 

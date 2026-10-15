@@ -1,5 +1,6 @@
 import { requireAdmin } from "../_shared/auth.ts";
 import { errorResponse, json, options } from "../_shared/http.ts";
+import { summarizePayoutAccount } from "../_shared/finance.ts";
 
 function bounded(value: unknown, fallback = 50): number {
   const parsed = Number(value);
@@ -29,7 +30,40 @@ Deno.serve(async (req) => {
       if (status) query = query.eq("status", status);
       const { data, error, count } = await query;
       if (error) throw error;
-      return json({ queue, items: data ?? [], count: count ?? 0, limit, offset });
+      const rows = data ?? [];
+      const userIds = [...new Set(rows.map((row) => row.user_id))];
+      if (userIds.length === 0) return json({ queue, items: [], count: count ?? 0, limit, offset });
+      const [{ data: profiles, error: profilesError }, { data: wallets, error: walletsError }, { data: credits, error: creditsError }, { data: payouts, error: payoutsError }] = await Promise.all([
+        db.from("profiles").select("id, first_name, last_name").in("id", userIds),
+        db.from("wallets").select("user_id, balance").in("user_id", userIds),
+        db.from("task_submissions").select("user_id, reward_paid, reward_approved").in("user_id", userIds).eq("status", "approved"),
+        db.from("payout_requests").select("user_id, amount, status").in("user_id", userIds),
+      ]);
+      if (profilesError) throw profilesError;
+      if (walletsError) throw walletsError;
+      if (creditsError) throw creditsError;
+      if (payoutsError) throw payoutsError;
+      const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+      const walletMap = new Map((wallets ?? []).map((wallet) => [wallet.user_id, wallet.balance]));
+      return json({
+        queue,
+        items: rows.map((row) => {
+          const profile = profileMap.get(row.user_id);
+          const accounting = summarizePayoutAccount(row.user_id, {
+            walletBalance: walletMap.get(row.user_id) ?? 0,
+            credits: credits ?? [],
+            payouts: payouts ?? [],
+          });
+          return {
+            ...row,
+            worker_name: [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || "Unnamed worker",
+            ...accounting,
+          };
+        }),
+        count: count ?? 0,
+        limit,
+        offset,
+      });
     }
     let query = db.from("verification_deposits").select("id, user_id, payout_account_id, method, amount_usd, amount_kes, exchange_rate, provider_reference, status, created_at, verified_at", { count: "exact" }).order("created_at", { ascending: false }).range(offset, offset + limit - 1);
     if (status) query = query.eq("status", status);

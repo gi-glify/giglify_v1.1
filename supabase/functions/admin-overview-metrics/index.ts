@@ -13,7 +13,8 @@ Deno.serve(async (req) => {
       newUsers, activeUsers, tasksStarted, tasksSubmitted, tasksApproved, tasksRejected,
       pendingRequesterApplications, taskDraftsAwaitingReview, verificationDepositsAwaitingAction,
       payoutsAwaitingAction, openProfileAppeals, unreadContactMessages, gradingQueueDepth,
-      failedGradingJobs, rewardsApproved, rewardsPaid,
+      failedGradingJobs, rewardsApproved, rewardsPaid, packageRevenue, verificationDeposits,
+      taskCreditsApproved, payoutsRequestedAmount, payoutsPaidAmount,
     ] = await Promise.all([
       countRows(db, "profiles", "created_at", range),
       countRows(db, "profiles", "updated_at", range),
@@ -31,6 +32,14 @@ Deno.serve(async (req) => {
       countRows(db, "grading_jobs", "created_at", range, [{ column: "status", value: "failed" }]),
       sumRows(db, "task_submissions", "reward_approved", "started_at", range, [{ column: "status", value: "approved" }]),
       sumRows(db, "task_submissions", "reward_paid", "started_at", range),
+      sumRows(db, "transactions", "amount", "created_at", range, [
+        { column: "transaction_type", value: "package_purchase" },
+        { column: "status", value: ["success", "completed"] },
+      ]),
+      sumRows(db, "verification_deposits", "amount_usd", "created_at", range, [{ column: "status", value: ["held", "verified"] }]),
+      sumRows(db, "task_submissions", "reward_paid", "started_at", range, [{ column: "status", value: "approved" }]),
+      sumRows(db, "payout_requests", "amount", "created_at", range, [{ column: "status", value: ["requested", "under_review", "approved"] }]),
+      sumRows(db, "payout_requests", "amount", "created_at", range, [{ column: "status", value: "paid" }]),
     ]);
     return json({
       range,
@@ -51,6 +60,11 @@ Deno.serve(async (req) => {
       failedGradingJobs,
       rewardsApproved,
       rewardsPaid,
+      packageRevenue,
+      verificationDeposits,
+      taskCreditsApproved,
+      payoutsRequestedAmount,
+      payoutsPaidAmount,
     });
   } catch (error) {
     return errorResponse(error);

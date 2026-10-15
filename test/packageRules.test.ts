@@ -11,16 +11,16 @@ import {
 test("uses the approved package prices and periods", () => {
   assert.deepEqual(PACKAGE_PLANS, {
     free: { priceUsd: 0, offerPriceUsd: null, validityMonths: null, tasksAllowed: 4, dailyTasksAllowed: 1, weeklyTasksAllowed: 1, maxTaskRewardUsd: 4.99, highPayingEligible: false },
-    pro: { priceUsd: 19, offerPriceUsd: 3, validityMonths: 1, tasksAllowed: 30, dailyTasksAllowed: 1, weeklyTasksAllowed: null, maxTaskRewardUsd: 9.9, highPayingEligible: true },
+    pro: { priceUsd: 19, offerPriceUsd: 5, validityMonths: 1, tasksAllowed: 30, dailyTasksAllowed: 1, weeklyTasksAllowed: null, maxTaskRewardUsd: 9.9, highPayingEligible: true },
     elite: { priceUsd: 49, offerPriceUsd: 7, validityMonths: 1, tasksAllowed: 90, dailyTasksAllowed: 3, weeklyTasksAllowed: null, maxTaskRewardUsd: 20, highPayingEligible: true },
-    max: { priceUsd: 99, offerPriceUsd: 10, validityMonths: 1, tasksAllowed: null, dailyTasksAllowed: null, weeklyTasksAllowed: null, maxTaskRewardUsd: null, highPayingEligible: true },
+    max: { priceUsd: 99, offerPriceUsd: 15, validityMonths: 1, tasksAllowed: null, dailyTasksAllowed: null, weeklyTasksAllowed: null, maxTaskRewardUsd: null, highPayingEligible: true },
   });
 });
 
 test("uses the one-time offer only while the user is eligible", () => {
-  assert.equal(getPackagePayablePrice("pro", true), 3);
+  assert.equal(getPackagePayablePrice("pro", true), 5);
   assert.equal(getPackagePayablePrice("elite", true), 7);
-  assert.equal(getPackagePayablePrice("max", true), 10);
+  assert.equal(getPackagePayablePrice("max", true), 15);
   assert.equal(getPackagePayablePrice("pro", false), 19);
 });
 
