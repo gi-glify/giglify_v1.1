@@ -39,6 +39,8 @@ import { rememberRoute } from "./utils/routeMemory";
 import { getAuthCallbackPath } from "./utils/authFlows";
 import AOS from "aos";
 import LaunchOfferModal from "./components/marketing/LaunchOfferModal";
+import UnderDevelopmentPage from "./pages/UnderDevelopment";
+import { UNDER_DEVELOPMENT_MODE } from "./lib/underDevelopment";
 
 function RouteMemory({ user }: { user: boolean }) {
   const { pathname } = useLocation();
@@ -158,6 +160,8 @@ function App() {
           <Routes>
             <Route path="*" element={<AuthLoadingScreen />} />
           </Routes>
+        ) : user && UNDER_DEVELOPMENT_MODE ? (
+          <UnderDevelopmentPage />
         ) : (
           <Routes>
             {/* Public Routes */}
