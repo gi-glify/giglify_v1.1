@@ -60,6 +60,7 @@ export default function UnderDevelopmentPage() {
               </button>
               <span className="underdev-note"><Sparkles size={15} aria-hidden="true" /> Thanks for your patience.</span>
             </div>
+            <p className="underdev-owner-note"><strong>Site owner?</strong> If restoration is urgent, contact the developer directly to discuss expedited logistics. Under the agreed service terms, restoration timelines may depend on resolving outstanding payment or unanswered project communication.</p>
             {signOutError && <p className="underdev-error" role="alert">{signOutError}</p>}
           </div>
 

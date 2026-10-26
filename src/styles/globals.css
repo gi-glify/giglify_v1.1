@@ -92,6 +92,8 @@ html {
 .underdev-signout:hover:not(:disabled) { background: #ffc052; transform: translateY(-1px); }
 .underdev-signout:disabled { cursor: wait; opacity: .7; }
 .underdev-note { display: inline-flex; align-items: center; gap: 7px; color: #94a3b8; font-size: .82rem; }
+.underdev-owner-note { max-width: 620px; margin: 22px 0 0; padding: 13px 15px; border-left: 2px solid rgba(245, 166, 35, .7); color: #94a3b8; background: rgba(15, 23, 42, .48); font-size: .78rem; line-height: 1.65; }
+.underdev-owner-note strong { color: #fde7b0; }
 .underdev-error { margin-top: 14px; color: #fecaca; font-size: .82rem; }
 .underdev-visual { position: relative; min-height: 380px; display: grid; place-items: center; }
 .underdev-visual-glow { position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(245, 166, 35, .16); filter: blur(36px); }
