@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Activity, ArrowUpRight, CheckCircle2, Cog, LogOut, Sparkles, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
@@ -10,7 +10,38 @@ const milestones = [
   { label: "Giglify returns", detail: "Your tasks will be available again soon.", complete: false },
 ];
 
+const buildWords = ["upgrading", "rebuilding", "refining", "calibrating", "polishing"];
+
+function useTypewriter(words: string[]) {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [text, setText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const word = words[wordIndex];
+
+  useEffect(() => {
+    const delay = !deleting && text === word ? 3000 : deleting && text === "" ? 700 : deleting ? 140 : Math.round(3000 / word.length);
+    const timer = window.setTimeout(() => {
+      if (!deleting) {
+        const next = word.slice(0, text.length + 1);
+        setText(next);
+        if (next === word) setDeleting(true);
+      } else {
+        const next = text.slice(0, -1);
+        setText(next);
+        if (next === "") {
+          setDeleting(false);
+          setWordIndex((current) => (current + 1) % words.length);
+        }
+      }
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [deleting, text, word, words.length]);
+
+  return text;
+}
+
 export default function UnderDevelopmentPage() {
+  const headlineWord = useTypewriter(buildWords);
   const navigate = useNavigate();
   const setUser = useAuthStore((state) => state.setUser);
   const [signingOut, setSigningOut] = useState(false);
@@ -49,7 +80,7 @@ export default function UnderDevelopmentPage() {
         <section className="underdev-hero">
           <div className="underdev-copy" data-aos="fade-up">
             <div className="underdev-eyebrow"><Wrench size={15} aria-hidden="true" /> A better workspace is taking shape</div>
-            <h1>We’re upgrading Giglify.</h1>
+            <h1>We’re <span className="underdev-typewriter" aria-live="polite">{headlineWord}<span className="underdev-typewriter-caret" aria-hidden="true" /></span> Giglify.</h1>
             <p className="underdev-lead">
               We are making a few important changes behind the scenes. Your account is safe, and the full workspace will be back as soon as the upgrade is ready.
             </p>
@@ -77,7 +108,7 @@ export default function UnderDevelopmentPage() {
               <div className="underdev-console-title">Workspace upgrade</div>
               <div className="underdev-console-line"><span /><span /><span /></div>
               <div className="underdev-console-grid">
-                <div><small>MODE</small><strong>UPGRADING</strong></div>
+                <div><small>MODE</small><strong className="underdev-ticker-label"><span className="sr-only">Workspace upgrading</span><span className="underdev-ticker" aria-hidden="true"><span>upgrading</span><span>rebuilding</span><span>refining</span><span>calibrating</span><span>polishing</span><span>upgrading</span></span></strong></div>
                 <div><small>ACCESS</small><strong>SECURE</strong></div>
               </div>
               <div className="underdev-console-footer"><span className="underdev-live-dot" /> System status is being refreshed</div>
