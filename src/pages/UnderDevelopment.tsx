@@ -47,7 +47,7 @@ export default function UnderDevelopmentPage() {
         </header>
 
         <section className="underdev-hero">
-          <div className="underdev-copy">
+          <div className="underdev-copy" data-aos="fade-up">
             <div className="underdev-eyebrow"><Wrench size={15} aria-hidden="true" /> A better workspace is taking shape</div>
             <h1>We’re upgrading Giglify.</h1>
             <p className="underdev-lead">
@@ -64,7 +64,7 @@ export default function UnderDevelopmentPage() {
             {signOutError && <p className="underdev-error" role="alert">{signOutError}</p>}
           </div>
 
-          <div className="underdev-visual" aria-label="Giglify workspace upgrade status">
+          <div className="underdev-visual" aria-label="Giglify workspace upgrade status" data-aos="zoom-in" data-aos-delay="120">
             <div className="underdev-visual-glow" aria-hidden="true" />
             <div className="underdev-gear-system" aria-hidden="true">
               <Cog className="underdev-gear underdev-gear-large" size={190} strokeWidth={1} />
@@ -92,8 +92,8 @@ export default function UnderDevelopmentPage() {
             <p>We’ll keep the experience focused while the upgrade is underway.</p>
           </div>
           <div className="underdev-milestone-grid">
-            {milestones.map((milestone) => (
-              <article className="underdev-milestone" key={milestone.label}>
+            {milestones.map((milestone, index) => (
+              <article className="underdev-milestone" key={milestone.label} data-aos="fade-up" data-aos-delay={index * 90}>
                 <div className={milestone.complete ? "underdev-milestone-icon complete" : "underdev-milestone-icon"}>
                   <CheckCircle2 size={18} aria-hidden="true" />
                 </div>
