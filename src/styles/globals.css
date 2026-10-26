@@ -95,6 +95,13 @@ html {
 .underdev-error { margin-top: 14px; color: #fecaca; font-size: .82rem; }
 .underdev-visual { position: relative; min-height: 380px; display: grid; place-items: center; }
 .underdev-visual-glow { position: absolute; width: 300px; height: 300px; border-radius: 50%; background: rgba(245, 166, 35, .16); filter: blur(36px); }
+.underdev-gear-system { position: absolute; inset: 3% -4% 0; z-index: 0; pointer-events: none; }
+.underdev-gear { position: absolute; color: rgba(245, 166, 35, .42); filter: drop-shadow(0 0 16px rgba(245, 166, 35, .1)); }
+.underdev-gear-large { top: -4%; left: 5%; animation: underdevGearSpin 22s linear infinite; }
+.underdev-gear-mid { right: 2%; bottom: 2%; color: rgba(148, 163, 184, .38); animation: underdevGearSpinReverse 15s linear infinite; }
+.underdev-gear-small { top: 42%; right: 20%; color: rgba(245, 166, 35, .7); animation: underdevGearSpin 10s linear infinite; }
+.underdev-gear-core { position: absolute; top: 48%; right: 32%; width: 16px; height: 16px; border: 3px solid #f5a623; border-radius: 50%; background: #07111f; box-shadow: 0 0 0 7px rgba(245, 166, 35, .1), 0 0 24px rgba(245, 166, 35, .32); }
+.underdev-console-card, .underdev-visual-tag { z-index: 1; }
 .underdev-console-card { position: relative; width: min(100%, 420px); padding: 28px; border: 1px solid rgba(148, 163, 184, .25); border-radius: 24px; background: linear-gradient(145deg, rgba(30, 41, 59, .96), rgba(15, 23, 42, .92)); box-shadow: 0 32px 70px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .08); transform: rotate(3deg); }
 .underdev-console-topline, .underdev-console-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #94a3b8; font-size: .68rem; font-weight: 800; letter-spacing: .09em; }
 .underdev-console-topline svg { color: #f5a623; }
@@ -124,6 +131,8 @@ html {
 .underdev-orb { position: absolute; border-radius: 50%; pointer-events: none; }
 .underdev-orb-one { width: 380px; height: 380px; top: -230px; right: -100px; background: rgba(30, 64, 175, .15); filter: blur(2px); }
 .underdev-orb-two { width: 250px; height: 250px; bottom: 12%; left: -180px; background: rgba(245, 166, 35, .08); filter: blur(15px); }
+@keyframes underdevGearSpin { to { transform: rotate(360deg); } }
+@keyframes underdevGearSpinReverse { to { transform: rotate(-360deg); } }
 @media (max-width: 800px) {
   .underdev-hero { grid-template-columns: 1fr; padding: 60px 0 70px; }
   .underdev-visual { min-height: 330px; }
@@ -139,6 +148,7 @@ html {
 }
 @media (prefers-reduced-motion: reduce) {
   .underdev-console-card, .underdev-signout { transform: none; transition: none; }
+  .underdev-gear { animation: none; }
 }
 
 body {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, ArrowUpRight, CheckCircle2, LogOut, Sparkles, Wrench } from "lucide-react";
+import { Activity, ArrowUpRight, CheckCircle2, Cog, LogOut, Sparkles, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { signOut } from "../utils/supabase";
@@ -65,6 +65,12 @@ export default function UnderDevelopmentPage() {
 
           <div className="underdev-visual" aria-label="Giglify workspace upgrade status">
             <div className="underdev-visual-glow" aria-hidden="true" />
+            <div className="underdev-gear-system" aria-hidden="true">
+              <Cog className="underdev-gear underdev-gear-large" size={190} strokeWidth={1} />
+              <Cog className="underdev-gear underdev-gear-mid" size={125} strokeWidth={1.2} />
+              <Cog className="underdev-gear underdev-gear-small" size={78} strokeWidth={1.4} />
+              <span className="underdev-gear-core" />
+            </div>
             <div className="underdev-console-card">
               <div className="underdev-console-topline"><span>GIGLIFY / SYSTEM STATUS</span><Activity size={15} aria-hidden="true" /></div>
               <div className="underdev-console-title">Workspace upgrade</div>
