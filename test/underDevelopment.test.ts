@@ -11,9 +11,10 @@ test("under-development mode defaults on unless the value is exactly false", () 
   assert.equal(isUnderDevelopment("false"), false);
 });
 
-test("the main app gates the authenticated experience after auth loading", async () => {
+test("the main app uses under-development mode as the default for every route", async () => {
   const source = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   assert.match(source, /UNDER_DEVELOPMENT_MODE/);
   assert.match(source, /UnderDevelopmentPage/);
-  assert.match(source, /user && UNDER_DEVELOPMENT_MODE/);
+  assert.match(source, /UNDER_DEVELOPMENT_MODE \?/);
+  assert.doesNotMatch(source, /user && UNDER_DEVELOPMENT_MODE/);
 });

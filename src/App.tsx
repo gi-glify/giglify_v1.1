@@ -52,10 +52,6 @@ function RouteMemory({ user }: { user: boolean }) {
   return null;
 }
 
-function AuthLoadingScreen() {
-  return <div className="min-h-screen" style={{ background: "var(--bg)" }} />;
-}
-
 function AuthCallbackRedirect() {
   const navigate = useNavigate();
 
@@ -156,12 +152,12 @@ function App() {
         <PageMeta />
         <RouteMemory user={Boolean(user)} />
         <CookieBanner />
-        {loading ? (
-          <Routes>
-            <Route path="*" element={<AuthLoadingScreen />} />
-          </Routes>
-        ) : user && UNDER_DEVELOPMENT_MODE ? (
+        {UNDER_DEVELOPMENT_MODE ? (
           <UnderDevelopmentPage />
+        ) : loading ? (
+          <Routes>
+            <Route path="*" element={<div className="min-h-screen" style={{ background: "var(--bg)" }} />} />
+          </Routes>
         ) : (
           <Routes>
             {/* Public Routes */}
